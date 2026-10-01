@@ -15,9 +15,13 @@ BEGIN;
 
 -- Inserta solo el técnico demo ausente; el UNIQUE existente evita duplicarlo.
 -- Conserva credenciales previas para no modificar cuentas al repetir la carga.
-INSERT INTO public."Users" ("Username", "PasswordHash", "Name")
-VALUES ('tecnico1', 'AQAAAAIAAYagAAAAECG6+xJ1OmiicKseDoLWq//XHERs/rdTMrsLDXb0cG0M1yctPgH/ccHy5f0oMZfJOw==', 'Técnico Demo')
+INSERT INTO public."Users" ("Username", "PasswordHash", "Name", "RoleId", "IsActive")
+VALUES ('tecnico1', 'AQAAAAIAAYagAAAAECG6+xJ1OmiicKseDoLWq//XHERs/rdTMrsLDXb0cG0M1yctPgH/ccHy5f0oMZfJOw==', 'Técnico Demo', 2, 1)
 ON CONFLICT ("Username") DO NOTHING;
+
+-- Asigna explícitamente el rol técnico de la muestra existente sin cambiar password.
+-- Se conserva IsActive previo para no reactivar una cuenta desactivada deliberadamente.
+UPDATE public."Users" SET "RoleId" = 2 WHERE "Username" = 'tecnico1';
 
 -- Localiza sucursales por nombre y dirección sin imponer una nueva restricción.
 -- Las condiciones previenen duplicados al volver a ejecutar manualmente el bloque.
@@ -38,10 +42,11 @@ WHERE NOT EXISTS (
 -- Relaciona tickets con IDs generados y conserva los estados SQL ya aprobados.
 -- Fechas UTC fijas hacen la muestra fácil de explicar y reproducir sin reiniciarla.
 INSERT INTO public."Tickets"
-    ("BranchId", "TechnicianId", "Title", "Description", "Status", "CreatedAt", "UpdatedAt")
+    ("BranchId", "TechnicianId", "Title", "Description", "Status", "CreatedAt", "UpdatedAt", "ScheduledAt")
 SELECT b."Id", u."Id", 'Demo: revisión de equipo',
        'El equipo de la sucursal no inicia.', 'Pending',
-       TIMESTAMPTZ '2026-01-15 10:00:00+00', TIMESTAMPTZ '2026-01-15 10:00:00+00'
+       TIMESTAMPTZ '2026-01-15 10:00:00+00', TIMESTAMPTZ '2026-01-15 10:00:00+00',
+       TIMESTAMPTZ '2026-01-15 10:00:00+00'
 FROM public."Branches" b CROSS JOIN public."Users" u
 WHERE b."Name" = 'Sucursal Demo Centro' AND b."Address" = 'Calle Demo 10, Centro'
   AND u."Username" = 'tecnico1'
@@ -52,10 +57,11 @@ WHERE b."Name" = 'Sucursal Demo Centro' AND b."Address" = 'Calle Demo 10, Centro
   );
 
 INSERT INTO public."Tickets"
-    ("BranchId", "TechnicianId", "Title", "Description", "Status", "CreatedAt", "UpdatedAt")
+    ("BranchId", "TechnicianId", "Title", "Description", "Status", "CreatedAt", "UpdatedAt", "ScheduledAt")
 SELECT b."Id", u."Id", 'Demo: conexión intermitente',
        'La conexión del equipo se interrumpe ocasionalmente.', 'InProgress',
-       TIMESTAMPTZ '2026-01-15 11:00:00+00', TIMESTAMPTZ '2026-01-15 11:30:00+00'
+       TIMESTAMPTZ '2026-01-15 11:00:00+00', TIMESTAMPTZ '2026-01-15 11:30:00+00',
+       TIMESTAMPTZ '2026-01-15 11:00:00+00'
 FROM public."Branches" b CROSS JOIN public."Users" u
 WHERE b."Name" = 'Sucursal Demo Norte' AND b."Address" = 'Avenida Demo 20, Norte'
   AND u."Username" = 'tecnico1'
@@ -83,12 +89,14 @@ WHERE u."Username" = 'tecnico1' AND t."Title" = 'Demo: conexión intermitente'
 
 COMMIT;
 
-SELECT "Id", "Username", "Name" FROM public."Users" WHERE "Username" = 'tecnico1';
+SELECT "Id", "Username", "Name", "RoleId", "IsActive" FROM public."Users" WHERE "Username" = 'tecnico1';
 
-SELECT t."Id", t."Title", t."Status", b."Name" AS "Branch"
+SELECT t."Id", t."Title", t."Status", t."ScheduledAt", b."Name" AS "Branch"
 FROM public."Tickets" t
 JOIN public."Branches" b ON b."Id" = t."BranchId"
 JOIN public."Users" u ON u."Id" = t."TechnicianId"
 WHERE u."Username" = 'tecnico1' AND t."Title" IN
     ('Demo: revisión de equipo', 'Demo: conexión intermitente');
 ```
+
+La muestra requiere el esquema nuevo con Roles, RoleId, IsActive y ScheduledAt. Primero aplicar ACTUALIZACION_POSTGRESQL.md en una base existente, o DATABASE.md en una nueva. Roles base se instalan como referencias funcionales; este documento solo añade desarrollo/demo y asigna tecnico1 al rol 2. No ejecutar sobre producción.
