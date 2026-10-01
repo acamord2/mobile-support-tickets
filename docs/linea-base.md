@@ -1,3 +1,5 @@
+Nota: documento histórico. La nomenclatura y separación SQL actuales están en modularizacion.md.
+
 # Línea base definitiva
 
 Este reporte corresponde a la reorganización anterior. Los Controllers fueron

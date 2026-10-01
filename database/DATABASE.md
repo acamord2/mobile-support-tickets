@@ -1,6 +1,6 @@
 # Base de datos
 
-Esta es la fuente principal de la estructura PostgreSQL de la prueba. La BD se administra fuera de la API y se instala manualmente desde pgAdmin → Query Tool. La línea base contiene solo estructura, sin usuarios, sucursales, tickets ni evidencias precargados.
+Este documento contiene exclusivamente la estructura física principal de PostgreSQL. Las funciones, vistas, triggers y datos demo se documentan por separado. La BD se administra fuera de la API y se instala manualmente desde pgAdmin → Query Tool. La línea base contiene solo estructura, sin usuarios, sucursales, tickets ni evidencias precargados.
 
 ## Requisitos
 
@@ -75,7 +75,7 @@ COMMIT;
 
 ### Users
 
-Campos: Id, Username, PasswordHash y Name. Id es la PK int identity; las columnas son NOT NULL. Username es UNIQUE para identificar sin ambigüedad a un usuario. PasswordHash contendrá únicamente el hash estándar compatible con `PasswordHasher<User>` cuando se incorporen usuarios en una etapa posterior. No hay columna de contraseña en texto plano ni se precargan cuentas.
+Campos: Id, Username, PasswordHash y Name. Id es la PK int identity; las columnas son NOT NULL. Username es UNIQUE para identificar sin ambigüedad a un usuario. PasswordHash contendrá únicamente el hash estándar compatible con `PasswordHasher<Usuario>`; el usuario de desarrollo se prepara opcionalmente en DATOS_PRUEBA.md. No hay columna de contraseña en texto plano ni se precargan cuentas.
 
 ### Branches
 
@@ -108,32 +108,6 @@ Tickets.Id  → Evidences.TicketId
 
 Todas las relaciones permiten varios registros hijos y requieren un padre existente. Las PK y el UNIQUE de Username crean sus índices PostgreSQL correspondientes, además de los tres índices explícitos. TicketHistory no existe en la estructura aprobada y no se agrega aquí.
 
-## Functions / Stored Procedures
-
-Se conserva únicamente `public.get_user_by_username` como infraestructura existente. La implementación PostgreSQL del acceso a datos la invoca mediante un parámetro de EF Core; los controllers no conocen su SQL. No se agregan funciones de tickets ni procedimientos adicionales.
-
-Ejecutar sobre `tickets_db`:
-
-```sql
--- Obtiene la identidad y el hash interno de un usuario mediante su nombre exacto.
--- Encapsula la lectura en PostgreSQL para mantener el SQL específico fuera de los
--- controllers. El parámetro permite consultar sin construir SQL dinámico.
--- Es una función de lectura STABLE: no inserta usuarios ni modifica la estructura.
-CREATE OR REPLACE FUNCTION public.get_user_by_username(p_username varchar)
-RETURNS TABLE ("Id" integer, "Username" varchar, "PasswordHash" text, "Name" varchar)
-LANGUAGE sql
-STABLE
-AS $$
-    SELECT u."Id", u."Username", u."PasswordHash", u."Name"
-    FROM public."Users" AS u
-    WHERE u."Username" = p_username;
-$$;
-```
-
-## Views
-
-Actualmente no se requieren Views. Se agregarán cuando las consultas de negocio necesiten combinar información de múltiples tablas.
-
 ## Verificación manual sin datos de prueba
 
 Después de crear una base nueva con los bloques anteriores, estas consultas de lectura permiten comprobar las tablas y que están vacías:
@@ -154,6 +128,6 @@ El resultado esperado en una instalación nueva es cuatro tablas con cero filas.
 
 ## Configuración de la API
 
-Configurar ConnectionStrings:DefaultConnection en `api/appsettings.Development.json` para apuntar a la instalación preparada. La contraseña se establece según el servidor local; si exige contraseña, dejarla vacía produce un error de conexión normal.
+Configurar ConnectionStrings:DefaultConnection mediante .NET User Secrets en desarrollo, siguiendo README.md. No guardar la contraseña en appsettings versionados. Linux utilizaría la variable de entorno ConnectionStrings__DefaultConnection. La API no ejecuta archivos SQL de instalación, no crea estructura y no inserta datos demo.
 
-No modificar la autenticación del servidor para compensar un error de configuración de la API. En producción la ConnectionString debe protegerse mediante variables de entorno o un mecanismo de secretos; no se incorpora uno en esta línea base.
+Después de este documento, continuar con FUNCIONES_SP.md, VISTAS.md y TRIGGERS.md. DATOS_PRUEBA.md es opcional y exclusivo de desarrollo. Las verificaciones de cero filas se refieren a una instalación nueva sin datos demo.

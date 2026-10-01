@@ -1,3 +1,5 @@
+Nota: documento histórico. La nomenclatura y separación SQL actuales están en modularizacion.md.
+
 Nota: reporte histórico de una etapa anterior. Los nombres actuales y la configuración segura están en conexion-global.md.
 
 # Abstracción de conexiones

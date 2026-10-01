@@ -1,3 +1,5 @@
+Nota: documento histórico. La nomenclatura y separación SQL actuales están en modularizacion.md.
+
 # Conexión global, configuración local y versionado
 
 ## Puntos centrales
