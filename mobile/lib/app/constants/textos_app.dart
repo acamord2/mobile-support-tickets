@@ -15,6 +15,8 @@ abstract class TextosApp {
   static const autenticando = 'Iniciando sesión';
   static const bienvenida = 'Bienvenido';
   static const cerrarSesion = 'Cerrar sesión';
+  static const sinConexion = 'Sin conexión de red';
+  static const errorSqlite = 'No se pudo completar la operación local.';
   static const camposLoginRequeridos = 'Escribe tu usuario y contraseña.';
   static const datosLoginInvalidos =
       'Revisa los datos de usuario y contraseña.';
