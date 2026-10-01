@@ -2,7 +2,7 @@
 
 Repositorio público: [mobile-support-tickets](https://github.com/acamord2/mobile-support-tickets).
 
-Prueba técnica con login Flutter/GetX funcional, API ASP.NET Core .NET 10, JWT y PostgreSQL instalado manualmente. Flutter está organizado en módulos y dispone de infraestructura SQLite, cola local e indicador offline. La sesión vive solo en memoria; todavía no hay datos de Tickets ni sincronización de negocio.
+Prueba técnica con login Flutter/GetX funcional, API ASP.NET Core .NET 10, JWT y PostgreSQL instalado manualmente. Flutter está organizado en módulos y dispone de infraestructura SQLite, cola local e indicador offline. La sesión pública persiste en SQLite y el JWT en almacenamiento seguro; todavía no hay datos de Tickets ni sincronización de negocio.
 
 ## Estructura
 
@@ -19,6 +19,7 @@ mobile/
     app/services/      # sesión, conectividad y base de sincronización
     models/
     modules/
+      arranque/        # restauración mínima y resolución de ruta
       login/           # main_login.dart, controller, servicio y widgets_login
       home/            # main_home.dart, controller y widgets_home
     widgets/apartada/   # indicador transversal de desconexión
@@ -112,7 +113,7 @@ flutter pub get
 flutter run
 ```
 
-main.dart inicia GetMaterialApp con DependenciasApp y PaginasApp. La ruta inicial /login muestra VistaLogin. El éxito guarda la sesión en memoria y sustituye el historial por /inicio, que muestra el nombre del técnico. Cerrar sesión elimina usuario/token y sustituye el historial por un formulario vacío; el botón atrás no recupera la pantalla autenticada.
+main.dart inicia GetMaterialApp con DependenciasApp y PaginasApp. La ruta inicial /arranque restaura almacenamiento local antes de resolver /login o /inicio, sin mostrar Login fugazmente. El login guarda identidad pública en SQLite y JWT en almacenamiento seguro antes de mostrar Home. Cerrar sesión elimina usuario/token y sustituye el historial por un formulario vacío; el botón atrás no recupera la pantalla autenticada.
 
 Validaciones:
 
@@ -134,14 +135,13 @@ ConfiguracionApi centraliza la URL mediante API_BASE_URL. Android Emulator usa p
 flutter run --dart-define=API_BASE_URL=http://localhost:5263
 ```
 
-Para el dispositivo físico conectado por USB, ejecutar desde mobile/:
+Para el dispositivo físico en la misma LAN, configurar API_BASE_URL externamente y ejecutar desde mobile/ (PowerShell):
 
-```sh
-adb reverse tcp:5263 tcp:5263
-flutter run --dart-define=API_BASE_URL=http://127.0.0.1:5263
+```powershell
+flutter run "--dart-define=API_BASE_URL=$env:API_BASE_URL"
 ```
 
-La redirección USB permite alcanzar la API local. Sin ella, localhost identifica al teléfono. La API debe seguir ejecutándose y el dispositivo debe autorizar depuración USB. Para una red local, proporcionar una URL accesible y configurar el host de la API; ese acceso no se probó. HTTPS se selecciona mediante la misma variable.
+Ejecutar la API con el perfil lan y configurar API_BASE_URL como http://IP_DEL_EQUIPO:5263 fuera del repositorio. Este acceso fue validado manualmente sin USB. adb reverse puede utilizarse opcionalmente para localhost por USB, pero el APK LAN no lo necesita. HTTPS se selecciona mediante la misma variable para un servidor real.
 
 Android tiene permiso INTERNET. Solo el manifiesto debug permite HTTP sin cifrar para la API local; las compilaciones release conservan la restricción predeterminada y deben utilizar HTTPS. No se agregó una pantalla para probar conectividad.
 
@@ -159,7 +159,7 @@ Referencias de configuración: [red del emulador Android](https://developer.andr
 
 VistaLogin → ControladorLogin → ServicioAutenticacion → IConexionApi → Conexion → ClienteApi → POST /api/auth/login. La API reutiliza ServicioAutenticacion → IAccesoUsuarios → PostgreSQL. No se modificaron API ni database/ para esta etapa.
 
-Usuario contiene solo id, username y name. SesionUsuario contiene token e identidad; ResultadoAutenticacion entrega sesión o un mensaje controlado. ServicioSesion guarda ambos únicamente en memoria y los elimina al cerrar sesión. Reiniciar la app requiere autenticarse de nuevo. La contraseña no se conserva después del login y el JWT no se imprime ni aparece en las vistas.
+Usuario contiene solo id, username y name. SesionUsuario contiene token e identidad; ResultadoAutenticacion entrega sesión o un mensaje controlado. ServicioSesion persiste mediante RepositorioSesionLocal: identidad pública en SQLite y JWT en flutter_secure_storage. Reiniciar restaura Home, incluso offline o con JWT expirado; en ese caso se requiere reautenticación para futuros accesos remotos. La contraseña no se conserva después del login y el JWT no se imprime ni aparece en las vistas.
 
 La vista valida campos vacíos y oculta contraseña; durante la petición deshabilita campos/botón y muestra progreso. EstadoApi controla 200/400/401/500/503 y ausencia de respuesta. JSON inesperado y fallos de red producen mensajes públicos, sin cuerpos ni excepciones técnicas.
 
@@ -183,7 +183,7 @@ Home sigue disponible offline: IndicadorDesconexion aparece en la esquina superi
 
 ## Dependencias
 
-Flutter: GetX 4.7.3, http 1.6.0, Flutter Test y Flutter Lints 6.0.0. integration_test pertenece al SDK y se usa únicamente como dependencia de desarrollo para validar el dispositivo físico y capturar pantallas públicas.
+Flutter: GetX 4.7.3, http 1.6.0, flutter_secure_storage 11.2.0 para JWT, Flutter Test y Flutter Lints 6.0.0. integration_test pertenece al SDK y se usa únicamente como dependencia de desarrollo para validar el dispositivo físico y capturar pantallas públicas.
 
 Infraestructura local: sqflite 2.4.2+1, path 1.9.1 y connectivity_plus 6.1.5. Se conserva una versión de conectividad compatible con Gradle actual. Para pruebas normales de SQLite real se utiliza sqflite_common_ffi 2.3.7+1 únicamente en desarrollo, sin añadir FFI al código de ejecución Android. pubspec.lock fija las versiones resueltas.
 
@@ -197,9 +197,9 @@ El código específico de la solución se documenta en español: XML en C# y com
 
 Login consume la API existente como excepción explícita al flujo local-first. El negocio persistente futuro se leerá exclusivamente desde SQLite mediante repositorios; sincronización escribirá SQLite antes de refrescar UI. Las vistas/widgets no ejecutan HTTP, SQL, JSON, sincronización ni reglas de negocio.
 
-ConexionSqlite abre de forma diferida incidencias_tecnicas.db, versión 1, y crea solo cola_sincronizacion. OperacionesSqlite reutiliza CRUD parametrizado y transacciones. RepositorioCola administra pendientes, procesando, sincronizado y error. El payload es JSON sin credenciales; la sesión/token permanece en memoria. Una red disponible no garantiza API sana. El indicador offline consume ServicioConectividad y se oculta al tener red; ServicioSincronizacion únicamente lee cola y comprueba health cuando se solicita expresamente.
+ConexionSqlite abre de forma diferida incidencias_tecnicas.db, versión 2, con cola_sincronizacion y sesion_local. La migración v1 → v2 conserva la cola y sus registros. OperacionesSqlite reutiliza CRUD parametrizado y transacciones. RepositorioCola administra pendientes, procesando, sincronizado y error. El payload es JSON sin credenciales; la identidad persiste en SQLite y el token en almacenamiento seguro. Una red disponible no garantiza API sana. El indicador offline consume ServicioConectividad y se oculta al tener red; ServicioSincronizacion únicamente lee cola y comprueba health cuando se solicita expresamente.
 
-La cola funciona localmente, pero todavía no hay tablas/repositorios de Tickets, envío de pendientes, descarga de negocio, reintentos automáticos ni resolución de conflictos. No se implementan historial, fotografías o persistencia JWT. El diagrama, contratos de infraestructura y límites están en [arquitectura-local-first.md](docs/arquitectura-local-first.md).
+La cola funciona localmente, pero todavía no hay tablas/repositorios de Tickets, envío de pendientes, descarga de negocio, reintentos automáticos ni resolución de conflictos. No se implementan historial ni fotografías; JWT sí persiste en almacenamiento seguro. El diagrama, contratos de infraestructura y límites están en [arquitectura-local-first.md](docs/arquitectura-local-first.md).
 
 La línea base anterior está registrada en docs/linea-base.md. El estado posterior y las validaciones de infraestructura reutilizable están en docs/infraestructura.md. El README final se ampliará conforme avance el proyecto.
 
@@ -222,3 +222,9 @@ EF Core/ContextoBaseDatos no está registrado ni usado, no crea migraciones ni m
 ## Nomenclatura
 
 Las clases, interfaces y archivos propios se nombran en español; los tipos de frameworks, los entrypoints main.dart/Program.cs, propiedades de contratos JSON y los objetos SQL existentes conservan sus nombres. Ticket, Login, API, JWT y Bearer son términos técnicos deliberadamente conservados. El reporte de esta etapa y la tabla completa de renombres están en docs/modularizacion.md.
+
+## Sesión persistente y teléfono físico en LAN
+
+Ejecutar `dotnet run --launch-profile lan` desde api/ para escuchar en interfaces de desarrollo (HTTP 5263, Development). Compilar desde mobile/ con `flutter build apk --debug "--dart-define=API_BASE_URL=$env:API_BASE_URL"`, donde API_BASE_URL se configura externamente como `http://IP_DEL_EQUIPO:5263`. El teléfono y equipo deben compartir LAN. No requiere USB ni adb reverse; no usar localhost del teléfono para llegar al equipo. Producción necesita HTTPS y configuración propia.
+
+El arranque restaura Home sin API. JWT expirado o 401 conserva identidad y pendientes pero bloquea acceso remoto hasta nueva autenticación. Logout comprueba pendientes y borra solamente identidad/JWT; la autoría de futuras operaciones de Tickets sigue pendiente. Android deshabilita backup para evitar restauraciones de sesión y claves cifradas incompatibles tras reinstalación. Detalles, comandos, limitaciones y resultados: [sesion-persistente.md](docs/sesion-persistente.md).
