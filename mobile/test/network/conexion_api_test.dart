@@ -62,7 +62,7 @@ void main() {
     }
   });
   test(
-    'El binding resuelve el contrato y permite reconstruirlo tras liberarlo',
+    'El canal global sobrevive liberación de rutas y cierra al finalizar',
     () async {
       Get.put(crearSesionSimulada(), permanent: true);
       DependenciasApp().dependencies();
@@ -70,11 +70,11 @@ void main() {
       expect(first, isA<Conexion>());
       expect(Get.find<IConexionApi>(), same(first));
       await Get.delete<IConexionApi>();
-      expect((first as Conexion).isClosed, isTrue);
+      expect((first as Conexion).isClosed, isFalse);
       final second = Get.find<IConexionApi>();
-      expect(second, isA<Conexion>());
-      expect(second, isNot(same(first)));
-      await Get.delete<IConexionApi>();
+      expect(second, same(first));
+      await Get.delete<IConexionApi>(force: true);
+      expect(first.isClosed, isTrue);
     },
   );
 }

@@ -70,7 +70,7 @@ void main() {
       expect(await servicio.comprobarDisponibilidadApi(), isFalse);
       expect(peticiones, 2);
       final pendiente = OperacionesSqlite.exigir(
-        await servicio.consultarPendientes(),
+        await cola.obtenerPendientes(),
       ).single;
       expect(pendiente.estado, EstadoSincronizacion.pendiente);
       expect(pendiente.intentos, 0);

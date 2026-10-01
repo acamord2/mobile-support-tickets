@@ -58,6 +58,8 @@ void main() {
           'nombre',
           'autenticado_en',
           'expira_en',
+          'role_id',
+          'rol',
         ]),
       );
       expect(tokens.valor == original.token, isTrue);
@@ -180,7 +182,7 @@ void main() {
           (await nueva.ejecutar(
             (db) => db.rawQuery('PRAGMA user_version'),
           )).single['user_version'],
-          2,
+          3,
         );
         await primera.establecer(ejemplo());
         await nueva.cerrar();

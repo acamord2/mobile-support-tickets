@@ -1,3 +1,5 @@
+import 'package:get/get.dart';
+import 'package:tikets/modules/home/controlador_inicio.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:tikets/app/database/conexion_sqlite.dart';
 import 'package:tikets/app/database/operaciones_sqlite.dart';
@@ -39,7 +41,14 @@ class RepositorioSesionSimulado extends RepositorioSesionLocal {
     : super(
         OperacionesSqlite(ConexionSqlite(fabrica: databaseFactoryFfi)),
         TokenSimulado(),
+      ) {
+    if (!Get.isRegistered<ControladorInicio>()) {
+      Get.lazyPut(
+        () => ControladorInicio(Get.find<ServicioSesion>()),
+        fenix: true,
       );
+    }
+  }
 
   /// Conserva la sesión ficticia entre fachadas para simular reinicio del proceso.
   @override
