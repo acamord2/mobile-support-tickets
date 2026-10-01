@@ -1,5 +1,7 @@
 # Portabilidad y evolución controlada de base de datos
 
+Este documento conserva las decisiones de la etapa de portabilidad. La etapa posterior ya integra rol público, comprobación de usuario activo en /me y endpoints de tickets, SQLite v3 y agenda; su estado vigente se describe en [tickets-agenda.md](tickets-agenda.md). Las referencias siguientes a ampliaciones futuras corresponden a aquella etapa.
+
 PostgreSQL es el motor **actual, conectado y probado** de la API. SQL Server es el motor principal de la empresa y tiene scripts funcionalmente equivalentes preparados, pero **SQL Server documentado/no validado contra instancia real**. No se añadió Microsoft.Data.SqlClient, EF SQL Server, instancia nueva ni proveedores runtime.
 
 ## Documentos y orden

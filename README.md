@@ -2,7 +2,7 @@
 
 Repositorio público: [mobile-support-tickets](https://github.com/acamord2/mobile-support-tickets).
 
-Prueba técnica con login Flutter/GetX funcional, API ASP.NET Core .NET 10, JWT y PostgreSQL instalado manualmente. Flutter está organizado en módulos y dispone de infraestructura SQLite, cola local e indicador offline. La sesión pública persiste en SQLite y el JWT en almacenamiento seguro; todavía no hay datos de Tickets ni sincronización de negocio.
+Prueba técnica con login Flutter/GetX funcional, API ASP.NET Core .NET 10, JWT y PostgreSQL instalado manualmente. Flutter está organizado en módulos y dispone de infraestructura SQLite, cola local e indicador offline. La sesión pública persiste en SQLite y el JWT en almacenamiento seguro; Home muestra agenda desde SQLite, crea tickets offline y sincroniza tickets y evidencias con autoría e idempotencia.
 
 ## Estructura
 
@@ -60,13 +60,13 @@ Las vistas principales de cada módulo componen sus widgets internos. Ningún m�
 
 La instalación se realiza manualmente mediante pgAdmin Query Tool. La API no instala ni ejecuta automáticamente ninguno de estos documentos:
 
-1. [DATABASE.md](database/DATABASE.md): instalación PostgreSQL nueva completa con Roles, Users.RoleId/IsActive y Tickets.ScheduledAt. Para una base ya existente usar [ACTUALIZACION_POSTGRESQL.md](database/ACTUALIZACION_POSTGRESQL.md) y su orden transaccional, sin repetir el instalador.
+1. [DATABASE.md](database/DATABASE.md): instalación PostgreSQL nueva completa con Roles, Users.RoleId/IsActive y Tickets.ScheduledAt/ClientRequestId y Evidences.PhotoBase64. Para una base ya existente usar [ACTUALIZACION_POSTGRESQL.md](database/ACTUALIZACION_POSTGRESQL.md) y su orden transaccional, sin repetir el instalador.
 2. [FUNCIONES_SP.md](database/FUNCIONES_SP.md): instalar get_user_by_username.
 3. [VISTAS.md](database/VISTAS.md): actualmente no hay SQL que ejecutar.
 4. [TRIGGERS.md](database/TRIGGERS.md): actualmente no hay SQL que ejecutar.
 5. [DATOS_PRUEBA.md](database/DATOS_PRUEBA.md): carga opcional solo para desarrollo/demo.
 
-Para una BD funcional limpia, realizar los pasos 1–4, sin datos demo; Roles contiene las dos referencias funcionales necesarias. Los scripts nuevos están preparados y no se han aplicado sobre la base local. Para desarrollar con una muestra, ejecutar además el paso 5. Cada tipo de objeto tiene una sola fuente SQL documental.
+Para una BD funcional limpia, realizar los pasos 1–4, sin datos demo; Roles contiene las dos referencias funcionales necesarias. Las migraciones de estructura fueron aplicadas manualmente y confirmadas por el usuario. No repetirlas; la vista de agenda se instaló con autorización explícita. Para desarrollar con una muestra, ejecutar además el paso 5. Cada tipo de objeto tiene una sola fuente SQL documental.
 
 La muestra contiene un técnico, dos sucursales, dos tickets y una evidencia descriptiva. La cuenta pública demo está documentada en DATOS_PRUEBA.md. La tabla almacena únicamente el hash verificado por PasswordHasher<Usuario>. La carga se realiza manualmente; la API nunca instala ni inserta estos datos.
 
@@ -98,7 +98,7 @@ La autenticación existente usa JWT, PasswordHasher, DTOs, servicio y acceso de 
 
 La conexión se obtiene exclusivamente de ConnectionStrings:DefaultConnection. JWT conserva Issuer, Audience y ExpirationMinutes en appsettings.json; Key se obtiene de User Secrets en desarrollo. Ambas configuraciones pueden sobrescribirse mediante variables de entorno de ASP.NET Core. Fuera de Development debe proporcionarse la conexión correspondiente.
 
-Cada endpoint existente tiene su propio Controller. Login conserva ServicioAutenticacion compartido; Me lee la identidad del JWT; SaludBaseDatos utiliza IServicioSaludBaseDatos y CanConnectAsync sin consultar tablas. GET /api/health/database es anónimo y devuelve 200/connected o 503/unavailable, sin información sensible.
+Cada endpoint existente tiene su propio Controller. Login conserva ServicioAutenticacion compartido; Me comprueba identidad activa y rol público mediante IAccesoUsuarios; SaludBaseDatos utiliza IServicioSaludBaseDatos y CanConnectAsync sin consultar tablas. GET /api/health/database es anónimo y devuelve 200/connected o 503/unavailable, sin información sensible.
 
 PostgreSQL fue seleccionado para esta implementación. IAccesoUsuarios separa a la autenticación de AccesoUsuariosPostgres, de modo que otro proveedor relacional podría sustituirse adaptando el acceso y los objetos de BD sin cambiar el contrato HTTP. SQL Server se documenta para portabilidad; todavía no hay proveedor runtime conectado.
 
@@ -159,7 +159,7 @@ Referencias de configuración: [red del emulador Android](https://developer.andr
 
 VistaLogin → ControladorLogin → ServicioAutenticacion → IConexionApi → Conexion → ClienteApi → POST /api/auth/login. La API reutiliza ServicioAutenticacion → IAccesoUsuarios → PostgreSQL. No se modificaron API ni database/ para esta etapa.
 
-Usuario contiene solo id, username y name. SesionUsuario contiene token e identidad; ResultadoAutenticacion entrega sesión o un mensaje controlado. ServicioSesion persiste mediante RepositorioSesionLocal: identidad pública en SQLite y JWT en flutter_secure_storage. Reiniciar restaura Home, incluso offline o con JWT expirado; en ese caso se requiere reautenticación para futuros accesos remotos. La contraseña no se conserva después del login y el JWT no se imprime ni aparece en las vistas.
+Usuario contiene id, username, name y rol público (roleId/role), opcional para sesiones anteriores. SesionUsuario contiene token e identidad; ResultadoAutenticacion entrega sesión o un mensaje controlado. ServicioSesion persiste mediante RepositorioSesionLocal: identidad pública en SQLite y JWT en flutter_secure_storage. Reiniciar restaura Home, incluso offline o con JWT expirado; en ese caso se requiere reautenticación para futuros accesos remotos. La contraseña no se conserva después del login y el JWT no se imprime ni aparece en las vistas.
 
 La vista valida campos vacíos y oculta contraseña; durante la petición deshabilita campos/botón y muestra progreso. EstadoApi controla 200/400/401/500/503 y ausencia de respuesta. JSON inesperado y fallos de red producen mensajes públicos, sin cuerpos ni excepciones técnicas.
 
@@ -175,9 +175,9 @@ La integración Android comprueba login, identidad pública, historial y logout.
 
 ## Home principal
 
-Después del login, Home muestra el nombre de la aplicación, saludo y nombre público del técnico obtenido de ServicioSesion a través de ControladorInicio. main_home.dart compone CabeceraInicio, CuerpoInicio y PieInicio; TarjetaModulo reutiliza icono, título, descripción, acción y disponibilidad.
+Después del login, Home muestra Mi agenda, fecha, identidad, resumen real por estado y tickets programados. main_home.dart compone cabecera, resumen y tarjetas desde ControladorInicio, sin consultar API directamente.
 
-Los accesos Mis tickets y Sincronizar muestran **Todavía no disponible** y no ejecutan acciones. Todavía no existe Tickets ni sincronización de negocio; el health técnico no se presenta como una sincronización completa. No hay estadísticas, cifras ficticias ni rutas nuevas.
+Sincronizar ejecuta subida y descarga reales mediante ServicioSincronizacion. La acción + abre NuevoTicket; el formulario guarda primero SQLite y cola, incluso sin red. No hay datos ficticios ni catálogo de sucursales hardcodeado.
 
 Home sigue disponible offline: IndicadorDesconexion aparece en la esquina superior derecha cuando el servicio global confirma ausencia de red, sin bloquear o redirigir la pantalla. Cerrar sesión reutiliza la limpieza e historial existentes. El contenido tiene scroll, textos flexibles y semántica accesible para las tarjetas. Responsabilidad, estructura y pruebas: [docs/home.md](docs/home.md).
 
@@ -195,11 +195,11 @@ API: Npgsql.EntityFrameworkCore.PostgreSQL 10.0.3, Microsoft.AspNetCore.Authenti
 
 El código específico de la solución se documenta en español: XML en C# y comentarios /// en Dart, explicando intención, funcionamiento y decisión. Los documentos database/ separan estructura, datos y objetos SQL. El boilerplate de las plantillas no necesita comentarios añadidos.
 
-Login consume la API existente como excepción explícita al flujo local-first. El negocio persistente futuro se leerá exclusivamente desde SQLite mediante repositorios; sincronización escribirá SQLite antes de refrescar UI. Las vistas/widgets no ejecutan HTTP, SQL, JSON, sincronización ni reglas de negocio.
+Login consume la API existente como excepción explícita al flujo local-first. El negocio persistente se lee exclusivamente desde SQLite mediante repositorios; sincronización escribe SQLite antes de refrescar UI. Las vistas/widgets no ejecutan HTTP, SQL, JSON, sincronización ni reglas de negocio.
 
-ConexionSqlite abre de forma diferida incidencias_tecnicas.db, versión 2, con cola_sincronizacion y sesion_local. La migración v1 → v2 conserva la cola y sus registros. OperacionesSqlite reutiliza CRUD parametrizado y transacciones. RepositorioCola administra pendientes, procesando, sincronizado y error. El payload es JSON sin credenciales; la identidad persiste en SQLite y el token en almacenamiento seguro. Una red disponible no garantiza API sana. El indicador offline consume ServicioConectividad y se oculta al tener red; ServicioSincronizacion únicamente lee cola y comprueba health cuando se solicita expresamente.
+ConexionSqlite abre incidencias_tecnicas.db versión 3 y migra desde v2 conservando sesión/cola. Añade sucursales, tickets, evidencias y autoría. OperacionesSqlite mantiene SQL fuera de UI. JWT continúa en almacenamiento seguro. Sincronización escribe SQLite antes de refrescar agenda y distingue red disponible de API sana.
 
-La cola funciona localmente, pero todavía no hay tablas/repositorios de Tickets, envío de pendientes, descarga de negocio, reintentos automáticos ni resolución de conflictos. No se implementan historial ni fotografías; JWT sí persiste en almacenamiento seguro. El diagrama, contratos de infraestructura y límites están en [arquitectura-local-first.md](docs/arquitectura-local-first.md).
+La cola pertenece a usuario_id; logout conserva pendientes y otra cuenta no los procesa. Ticket conserva id_local, id_remoto nullable y client_request_id inmutable. Las descargas respetan pending. Fotografías se comprimen a JPEG antes de Base64. No hay resolución avanzada de conflictos ni polling. Detalles actuales: [tickets-agenda.md](docs/tickets-agenda.md) y [evidencias.md](docs/evidencias.md).
 
 La línea base anterior está registrada en docs/linea-base.md. El estado posterior y las validaciones de infraestructura reutilizable están en docs/infraestructura.md. El README final se ampliará conforme avance el proyecto.
 
@@ -227,7 +227,7 @@ Las clases, interfaces y archivos propios se nombran en español; los tipos de f
 
 Ejecutar `dotnet run --launch-profile lan` desde api/ para escuchar en interfaces de desarrollo (HTTP 5263, Development). Compilar desde mobile/ con `flutter build apk --debug "--dart-define=API_BASE_URL=$env:API_BASE_URL"`, donde API_BASE_URL se configura externamente como `http://IP_DEL_EQUIPO:5263`. El teléfono y equipo deben compartir LAN. No requiere USB ni adb reverse; no usar localhost del teléfono para llegar al equipo. Producción necesita HTTPS y configuración propia.
 
-El arranque restaura Home sin API. JWT expirado o 401 conserva identidad y pendientes pero bloquea acceso remoto hasta nueva autenticación. Logout comprueba pendientes y borra solamente identidad/JWT; la autoría de futuras operaciones de Tickets sigue pendiente. Android deshabilita backup para evitar restauraciones de sesión y claves cifradas incompatibles tras reinstalación. Detalles, comandos, limitaciones y resultados: [sesion-persistente.md](docs/sesion-persistente.md).
+El arranque restaura Home sin API. JWT expirado o 401 conserva identidad y pendientes pero bloquea acceso remoto hasta nueva autenticación. Logout comprueba pendientes y borra solamente identidad/JWT; cada operación de Tickets/evidencias conserva ahora su usuario propietario. Android deshabilita backup para evitar restauraciones de sesión y claves cifradas incompatibles tras reinstalación. Detalles, comandos, limitaciones y resultados: [sesion-persistente.md](docs/sesion-persistente.md).
 
 ## Bases de datos soportadas/documentadas
 
@@ -235,6 +235,16 @@ El arranque restaura Home sin API. JWT expirado o 401 conserva identidad y pendi
 
 **Documentada para portabilidad: SQL Server**, motor principal de la empresa. Los cinco documentos equivalentes de [database/sqlserver](database/sqlserver/DATABASE_SQLSERVER.md) permiten preparar una instalación nueva, la función equivalente mediante SP y datos demo separados. **SQL Server documentado/no validado contra instancia real**; no está conectado a la API ni se añadieron dependencias SqlClient/EF SQL Server.
 
-Roles tiene IDs funcionales 1 Administrador / 2 Técnico. Users añade RoleId e IsActive (0/1) y Tickets añade ScheduledAt independiente de creación/modificación. La función actualizada de PostgreSQL excluye cuentas inactivas una vez instalada, conservando el contrato de Login. El runtime sigue sin requerir las columnas nuevas antes de que confirmes la migración. La exposición del rol en DTO/sesión y las funciones de Tickets quedan para después de esa confirmación.
+Roles tiene IDs funcionales 1 Administrador / 2 Técnico. Users añade RoleId e IsActive (0/1) y Tickets añade ScheduledAt independiente de creación/modificación. La función actualizada de PostgreSQL excluye cuentas inactivas una vez instalada, conservando el contrato de Login. El runtime utiliza el esquema confirmado. Login y /me devuelven rol público sin hashes; SQLite persiste solo esa identidad. La agenda usa ScheduledAt; Tickets.ClientRequestId garantiza idempotencia y Evidences.PhotoBase64 conserva la fotografía comprimida completa.
 
 Orden para la base existente: revisar estructura → BEGIN/ALTER de ACTUALIZACION_POSTGRESQL.md → SQL canónico de FUNCIONES_SP.md en la misma conexión/transacción → verificaciones → COMMIT o ROLLBACK → DATOS_PRUEBA.md opcional. No ejecutar SQL Server en esta etapa. Equivalencias, límites de JWT/usuario inactivo y estrategia futura de SQLite: [portabilidad-base-datos.md](docs/portabilidad-base-datos.md).
+
+## Agenda y tickets implementados
+
+[docs/tickets-agenda.md](docs/tickets-agenda.md) documenta SQLite v3, creación offline, autoría, claves local/remota/UUID, subida/descarga, protección pending, endpoints separados, SQL y validaciones. [docs/evidencias.md](docs/evidencias.md) documenta cámara/galería, JPEG/Base64 y límites.
+
+Dependencias adicionales: image 4.10.1 e image_picker 1.2.1 (versiones resueltas en pubspec.lock). No se añadió provider SQL Server, arquitectura nueva ni almacenamiento externo.
+
+API nueva: GET/POST /api/tickets, PUT /api/tickets/{id}, GET /api/branches y POST /api/tickets/{id}/evidence. Todos requieren JWT y cuenta activa. Swagger presenta los endpoints aunque comparten ruta cuando el verbo cambia. La vista se instala manualmente desde database/VISTAS.md; OBJETOS_TICKETS_POSTGRESQL.md referencia esa única fuente. No hay funciones ni triggers nuevos.
+
+Validación: dotnet build sin errores/advertencias, flutter analyze sin incidencias, 68 pruebas Flutter correctas y 2 opt-in omitidas, APK normal debug compilado para LAN. API real: creación concurrente/reintento mantuvieron Ticket Id 3 y evidencia descriptiva Id 2; registros autorizados conservados. La prueba física inició sesión, encontró un fallo del canal HTTP corregido y su repetición quedó bloqueada por instalación USB; el ticket/foto adicional aún no se creó. flutter drive desinstaló automáticamente la app en el primer intento; no se garantiza conservación de datos locales anteriores. Los siguientes intentos deben usar --keep-app-running y reinstalar el APK normal. No se usaron emuladores. Detalles e incidentes: [tickets-agenda.md](docs/tickets-agenda.md). BD_COMPLETA_POSTGRESQL.md se conserva local, sin versionar ni actualizar automáticamente.

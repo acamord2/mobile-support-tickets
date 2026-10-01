@@ -1,5 +1,7 @@
 # Home principal de la aplicación
 
+Este documento conserva la etapa anterior de Home. La implementación vigente de Mi Agenda, SQLite v3 y sincronización se describe en [tickets-agenda.md](tickets-agenda.md).
+
 ## Responsabilidad y estructura
 
 Home es la pantalla principal después del login. Identifica al técnico, presenta accesos futuros y permite cerrar sesión, manteniéndose utilizable sin conexión. No ejecuta API, SQLite, sincronización, JSON o procesos de Tickets.
