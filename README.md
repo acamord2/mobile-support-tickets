@@ -2,7 +2,7 @@
 
 Repositorio público: [mobile-support-tickets](https://github.com/acamord2/mobile-support-tickets).
 
-Línea base para una prueba técnica: plantilla Flutter con GetX, API ASP.NET Core .NET 10, Swagger y definición manual de PostgreSQL externo. Los datos demo opcionales se entregan como SQL manual; no hay pantallas o endpoints de atención de incidencias.
+Prueba técnica con login Flutter/GetX funcional, API ASP.NET Core .NET 10, JWT, Swagger y PostgreSQL instalado manualmente. La sesión móvil vive solo en memoria; tickets y funcionamiento offline todavía no están implementados.
 
 ## Estructura
 
@@ -19,7 +19,8 @@ mobile/
     models/
     controllers/
     services/
-    views/vista_inicial.dart
+    views/vista_login.dart
+    views/vista_inicio.dart
     widgets/
   test/
 api/
@@ -45,7 +46,7 @@ docs/
   linea-base.md
 ```
 
-Las carpetas Flutter de modelos, controllers, servicios y base local todavía no tienen implementación. El código nativo generado por Flutter permanece en mobile. No se agregan capas adicionales.
+Flutter contiene modelos, controllers y servicios de autenticación. La carpeta de base local continúa reservada para una etapa posterior. El código nativo generado por Flutter permanece en mobile. No se agregan capas adicionales.
 
 ## Requisitos
 
@@ -66,7 +67,7 @@ La instalación se realiza manualmente mediante pgAdmin Query Tool. La API no in
 
 Para una BD funcional limpia, realizar los pasos 1–4, sin datos demo. Para desarrollar con una muestra, ejecutar además el paso 5. Cada tipo de objeto tiene una sola fuente SQL documental.
 
-La muestra contiene un técnico, dos sucursales, dos tickets y una evidencia descriptiva. Usuario público demo: tecnico1; contraseña de desarrollo: Demo123*. La tabla almacena únicamente el hash verificado por PasswordHasher<Usuario>. No usar esta cuenta o contraseña en producción. Esta etapa documenta la carga y no la ejecuta sobre la base local.
+La muestra contiene un técnico, dos sucursales, dos tickets y una evidencia descriptiva. La cuenta pública demo está documentada en DATOS_PRUEBA.md. La tabla almacena únicamente el hash verificado por PasswordHasher<Usuario>. La carga se realiza manualmente; la API nunca instala ni inserta estos datos.
 
 ## Configurar y ejecutar la API
 
@@ -92,7 +93,7 @@ dotnet run --launch-profile http
 
 Abrir [Swagger](http://localhost:5263/swagger). Se mantienen los perfiles originales: HTTP 5263 y HTTPS 7127. Swagger solo se habilita en Development y puede cargar sin usuarios o sin una conexión de BD disponible, porque el arranque no consulta PostgreSQL.
 
-Se conserva la infraestructura de autenticación existente (JWT, PasswordHasher, DTOs, servicio y acceso de usuarios) sin ampliarla ni crear cuentas automáticamente. Swagger muestra los endpoints anteriores; la cuenta demo puede cargarse manualmente siguiendo DATOS_PRUEBA.md; no se requiere comprobar un login exitoso en esta reorganización. Flutter no tiene login funcional.
+La autenticación existente usa JWT, PasswordHasher, DTOs, servicio y acceso de usuarios, sin crear cuentas automáticamente. Con los datos demo cargados manualmente, POST /api/auth/login devuelve token e identidad pública; GET /api/auth/me requiere Bearer. Swagger permite comprobar login correcto (200), contraseña incorrecta (401), campos vacíos (400) e identidad autenticada (200).
 
 La conexión se obtiene exclusivamente de ConnectionStrings:DefaultConnection. JWT conserva Issuer, Audience y ExpirationMinutes en appsettings.json; Key se obtiene de User Secrets en desarrollo. Ambas configuraciones pueden sobrescribirse mediante variables de entorno de ASP.NET Core. Fuera de Development debe proporcionarse la conexión correspondiente.
 
@@ -111,7 +112,7 @@ flutter pub get
 flutter run
 ```
 
-main.dart inicia GetMaterialApp utilizando PaginasApp. Rutas centraliza el único nombre de ruta y PaginasApp lo relaciona con VistaInicial. No hay rutas de pantallas futuras ni navegación funcional adicional.
+main.dart inicia GetMaterialApp con DependenciasApp y PaginasApp. La ruta inicial /login muestra VistaLogin. El éxito guarda la sesión en memoria y sustituye el historial por /inicio, que muestra el nombre del técnico. Cerrar sesión elimina usuario/token y sustituye el historial por un formulario vacío; el botón atrás no recupera la pantalla autenticada.
 
 Validaciones:
 
@@ -133,7 +134,14 @@ ConfiguracionApi centraliza la URL mediante API_BASE_URL. Android Emulator usa p
 flutter run --dart-define=API_BASE_URL=http://localhost:5263
 ```
 
-Para un dispositivo físico, proporcionar en API_BASE_URL una URL de la API accesible desde su red. No usar localhost, que en ese caso identifica al propio teléfono. No se configuró acceso por LAN ni se probó un dispositivo físico.
+Para el dispositivo físico conectado por USB, ejecutar desde mobile/:
+
+```sh
+adb reverse tcp:5263 tcp:5263
+flutter run --dart-define=API_BASE_URL=http://127.0.0.1:5263
+```
+
+La redirección USB permite alcanzar la API local. Sin ella, localhost identifica al teléfono. La API debe seguir ejecutándose y el dispositivo debe autorizar depuración USB. Para una red local, proporcionar una URL accesible y configurar el host de la API; ese acceso no se probó. HTTPS se selecciona mediante la misma variable.
 
 Android tiene permiso INTERNET. Solo el manifiesto debug permite HTTP sin cifrar para la API local; las compilaciones release conservan la restricción predeterminada y deben utilizar HTTPS. No se agregó una pantalla para probar conectividad.
 
@@ -143,13 +151,31 @@ La suite habitual usa MockClient (incluido en http). La prueba real es opt-in y 
 flutter test test/network/cliente_api_real_test.dart --dart-define=RUN_API_TEST=true --dart-define=API_BASE_URL=http://localhost:5263
 ```
 
-TextosApp, ColoresApp y FuentesApp centralizan únicamente los textos y estilos utilizados por la plantilla y sus mensajes HTTP. Las rutas GetX permanecen separadas de las rutas de la API.
+TextosApp, ColoresApp y FuentesApp centralizan los textos y estilos utilizados por login, bienvenida y errores. Las rutas GetX permanecen separadas de las rutas de la API.
 
 Referencias de configuración: [red del emulador Android](https://developer.android.com/studio/run/emulator-networking-address), [tráfico HTTP en Android](https://developer.android.com/guide/topics/manifest/application-element#usesCleartextTraffic) y [cliente http de Dart](https://pub.dev/packages/http).
 
-## Dependencias existentes
+## Flujo de autenticación y pruebas
 
-Flutter: GetX 4.7.3, http 1.6.0, Flutter Test y Flutter Lints 6.0.0.
+VistaLogin → ControladorLogin → ServicioAutenticacion → IConexionApi → Conexion → ClienteApi → POST /api/auth/login. La API reutiliza ServicioAutenticacion → IAccesoUsuarios → PostgreSQL. No se modificaron API ni database/ para esta etapa.
+
+Usuario contiene solo id, username y name. SesionUsuario contiene token e identidad; ResultadoAutenticacion entrega sesión o un mensaje controlado. ServicioSesion guarda ambos únicamente en memoria y los elimina al cerrar sesión. Reiniciar la app requiere autenticarse de nuevo. La contraseña no se conserva después del login y el JWT no se imprime ni aparece en las vistas.
+
+La vista valida campos vacíos y oculta contraseña; durante la petición deshabilita campos/botón y muestra progreso. EstadoApi controla 200/400/401/500/503 y ausencia de respuesta. JSON inesperado y fallos de red producen mensajes públicos, sin cuerpos ni excepciones técnicas.
+
+Prueba manual: cargar DATOS_PRUEBA.md, iniciar API y Flutter, introducir su cuenta demo, comprobar bienvenida y cerrar sesión. Las pruebas aisladas usan IConexionApi simulado. Las pruebas reales reciben credenciales externamente: en PowerShell, asignar DEMO_USERNAME y DEMO_PASSWORD desde DATOS_PRUEBA.md sin incorporarlas al código.
+
+```powershell
+flutter test test/auth/autenticacion_real_test.dart --dart-define=RUN_AUTH_TEST=true --dart-define=API_BASE_URL=http://localhost:5263 "--dart-define=DEMO_USERNAME=$env:DEMO_USERNAME" "--dart-define=DEMO_PASSWORD=$env:DEMO_PASSWORD"
+adb reverse tcp:5263 tcp:5263
+flutter drive --driver=test_driver/prueba_autenticacion.dart --target=integration_test/login_real_test.dart -d ID_DISPOSITIVO --dart-define=API_BASE_URL=http://127.0.0.1:5263 "--dart-define=DEMO_USERNAME=$env:DEMO_USERNAME" "--dart-define=DEMO_PASSWORD=$env:DEMO_PASSWORD"
+```
+
+La integración Android comprueba login, identidad pública, historial y logout. Las capturas quedan en build/pruebas-integracion, excluidas de Git. Los dart-define de credenciales se utilizan solo para la ejecución de pruebas; el APK normal se compila sin ellos. El reporte está en [docs/autenticacion.md](docs/autenticacion.md).
+
+## Paquetes
+
+Flutter: GetX 4.7.3, http 1.6.0, Flutter Test y Flutter Lints 6.0.0. integration_test pertenece al SDK y se usa únicamente como dependencia de desarrollo para validar el dispositivo físico y capturar pantallas públicas.
 
 API: Npgsql.EntityFrameworkCore.PostgreSQL 10.0.3, Microsoft.AspNetCore.Authentication.JwtBearer 10.0.12 y Swashbuckle.AspNetCore 10.2.3. EF Core y Npgsql son dependencias transitivas; PasswordHasher proviene del framework ASP.NET Core.
 
@@ -157,7 +183,7 @@ API: Npgsql.EntityFrameworkCore.PostgreSQL 10.0.3, Microsoft.AspNetCore.Authenti
 
 El código específico de la solución se documenta en español: XML en C# y comentarios /// en Dart, explicando intención, funcionamiento y decisión. Los documentos database/ separan estructura, datos y objetos SQL. El boilerplate de las plantillas no necesita comentarios añadidos.
 
-No se implementan login Flutter, tickets, historial, SQLite, fotografías ni sincronización. ClienteApi está preparado y probado con health, pero ninguna pantalla consume la API todavía. La base local futura contendrá únicamente datos necesarios para offline y tendrá su propia abstracción; sus controllers no accederán directamente a SQLite. Estas decisiones todavía no constituyen funcionalidades.
+Login consume la API existente. No se implementan tickets, historial, SQLite, fotografías, sincronización ni persistencia del token. La base local futura contendrá únicamente datos necesarios para offline y tendrá su propia abstracción; sus controllers no accederán directamente a SQLite.
 
 La línea base anterior está registrada en docs/linea-base.md. El estado posterior y las validaciones de infraestructura reutilizable están en docs/infraestructura.md. El README final se ampliará conforme avance el proyecto.
 
