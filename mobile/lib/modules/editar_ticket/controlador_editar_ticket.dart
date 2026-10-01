@@ -1,3 +1,4 @@
+import '../../app/services/servicio_sincronizacion.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../app/constants/textos_app.dart';
@@ -29,7 +30,7 @@ class ControladorEditarTicket extends GetxController {
     try {
       final usuario = sesion.usuario?.id;
       final t = usuario == null ? null : await tickets.obtener(id, usuario);
-      if (t == null || t.estado == 'Resolved') {
+      if (t == null || sesion.usuario?.roleId == 4 || t.estado == 'Resolved') {
         error.value = TextosApp.ticketNoDisponible;
         return;
       }
@@ -96,6 +97,7 @@ class ControladorEditarTicket extends GetxController {
       final usuario = sesion.usuario?.id;
       final t = usuario == null ? null : await tickets.obtener(_id!, usuario);
       if (t == null ||
+          sesion.usuario?.roleId == 4 ||
           t.estado == 'Resolved' ||
           sesion.usuario?.id != usuario) {
         error.value = TextosApp.ticketNoDisponible;
@@ -111,6 +113,9 @@ class ControladorEditarTicket extends GetxController {
         autorNombre: sesion.usuario!.name,
       );
       if (volver) Get.back(result: true);
+      if (Get.isRegistered<ServicioSincronizacion>()) {
+        Get.find<ServicioSincronizacion>().solicitarAutomatica();
+      }
       return true;
     } catch (_) {
       error.value = TextosApp.errorSqlite;

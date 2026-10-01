@@ -1,4 +1,6 @@
+import '../../app/services/servicio_sincronizacion.dart';
 import 'dart:async';
+import '../../app/database/repositorio_coordinacion.dart';
 import 'package:get/get.dart';
 import '../../app/constants/textos_app.dart';
 import '../../app/database/repositorio_tickets.dart';
@@ -21,6 +23,48 @@ class ControladorDetalleTicket extends GetxController {
   final seguimientos = <Map<String, Object?>>[].obs;
   final evidenciasDisponibles = <Map<String, Object?>>[].obs;
   final ticket = Rxn<TicketLocal>();
+  final tecnicos = <Map<String, Object?>>[].obs;
+  final tecnicoSeleccionado = Rxn<int>();
+  Worker? _estadoSync;
+  int get rol => _sesion.usuario?.roleId ?? 2;
+  bool get tecnicoAutorizado =>
+      rol == 1 || (rol == 2 && ticket.value?.tecnicoId == _sesion.usuario?.id);
+  bool get puedeAsignar =>
+      (rol == 1 || rol == 3) &&
+      ticket.value != null &&
+      ticket.value!.estado != 'Resolved';
+
+  /// Persiste asignación y evento antes de pedir sincronización oportunista, sin esperar API.
+  Future<void> asignar() async {
+    final actual = ticket.value, usuario = _sesion.usuario;
+    if (!puedeAsignar ||
+        guardando.value ||
+        actual == null ||
+        usuario == null ||
+        tecnicoSeleccionado.value == null) {
+      return;
+    }
+    guardando.value = true;
+    error.value = '';
+    try {
+      await RepositorioCoordinacion(_tickets.sql).asignar(
+        actual.idLocal,
+        usuario.id,
+        rol,
+        tecnicoSeleccionado.value!,
+        usuario.name,
+      );
+      await cargar(actual.idLocal);
+      if (Get.isRegistered<ServicioSincronizacion>()) {
+        Get.find<ServicioSincronizacion>().solicitarAutomatica();
+      }
+    } catch (_) {
+      error.value = TextosApp.errorAsignacion;
+    } finally {
+      guardando.value = false;
+    }
+  }
+
   final sucursal = Rxn<SucursalLocal>();
   final cargando = false.obs;
   final guardando = false.obs;
@@ -36,6 +80,17 @@ class ControladorDetalleTicket extends GetxController {
   @override
   void onReady() {
     super.onReady();
+    if (Get.isRegistered<ServicioSincronizacion>()) {
+      _estadoSync = ever(Get.find<ServicioSincronizacion>().estado, (
+        EstadoSincronizacionActual estado,
+      ) {
+        if (estado != EstadoSincronizacionActual.sincronizando &&
+            _id != null &&
+            !isClosed) {
+          unawaited(cargar(_id!));
+        }
+      });
+    }
     final argumento = Get.arguments;
     if (argumento is int && argumento > 0) {
       unawaited(cargar(argumento));
@@ -61,6 +116,15 @@ class ControladorDetalleTicket extends GetxController {
       final fotos = await _evidencias.listar(id, usuario);
       if (isClosed || _sesion.usuario?.id != usuario) return;
       ticket.value = local;
+      if (rol == 1 || rol == 3) {
+        tecnicos.assignAll(
+          await RepositorioCoordinacion(_tickets.sql).listar(usuario),
+        );
+        tecnicoSeleccionado.value =
+            tecnicos.any((t) => t['id'] == local.tecnicoId)
+            ? local.tecnicoId
+            : null;
+      }
       seguimientos.assignAll(registros);
       evidenciasDisponibles.assignAll(
         fotos.where(
@@ -86,10 +150,12 @@ class ControladorDetalleTicket extends GetxController {
   }
 
   /// Deriva textos públicos y disponibilidad de la única transición autorizada.
-  bool get puedeComenzar => ticket.value?.estado == 'Pending';
+  bool get puedeComenzar =>
+      tecnicoAutorizado && ticket.value?.estado == 'Pending';
   bool get puedeEditar =>
-      ticket.value != null && ticket.value!.estado != 'Resolved';
-  bool get puedeSeguir => ticket.value?.estado == 'InProgress';
+      rol != 4 && ticket.value != null && ticket.value!.estado != 'Resolved';
+  bool get puedeSeguir =>
+      tecnicoAutorizado && ticket.value?.estado == 'InProgress';
 
   /// Abre formularios por Id local y recarga SQLite al regresar, sin sincronizar.
   Future<void> editar() async {
@@ -139,11 +205,20 @@ class ControladorDetalleTicket extends GetxController {
         autorNombre: _sesion.usuario!.name,
       );
       await cargar(id);
+      if (Get.isRegistered<ServicioSincronizacion>()) {
+        Get.find<ServicioSincronizacion>().solicitarAutomatica();
+      }
     } catch (_) {
       if (!isClosed) error.value = TextosApp.errorResolver;
     } finally {
       if (!isClosed) guardando.value = false;
     }
+  }
+
+  @override
+  void onClose() {
+    _estadoSync?.dispose();
+    super.onClose();
   }
 
   String get estadoTexto => switch (ticket.value?.estado) {
@@ -178,6 +253,9 @@ class ControladorDetalleTicket extends GetxController {
         );
       }
       await cargar(id);
+      if (Get.isRegistered<ServicioSincronizacion>()) {
+        Get.find<ServicioSincronizacion>().solicitarAutomatica();
+      }
     } catch (_) {
       if (!isClosed) error.value = TextosApp.errorComenzarAtencion;
     } finally {

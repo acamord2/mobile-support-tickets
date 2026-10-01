@@ -1,3 +1,4 @@
+import '../../app/services/servicio_sincronizacion.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
@@ -69,6 +70,8 @@ class ControladorSeguimiento extends GetxController {
           ? null
           : await tickets.obtener(idTicket!, usuario);
       if (t == null ||
+          !((sesion.usuario?.roleId ?? 2) == 1 ||
+              ((sesion.usuario?.roleId ?? 2) == 2 && t.tecnicoId == usuario)) ||
           t.estado != 'InProgress' ||
           sesion.usuario?.id != usuario) {
         error.value = TextosApp.ticketNoDisponible;
@@ -83,6 +86,9 @@ class ControladorSeguimiento extends GetxController {
         mime: foto.value?.mime,
       );
       if (volver) Get.back(result: true);
+      if (Get.isRegistered<ServicioSincronizacion>()) {
+        Get.find<ServicioSincronizacion>().solicitarAutomatica();
+      }
       return true;
     } catch (_) {
       error.value = TextosApp.errorSeguimiento;

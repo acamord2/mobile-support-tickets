@@ -5,7 +5,9 @@ enum TipoEventoTicket {
   reprogramado('REPROGRAMADO'),
   enAtencion('EN_ATENCION'),
   seguimiento('SEGUIMIENTO'),
-  resuelto('RESUELTO');
+  resuelto('RESUELTO'),
+  asignado('ASIGNADO'),
+  reasignado('REASIGNADO');
 
   final String clave;
   const TipoEventoTicket(this.clave);

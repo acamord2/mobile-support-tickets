@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:get/get.dart';
+import '../database/repositorio_coordinacion.dart';
 import '../database/repositorio_cola.dart';
 import '../database/repositorio_tickets.dart';
 import '../database/repositorio_sucursales.dart';
@@ -38,6 +40,7 @@ class ServicioSincronizacion extends GetxService {
   final apiDisponible = Rxn<bool>();
   final estado = EstadoSincronizacionActual.inactivo.obs;
   Future<void>? _ciclo;
+  bool _otroIntento = false;
   ServicioSincronizacion(
     this._conectividad,
     this._api,
@@ -73,7 +76,24 @@ class ServicioSincronizacion extends GetxService {
 
   /// Comparte el ciclo activo para impedir dos envíos concurrentes desde botones/eventos.
   Future<void> sincronizar() =>
-      _ciclo ??= _ejecutar().whenComplete(() => _ciclo = null);
+      _ciclo ??= _drenar().whenComplete(() => _ciclo = null);
+
+  /// Solicita envío posterior al commit y actualización local de UI, sin esperar red ni duplicar ciclos.
+  void solicitarAutomatica() {
+    if (_ciclo != null) _otroIntento = true;
+    unawaited(sincronizar());
+  }
+
+  /// Procesa una nueva acción llegada durante el ciclo anterior sin polling ni reintentos infinitos.
+  Future<void> _drenar() async {
+    do {
+      _otroIntento = false;
+      await _ejecutar();
+    } while (_otroIntento &&
+        puedeIntentarEnvio &&
+        estado.value != EstadoSincronizacionActual.error &&
+        estado.value != EstadoSincronizacionActual.reautenticacion);
+  }
 
   /// Valida sesión antes y después de cada espera; un cambio de cuenta corta el ciclo.
   Future<void> _ejecutar() async {
@@ -108,7 +128,8 @@ class ServicioSincronizacion extends GetxService {
         if (p.usuarioId != usuario) continue;
         if (p.recurso != 'tickets' &&
             p.recurso != 'evidencias' &&
-            p.recurso != 'eventos') {
+            p.recurso != 'eventos' &&
+            p.recurso != 'asignaciones') {
           estado.value = EstadoSincronizacionActual.pendientes;
           continue;
         }
@@ -116,7 +137,18 @@ class ServicioSincronizacion extends GetxService {
         try {
           RespuestaApi r;
           final local = p.payload['id_local'] as int;
-          if (p.recurso == 'tickets') {
+          if (p.recurso == 'asignaciones') {
+            final t = await tickets!.obtener(local, usuario);
+            if (t?.idRemoto == null) {
+              OperacionesSqlite.exigir(await _cola.devolverPendiente(p.id));
+              continue;
+            }
+            r = await _api.put(
+              RutasApi.asignacion(t!.idRemoto!),
+              token: token,
+              payload: {'technicianId': p.payload['tecnico_id']},
+            );
+          } else if (p.recurso == 'tickets') {
             final t = await tickets!.obtener(local, usuario);
             if (t == null) throw StateError('Ticket local ausente.');
             if (p.operacion == TipoOperacionLocal.actualizar &&
@@ -125,10 +157,12 @@ class ServicioSincronizacion extends GetxService {
                 '${RutasApi.tickets}/${t.idRemoto}',
                 token: token,
                 payload: {
-                  'title': t.titulo,
-                  'description': t.descripcion,
-                  'status': t.estado,
-                  'scheduledAt': t.programado.toUtc().toIso8601String(),
+                  'title': p.payload['title'] ?? t.titulo,
+                  'description': p.payload['description'] ?? t.descripcion,
+                  'status': p.payload['status'] ?? t.estado,
+                  'scheduledAt':
+                      p.payload['scheduledAt'] ??
+                      t.programado.toUtc().toIso8601String(),
                 },
               );
             } else {
@@ -212,7 +246,7 @@ class ServicioSincronizacion extends GetxService {
             return;
           }
           final remoto = (r.data as Map)['id'] as int;
-          if (p.recurso == 'tickets') {
+          if (p.recurso == 'tickets' || p.recurso == 'asignaciones') {
             await tickets!.confirmar(local, remoto, usuario, p.id);
           } else if (p.recurso == 'evidencias') {
             await evidencias!.confirmar(local, remoto, usuario, p.id);
@@ -235,7 +269,20 @@ class ServicioSincronizacion extends GetxService {
       final agenda = await _api.get(RutasApi.tickets, token: token);
       if (!await _validarDescarga(agenda)) return;
       if (!vigente()) return;
-      await tickets!.descargar(usuario, agenda.data as List);
+      final rol = _sesion.usuario?.roleId ?? 2;
+      final coordinacion = RepositorioCoordinacion(tickets!.sql);
+      if (rol == 1 || rol == 3) {
+        final equipo = await _api.get(RutasApi.tecnicos, token: token);
+        if (!await _validarDescarga(equipo) || !vigente()) return;
+        await coordinacion.guardar(usuario, equipo.data as List);
+      }
+      final equipo = await coordinacion.listar(usuario);
+      await tickets!.descargar(
+        usuario,
+        agenda.data as List,
+        rol: rol,
+        tecnicos: equipo.map((t) => t['id'] as int).toSet(),
+      );
       final locales = await tickets!.agenda(usuario);
       for (final dato in agenda.data as List) {
         if (!vigente()) return;

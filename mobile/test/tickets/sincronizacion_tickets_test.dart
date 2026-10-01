@@ -120,7 +120,25 @@ void main() {
               200,
             );
           }
-          if (req.url.path == '/api/tickets') return http.Response('[]', 200);
+          if (req.url.path == '/api/tickets') {
+            final locales = await tickets.agenda(1);
+            return http.Response(
+              jsonEncode(
+                locales
+                    .map(
+                      (t) => {
+                        ...t.paraCrear(),
+                        'id': 105,
+                        'technicianId': 1,
+                        'reporterUserId': 1,
+                        'status': t.estado,
+                      },
+                    )
+                    .toList(),
+              ),
+              200,
+            );
+          }
           return http.Response('{}', 500);
         }),
       ),

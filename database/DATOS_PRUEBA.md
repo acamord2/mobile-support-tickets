@@ -117,3 +117,19 @@ WHERE u."Username" = 'admin1';
 ```
 
 Validación local: admin1 fue creado con Id 3, RoleId 1 e IsActive 1; el reintento insertó cero filas. Login y /me devolvieron 200 y rol Administrador sin PasswordHash. El formulario Flutter existente se probó contra la API real en el runner de widgets (conectividad e identidad de UI simuladas); ServicioSesion y el repositorio real conservaron RoleId/rol al cerrar y reabrir un archivo SQLite FFI separado. No se realizó instalación/prueba física ni se agregaron funcionalidades administrativas. dotnet build: cero errores/advertencias; flutter analyze sin incidencias; flutter test: 68 aprobadas y 2 optativas omitidas; prueba adicional de Login/persistencia: 1 aprobada. Runtime sin cambios; documentación del código revisada.
+
+# Coordinador y usuario demo para el cierre de roles
+
+Credenciales de desarrollo: **coordinador1 / Demo123*** y **usuario1 / Demo123***.
+
+Se recrean únicamente estos usuarios y la relación del Coordinador con tecnico1. Las contraseñas se almacenan exclusivamente como hashes de PasswordHasher<Usuario>; no se modifican usuarios existentes.
+
+## SQL de coordinación demo
+
+```sql
+BEGIN;
+INSERT INTO public."Users" ("Username","PasswordHash","Name","RoleId","IsActive") VALUES ('coordinador1','AQAAAAIAAYagAAAAEOta4mF6bd6171x0kNvQDdv1IPpQLEvPQtsMNeEOV8pwT2FXiYxnx/9JnW47DZgvKA==','Coordinador Demo',3,1) ON CONFLICT ("Username") DO NOTHING;
+INSERT INTO public."Users" ("Username","PasswordHash","Name","RoleId","IsActive") VALUES ('usuario1','AQAAAAIAAYagAAAAEOeDSYFHkV03LJfqaJbnl7QgLUWNGjnUqn9YgxEynuoGTJ5eZCYyIMjeJyrsWEASag==','Usuario Demo',4,1) ON CONFLICT ("Username") DO NOTHING;
+INSERT INTO public."CoordinatorTechnicians" ("CoordinatorUserId","TechnicianUserId") SELECT c."Id",t."Id" FROM public."Users" c CROSS JOIN public."Users" t WHERE c."Username"='coordinador1' AND c."RoleId"=3 AND c."IsActive"=1 AND t."Username"='tecnico1' AND t."RoleId"=2 AND t."IsActive"=1 ON CONFLICT DO NOTHING;
+COMMIT;
+```

@@ -26,6 +26,8 @@ class SeguimientoTicket extends StatelessWidget {
       TipoEventoTicket.enAtencion.clave: TextosApp.eventoEnAtencion,
       TipoEventoTicket.seguimiento.clave: TextosApp.seguimiento,
       TipoEventoTicket.resuelto.clave: TextosApp.eventoResuelto,
+      TipoEventoTicket.asignado.clave: TextosApp.eventoAsignado,
+      TipoEventoTicket.reasignado.clave: TextosApp.eventoReasignado,
     };
     return etiquetas[tipo] ?? tipo;
   }

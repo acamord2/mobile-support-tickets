@@ -24,11 +24,13 @@ class VistaInicio extends GetView<ControladorInicio> {
     );
     return Scaffold(
       backgroundColor: ColoresApp.background,
-      floatingActionButton: FloatingActionButton(
-        onPressed: controller.nuevo,
-        tooltip: TextosApp.nuevoTicket,
-        child: const Icon(Icons.add),
-      ),
+      floatingActionButton: controller.puedeCrear
+          ? FloatingActionButton(
+              onPressed: controller.nuevo,
+              tooltip: TextosApp.nuevoTicket,
+              child: const Icon(Icons.add),
+            )
+          : null,
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -46,16 +48,80 @@ class VistaInicio extends GetView<ControladorInicio> {
                     ),
                   ),
                 Obx(
-                  () => FiltrosAgenda(
-                    conteos: Map.of(controller.conteos),
-                    seleccionados: controller.filtrosSeleccionados.toSet(),
-                    alSeleccionar: controller.alternarFiltro,
+                  () => Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (controller.mostrarEquipo) ...[
+                        Text(
+                          controller.rol == 1
+                              ? TextosApp.tecnicos
+                              : TextosApp.tecnicosACargo,
+                          style: FuentesApp.tituloTarjeta,
+                        ),
+                        OutlinedButton(
+                          onPressed: () => controller.seleccionarTecnico(
+                            null,
+                            noAsignados: true,
+                          ),
+                          child: const Text(TextosApp.ticketsSinAsignar),
+                        ),
+                        if (controller.rol == 1)
+                          OutlinedButton(
+                            onPressed: () => controller.seleccionarTecnico(
+                              null,
+                              global: true,
+                            ),
+                            child: const Text(TextosApp.todosLosTickets),
+                          ),
+                        for (final tecnico in controller.tecnicos)
+                          Card(
+                            child: ListTile(
+                              title: Text(tecnico['nombre'] as String),
+                              subtitle: Text(
+                                controller.resumenTecnico(tecnico['id'] as int),
+                              ),
+                              onTap: () => controller.seleccionarTecnico(
+                                tecnico['id'] as int,
+                              ),
+                            ),
+                          ),
+                      ] else ...[
+                        if (controller.esCoordinacion)
+                          TextButton.icon(
+                            onPressed: () =>
+                                controller.seleccionarTecnico(null),
+                            icon: const Icon(Icons.arrow_back),
+                            label: const Text(TextosApp.volverAlEquipo),
+                          ),
+                        if (controller.rol == 4)
+                          const Text(
+                            TextosApp.misReportes,
+                            style: FuentesApp.tituloTarjeta,
+                          ),
+                      ],
+                    ],
                   ),
+                ),
+                Obx(
+                  () => controller.mostrarEquipo
+                      ? const SizedBox.shrink()
+                      : FiltrosAgenda(
+                          conteos: Map.of(controller.conteos),
+                          seleccionados: controller.filtrosSeleccionados
+                              .toSet(),
+                          alSeleccionar: controller.alternarFiltro,
+                        ),
                 ),
                 const SizedBox(height: 12),
                 const Divider(),
                 const SizedBox(height: 12),
                 Obx(() {
+                  if (controller.mostrarEquipo) {
+                    return Text(
+                      controller.estadoTexto,
+                      style: FuentesApp.estadoModulo,
+                    );
+                  }
                   final visibles = controller.ticketsVisibles;
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,

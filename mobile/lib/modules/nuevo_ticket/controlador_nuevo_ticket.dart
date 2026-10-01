@@ -1,3 +1,4 @@
+import '../../app/services/servicio_sincronizacion.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
@@ -91,6 +92,10 @@ class ControladorNuevoTicket extends GetxController {
   /// Valida campos y persiste localmente antes de volver; permite crear sin JWT vigente.
   Future<void> guardar() async {
     if (ocupado.value) return;
+    if (sesion.usuario?.roleId == 3) {
+      error.value = TextosApp.ticketNoDisponible;
+      return;
+    }
     if (sesion.usuario == null ||
         sucursal.value == null ||
         titulo.text.trim().isEmpty ||
@@ -109,8 +114,12 @@ class ControladorNuevoTicket extends GetxController {
         programado.value,
         foto.value,
         autorNombre: sesion.usuario!.name,
+        rol: sesion.usuario!.roleId ?? 2,
       );
       Get.back(result: true);
+      if (Get.isRegistered<ServicioSincronizacion>()) {
+        Get.find<ServicioSincronizacion>().solicitarAutomatica();
+      }
     } catch (_) {
       error.value = TextosApp.errorSqlite;
     } finally {

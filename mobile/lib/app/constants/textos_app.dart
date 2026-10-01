@@ -2,6 +2,20 @@
 /// Permite reutilizar mensajes sin duplicarlos ni anticipar textos de pantallas
 /// futuras; los errores técnicos no se muestran mediante excepciones sin procesar.
 abstract class TextosApp {
+  static const tecnicos = 'Técnicos';
+  static const tecnicosACargo = 'Técnicos a mi cargo';
+  static const ticketsSinAsignar = 'Tickets sin asignar';
+  static const todosLosTickets = 'Todos los tickets';
+  static const volverAlEquipo = 'Volver al equipo';
+  static const misReportes = 'Mis reportes';
+  static const ticketSinAsignar = 'Sin técnico asignado';
+  static const tecnicoAsignado = 'Técnico asignado';
+  static const seleccionarTecnico = 'Seleccionar técnico';
+  static const asignarTecnico = 'Asignar técnico';
+  static const reasignarTecnico = 'Reasignar técnico';
+  static const errorAsignacion = 'No se pudo guardar la asignación.';
+  static const eventoAsignado = 'Ticket asignado';
+  static const eventoReasignado = 'Ticket reasignado';
   static const evidenciasDisponibles = 'Evidencias disponibles';
   static const quitarFoto = 'Quitar foto';
   static const previewFoto = 'Previsualización de la fotografía';

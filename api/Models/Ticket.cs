@@ -9,7 +9,8 @@ public class Ticket
 {
     public int Id { get; set; }
     public int BranchId { get; set; }
-    public int TechnicianId { get; set; }
+    public int? TechnicianId { get; set; }
+    public int? ReporterUserId { get; set; }
     public string Title { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public EstadoTicket Status { get; set; }

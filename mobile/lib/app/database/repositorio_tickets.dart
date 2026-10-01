@@ -17,7 +17,7 @@ class RepositorioTickets {
       OperacionesSqlite.exigir(
         await sql.seleccionar(
           'tickets',
-          donde: 'usuario_id = ?',
+          donde: 'usuario_id = ? AND visible = 1',
           argumentos: [usuario],
           orden: 'scheduled_at, created_at, id_local',
         ),
@@ -28,7 +28,7 @@ class RepositorioTickets {
     final filas = OperacionesSqlite.exigir(
       await sql.seleccionar(
         'tickets',
-        donde: 'id_local = ? AND usuario_id = ?',
+        donde: 'id_local = ? AND usuario_id = ? AND visible = 1',
         argumentos: [id, usuario],
       ),
     );
@@ -53,6 +53,7 @@ class RepositorioTickets {
     required DateTime programado,
     Map<String, Object?>? evidencia,
     String? autorNombre,
+    int rol = 2,
   }) async {
     return OperacionesSqlite.exigir(
       await sql.transaccion((tx) async {
@@ -60,6 +61,8 @@ class RepositorioTickets {
         final id = OperacionesSqlite.exigir(
           await tx.insertar('tickets', {
             'usuario_id': usuario,
+            'reportante_id': usuario,
+            'tecnico_id': rol == 2 ? usuario : null,
             'sucursal_id': sucursal,
             'titulo': titulo.trim(),
             'descripcion': descripcion.trim(),
@@ -203,7 +206,13 @@ class RepositorioTickets {
             usuarioId: usuario,
             recurso: 'tickets',
             operacion: TipoOperacionLocal.actualizar,
-            payload: {'id_local': id},
+            payload: {
+              'id_local': id,
+              'title': titulo.trim(),
+              'description': descripcion.trim(),
+              'status': estado,
+              'scheduledAt': programado.toUtc().toIso8601String(),
+            },
           ),
         );
       }),
@@ -226,7 +235,7 @@ class RepositorioTickets {
         final pendiente = otros.any(
           (p) =>
               p.id != operacion &&
-              p.recurso == 'tickets' &&
+              (p.recurso == 'tickets' || p.recurso == 'asignaciones') &&
               p.payload['id_local'] == local,
         );
         final n = OperacionesSqlite.exigir(
@@ -249,11 +258,42 @@ class RepositorioTickets {
   }
 
   /// Guarda descargas sin sobrescribir pending; reconcilia claves locales antes de insertar.
-  Future<void> descargar(int usuario, List<dynamic> remotos) async {
+  Future<void> descargar(
+    int usuario,
+    List<dynamic> remotos, {
+    int rol = 2,
+    Set<int> tecnicos = const {},
+  }) async {
     OperacionesSqlite.exigir(
       await sql.transaccion((tx) async {
+        final visibles = remotos.map((r) => r['id'] as int).toSet();
+        final anteriores = OperacionesSqlite.exigir(
+          await tx.seleccionar(
+            'tickets',
+            donde: 'usuario_id = ?',
+            argumentos: [usuario],
+          ),
+        );
+        for (final fila in anteriores) {
+          if (fila['id_remoto'] != null &&
+              fila['sync_status'] == 'synced' &&
+              !visibles.contains(fila['id_remoto'])) {
+            OperacionesSqlite.exigir(
+              await tx.actualizar(
+                'tickets',
+                {'visible': 0},
+                donde: 'id_local = ?',
+                argumentos: [fila['id_local']],
+              ),
+            );
+          }
+        }
         for (final r in remotos) {
-          if (r['technicianId'] != usuario) {
+          if ((rol == 2 && r['technicianId'] != usuario) ||
+              (rol == 4 && r['reporterUserId'] != usuario) ||
+              (rol == 3 &&
+                  r['technicianId'] != null &&
+                  !tecnicos.contains(r['technicianId']))) {
             throw const FormatException('Autoría inválida.');
           }
           final filas = OperacionesSqlite.exigir(
@@ -271,6 +311,9 @@ class RepositorioTickets {
             'id_remoto': r['id'] as int,
             'client_request_id': r['clientRequestId'] as String?,
             'usuario_id': usuario,
+            'reportante_id': r['reporterUserId'] as int?,
+            'tecnico_id': r['technicianId'] as int?,
+            'visible': 1,
             'sucursal_id': r['branchId'] as int,
             'titulo': r['title'] as String,
             'descripcion': r['description'] as String,

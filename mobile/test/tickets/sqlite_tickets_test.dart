@@ -227,7 +227,7 @@ void main() {
           (await nueva.ejecutar(
             (db) => db.rawQuery('PRAGMA user_version'),
           )).single['user_version'],
-          4,
+          5,
         );
       } finally {
         await nueva.cerrar();

@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../../app/database/repositorio_coordinacion.dart';
 import 'filtro_agenda.dart';
 import 'package:get/get.dart';
 import '../../app/routes/rutas.dart';
@@ -21,6 +22,58 @@ class ControladorInicio extends GetxController {
   final ServicioSincronizacion? sincronizacion;
   final ServicioConectividad? conectividad;
   final agenda = <TicketLocal>[].obs;
+  final tecnicos = <Map<String, Object?>>[].obs;
+  final tecnicoSeleccionado = Rxn<int>();
+  final sinAsignar = false.obs;
+  final todos = false.obs;
+  Worker? _estadoSync;
+  int get rol => usuario?.roleId ?? 2;
+  bool get esCoordinacion => rol == 1 || rol == 3;
+  bool get puedeCrear => rol == 1 || rol == 2 || rol == 4;
+  bool get mostrarEquipo =>
+      tecnicoSeleccionado.value == null &&
+      !sinAsignar.value &&
+      !todos.value &&
+      esCoordinacion;
+  List<TicketLocal> get alcance {
+    if (!esCoordinacion) return agenda.toList();
+    if (sinAsignar.value) {
+      return agenda.where((t) => t.tecnicoId == null).toList();
+    }
+    if (tecnicoSeleccionado.value != null) {
+      return agenda
+          .where((t) => t.tecnicoId == tecnicoSeleccionado.value)
+          .toList();
+    }
+    return agenda.toList();
+  }
+
+  /// Selecciona alcance local sin descargar datos ni perder los filtros existentes.
+  void seleccionarTecnico(
+    int? id, {
+    bool noAsignados = false,
+    bool global = false,
+  }) {
+    tecnicoSeleccionado.value = id;
+    sinAsignar.value = noAsignados;
+    todos.value = global;
+    actualizarConteos();
+  }
+
+  /// Calcula conteos del alcance elegido; los filtros no cambian los totales.
+  void actualizarConteos() {
+    final resumen = {'Pending': 0, 'InProgress': 0, 'Resolved': 0};
+    for (final t in alcance) {
+      resumen[t.estado] = resumen[t.estado]! + 1;
+    }
+    conteos.assignAll(resumen);
+  }
+
+  String resumenTecnico(int id) {
+    final lista = agenda.where((t) => t.tecnicoId == id);
+    return '${lista.where((t) => t.estado == "Pending").length} pendientes · ${lista.where((t) => t.estado == "InProgress").length} en atención · ${lista.where((t) => t.estado == "Resolved").length} resueltos';
+  }
+
   final filtrosSeleccionados = <FiltroAgenda>{}.obs;
 
   /// Filtra por unión de estados sin alterar agenda, orden ni conteos totales.
@@ -28,8 +81,8 @@ class ControladorInicio extends GetxController {
   List<TicketLocal> get ticketsVisibles {
     final seleccion = filtrosSeleccionados.toSet();
     return seleccion.isEmpty
-        ? agenda.toList()
-        : agenda
+        ? alcance
+        : alcance
               .where((t) => seleccion.any((f) => f.estado == t.estado))
               .toList();
   }
@@ -86,6 +139,15 @@ class ControladorInicio extends GetxController {
       Get.offAllNamed<void>(Rutas.login);
       return;
     }
+    if (sincronizacion != null) {
+      _estadoSync = ever(sincronizacion!.estado, (
+        EstadoSincronizacionActual estado,
+      ) {
+        if (estado != EstadoSincronizacionActual.sincronizando && !isClosed) {
+          unawaited(cargar());
+        }
+      });
+    }
     unawaited(cargar());
     unawaited(sincronizar());
     if (conectividad != null) {
@@ -104,11 +166,14 @@ class ControladorInicio extends GetxController {
     try {
       final lista = await repositorio!.agenda(id);
       final ramas = await sucursales!.obtener(id);
-      final resumen = await repositorio!.conteos(id);
+      final equipo = esCoordinacion
+          ? await RepositorioCoordinacion(repositorio!.sql).listar(id)
+          : <Map<String, Object?>>[];
       if (isClosed || usuario?.id != id) return;
       agenda.assignAll(lista);
       catalogo.assignAll(ramas);
-      conteos.assignAll(resumen);
+      tecnicos.assignAll(equipo);
+      actualizarConteos();
       if (lista.any((ticket) => ticket.syncStatus == 'pending') &&
           sincronizacion?.estado.value ==
               EstadoSincronizacionActual.actualizado) {
@@ -158,6 +223,7 @@ class ControladorInicio extends GetxController {
   @override
   void onClose() {
     _red?.dispose();
+    _estadoSync?.dispose();
     super.onClose();
   }
 }

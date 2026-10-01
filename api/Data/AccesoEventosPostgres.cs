@@ -16,7 +16,9 @@ public sealed class AccesoEventosPostgres(IConexion conexion)
         cmd.CommandText = """
             INSERT INTO public."TicketEvents" ("TicketId","EventType","Description","CreatedAt","UserId","ClientRequestId","PreviousScheduledAt","ScheduledAt","EvidenceId")
             SELECT @ticket,@tipo,@descripcion,@fecha,@usuario,@clave,@anterior,@programada,@evidencia
-            WHERE EXISTS(SELECT 1 FROM public."Tickets" WHERE "Id"=@ticket AND "TechnicianId"=@usuario)
+            WHERE EXISTS(SELECT 1 FROM public."Tickets" t WHERE t."Id"=@ticket AND (t."Status"<>'Resolved' OR @tipo='RESUELTO') AND
+            """ + " " + AccesoTicketsPostgres.Alcance + " " + """
+            )
               AND (@evidencia IS NULL OR EXISTS(SELECT 1 FROM public."Evidences" WHERE "Id"=@evidencia AND "TicketId"=@ticket AND "PhotoBase64" IS NOT NULL))
             ON CONFLICT ("UserId","ClientRequestId") DO NOTHING
             """;
@@ -39,8 +41,8 @@ public sealed class AccesoEventosPostgres(IConexion conexion)
         cmd.CommandText = """
             SELECT e."Id",e."TicketId",e."EventType",e."Description",e."CreatedAt",e."UserId",u."Name",e."ClientRequestId",e."PreviousScheduledAt",e."ScheduledAt",e."EvidenceId"
             FROM public."TicketEvents" e JOIN public."Tickets" t ON t."Id"=e."TicketId" JOIN public."Users" u ON u."Id"=e."UserId"
-            WHERE t."TechnicianId"=@usuario AND e."TicketId"=@ticket ORDER BY e."CreatedAt",e."Id"
-            """;
+            WHERE e."TicketId"=@ticket AND
+            """ + " " + AccesoTicketsPostgres.Alcance + " ORDER BY e.\"CreatedAt\",e.\"Id\"";
         Parametro(cmd, "usuario", usuario); Parametro(cmd, "ticket", ticket);
         await using var r = await cmd.ExecuteReaderAsync(ct); var lista = new List<RespuestaEvento>();
         while (await r.ReadAsync(ct)) lista.Add(new(r.GetInt32(0), r.GetInt32(1), Enum.Parse<TipoEventoTicket>(r.GetString(2)), r.GetString(3), r.GetDateTime(4), r.GetInt32(5), r.GetString(6), r.GetGuid(7), r.IsDBNull(8) ? null : r.GetDateTime(8), r.IsDBNull(9) ? null : r.GetDateTime(9), r.IsDBNull(10) ? null : r.GetInt32(10)));

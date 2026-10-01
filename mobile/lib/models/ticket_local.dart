@@ -6,6 +6,7 @@ class TicketLocal {
   final String? clientRequestId;
   final int usuarioId;
   final int sucursalId;
+  final int? reportanteId, tecnicoId;
   final String titulo, descripcion, estado, syncStatus;
   final DateTime creado, actualizado, programado;
   TicketLocal.desdeFila(Map<String, Object?> fila)
@@ -14,6 +15,8 @@ class TicketLocal {
       clientRequestId = fila['client_request_id'] as String?,
       usuarioId = fila['usuario_id'] as int,
       sucursalId = fila['sucursal_id'] as int,
+      reportanteId = fila['reportante_id'] as int?,
+      tecnicoId = fila['tecnico_id'] as int?,
       titulo = fila['titulo'] as String,
       descripcion = fila['descripcion'] as String,
       estado = fila['estado'] as String,

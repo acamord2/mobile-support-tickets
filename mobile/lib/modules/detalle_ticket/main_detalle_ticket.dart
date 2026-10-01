@@ -39,6 +39,40 @@ class VistaDetalleTicket extends GetView<ControladorDetalleTicket> {
                   estado: controller.estadoTexto,
                 ),
                 const SizedBox(height: 24),
+                Text(
+                  ticket.tecnicoId == null
+                      ? TextosApp.ticketSinAsignar
+                      : '${TextosApp.tecnicoAsignado}: #${ticket.tecnicoId}',
+                  style: FuentesApp.body,
+                ),
+                if (controller.puedeAsignar) ...[
+                  DropdownButton<int>(
+                    isExpanded: true,
+                    value: controller.tecnicoSeleccionado.value,
+                    hint: const Text(TextosApp.seleccionarTecnico),
+                    items: controller.tecnicos
+                        .map(
+                          (t) => DropdownMenuItem(
+                            value: t['id'] as int,
+                            child: Text(t['nombre'] as String),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: controller.guardando.value
+                        ? null
+                        : (id) => controller.tecnicoSeleccionado.value = id,
+                  ),
+                  OutlinedButton(
+                    onPressed: controller.guardando.value
+                        ? null
+                        : controller.asignar,
+                    child: Text(
+                      ticket.tecnicoId == null
+                          ? TextosApp.asignarTecnico
+                          : TextosApp.reasignarTecnico,
+                    ),
+                  ),
+                ],
                 if (controller.puedeEditar)
                   OutlinedButton(
                     onPressed: controller.guardando.value

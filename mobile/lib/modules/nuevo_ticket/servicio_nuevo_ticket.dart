@@ -34,6 +34,7 @@ class ServicioNuevoTicket {
     DateTime programado,
     ImagenProcesada? foto, {
     String? autorNombre,
+    int rol = 2,
   }) async {
     return tickets.crear(
       usuario: usuario,
@@ -42,6 +43,7 @@ class ServicioNuevoTicket {
       descripcion: descripcion,
       programado: programado,
       autorNombre: autorNombre,
+      rol: rol,
       evidencia: foto == null
           ? null
           : {

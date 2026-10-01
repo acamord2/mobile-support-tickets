@@ -107,7 +107,7 @@ void main() {
     },
   );
   test(
-    'v3→v4 conserva todas las filas existentes y no inventa eventos',
+    'v3→v5 conserva todos los campos existentes y no inventa eventos',
     () async {
       final carpeta = await Directory.systemTemp.createTemp('eventos-v4-');
       final ruta = '${carpeta.path}/base.db';
@@ -170,7 +170,14 @@ void main() {
       try {
         for (final entrada in anteriores.entries) {
           expect(
-            await migrada.ejecutar((d) => d.query(entrada.key)),
+            await migrada.ejecutar(
+              (d) => d.query(
+                entrada.key,
+                columns: entrada.value.isEmpty
+                    ? null
+                    : entrada.value.first.keys.toList(),
+              ),
+            ),
             entrada.value,
           );
         }
@@ -182,7 +189,7 @@ void main() {
           (await migrada.ejecutar(
             (d) => d.rawQuery('PRAGMA user_version'),
           )).single['user_version'],
-          4,
+          5,
         );
       } finally {
         await migrada.cerrar();

@@ -145,7 +145,12 @@ void main() {
       expect(colaTickets.single.usuarioId, 1);
       expect(colaTickets.single.recurso, 'tickets');
       expect(colaTickets.single.operacion, TipoOperacionLocal.actualizar);
-      expect(colaTickets.single.payload, {'id_local': 1});
+      expect(colaTickets.single.payload['id_local'], 1);
+      expect(colaTickets.single.payload['status'], 'InProgress');
+      expect(
+        colaTickets.single.payload['scheduledAt'],
+        previo.programado.toUtc().toIso8601String(),
+      );
       expect(colaTickets.single.estado, EstadoSincronizacion.pendiente);
       expect(colaTickets.single.intentos, 0);
       expect(colaTickets.single.ultimoError, isNull);

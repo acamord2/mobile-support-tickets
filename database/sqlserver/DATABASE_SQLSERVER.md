@@ -43,6 +43,9 @@ BEGIN TRY
     INSERT INTO dbo.[Roles] ([Id], [Name])
     SELECT 2, N'Técnico' WHERE NOT EXISTS (SELECT 1 FROM dbo.[Roles] WHERE [Id] = 2);
 
+    INSERT INTO dbo.[Roles] ([Id],[Name]) SELECT 3,N'Coordinador' WHERE NOT EXISTS (SELECT 1 FROM dbo.[Roles] WHERE [Id]=3);
+    INSERT INTO dbo.[Roles] ([Id],[Name]) SELECT 4,N'Usuario' WHERE NOT EXISTS (SELECT 1 FROM dbo.[Roles] WHERE [Id]=4);
+
     IF OBJECT_ID(N'dbo.Users', N'U') IS NULL
     BEGIN
         CREATE TABLE dbo.[Users] (
@@ -56,6 +59,16 @@ BEGIN TRY
             CONSTRAINT [FK_Users_Roles] FOREIGN KEY ([RoleId]) REFERENCES dbo.[Roles] ([Id]) ON DELETE NO ACTION
         );
     END;
+
+    IF OBJECT_ID(N'dbo.CoordinatorTechnicians', N'U') IS NULL
+        CREATE TABLE dbo.CoordinatorTechnicians (
+            CoordinatorUserId INT NOT NULL REFERENCES dbo.Users(Id),
+            TechnicianUserId INT NOT NULL REFERENCES dbo.Users(Id),
+            CreatedAt DATETIMEOFFSET NOT NULL DEFAULT SYSDATETIMEOFFSET(),
+            PRIMARY KEY (CoordinatorUserId,TechnicianUserId)
+        );
+    IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.CoordinatorTechnicians') AND name=N'IX_CoordinatorTechnicians_TechnicianUserId')
+        CREATE INDEX IX_CoordinatorTechnicians_TechnicianUserId ON dbo.CoordinatorTechnicians(TechnicianUserId);
 
     IF OBJECT_ID(N'dbo.Branches', N'U') IS NULL
     BEGIN
@@ -71,7 +84,8 @@ BEGIN TRY
         CREATE TABLE dbo.[Tickets] (
             [Id] int IDENTITY(1,1) NOT NULL CONSTRAINT [PK_Tickets] PRIMARY KEY,
             [BranchId] int NOT NULL,
-            [TechnicianId] int NOT NULL,
+            [TechnicianId] int NULL,
+            [ReporterUserId] int NULL,
             [Title] nvarchar(200) NOT NULL,
             [Description] nvarchar(max) NOT NULL,
             [Status] nvarchar(20) COLLATE Latin1_General_100_BIN2 NOT NULL,
@@ -80,20 +94,24 @@ BEGIN TRY
             [ScheduledAt] datetimeoffset(7) NOT NULL,
             [ClientRequestId] uniqueidentifier NULL,
             CONSTRAINT [FK_Tickets_Branches] FOREIGN KEY ([BranchId]) REFERENCES dbo.[Branches] ([Id]) ON DELETE NO ACTION,
+            CONSTRAINT [FK_Tickets_ReporterUserId] FOREIGN KEY ([ReporterUserId]) REFERENCES dbo.[Users] ([Id]) ON DELETE NO ACTION,
             CONSTRAINT [FK_Tickets_Users] FOREIGN KEY ([TechnicianId]) REFERENCES dbo.[Users] ([Id]) ON DELETE NO ACTION,
             CONSTRAINT [CK_Tickets_Status] CHECK ([Status] IN (N'Pending', N'InProgress', N'Resolved')),
             CONSTRAINT [CK_Tickets_Dates] CHECK ([UpdatedAt] >= [CreatedAt])
         );
     END;
 
-    IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'dbo.Tickets') AND name = N'UQ_Tickets_TechnicianId_ClientRequestId')
-        CREATE UNIQUE INDEX [UQ_Tickets_TechnicianId_ClientRequestId]
-            ON dbo.[Tickets] ([TechnicianId], [ClientRequestId])
+    IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'dbo.Tickets') AND name = N'UQ_Tickets_ClientRequestId')
+        CREATE UNIQUE INDEX [UQ_Tickets_ClientRequestId]
+            ON dbo.[Tickets] ([ClientRequestId])
             WHERE [ClientRequestId] IS NOT NULL;
     IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'dbo.Tickets') AND name = N'IX_Tickets_BranchId')
         CREATE INDEX [IX_Tickets_BranchId] ON dbo.[Tickets] ([BranchId]);
     IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'dbo.Tickets') AND name = N'IX_Tickets_TechnicianId_Status')
         CREATE INDEX [IX_Tickets_TechnicianId_Status] ON dbo.[Tickets] ([TechnicianId], [Status]);
+
+    IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.Tickets') AND name=N'IX_Tickets_ReporterUserId')
+        CREATE INDEX IX_Tickets_ReporterUserId ON dbo.Tickets(ReporterUserId);
 
     IF OBJECT_ID(N'dbo.Evidences', N'U') IS NULL
     BEGIN
@@ -130,7 +148,7 @@ BEGIN TRY
             CONSTRAINT [FK_TicketEvents_Evidences] FOREIGN KEY ([TicketId], [EvidenceId])
                 REFERENCES dbo.[Evidences] ([TicketId], [Id]) ON DELETE NO ACTION,
             CONSTRAINT [CK_TicketEvents_EventType] CHECK (
-                [EventType] IN (N'CREADO', N'PROGRAMADO', N'REPROGRAMADO', N'EN_ATENCION', N'SEGUIMIENTO', N'RESUELTO')),
+                [EventType] IN (N'CREADO', N'PROGRAMADO', N'REPROGRAMADO', N'EN_ATENCION', N'SEGUIMIENTO', N'RESUELTO', N'ASIGNADO', N'REASIGNADO')),
             CONSTRAINT [CK_TicketEvents_Description] CHECK (
                 LEN(LTRIM(RTRIM([Description]))) > 0 OR ([EventType] = N'SEGUIMIENTO' AND [EvidenceId] IS NOT NULL)),
             CONSTRAINT [CK_TicketEvents_Evidence] CHECK ([EvidenceId] IS NULL OR [EventType] = N'SEGUIMIENTO'),
@@ -197,3 +215,7 @@ SQL Server documentado/no validado contra instancia real. La actualización de s
 Equivale a TicketEvents de PostgreSQL: mismos diez campos, seis tipos, autor FK, UUID obligatorio por usuario, programación anterior/nueva y enlace opcional a Evidence del mismo Ticket mediante FK compuesta. Se añaden UQ_Evidences_TicketId_Id e índice cronológico TicketId/CreatedAt/Id. No hay Base64 en eventos, datos demo, backfill, nuevos triggers o SP. Las fechas se escribirán UTC conservando el instante del evento offline.
 
 El diseño de autoría, previsualización, SQLite y reutilización de cola se detalla en DATABASE.md de PostgreSQL. Esta definición de instalación nueva anticipa la propuesta; debe aprobarse antes de ejecutarla. SQL Server permanece documental/no validado contra instancia real.
+
+## Portabilidad de roles y asignación
+
+IDs: 1 Administrador, 2 Técnico, 3 Coordinador, 4 Usuario. ReporterUserId y TechnicianId nullable, identidad global ClientRequestId mediante índice único filtrado, relación CoordinatorTechnicians y ocho tipos de evento. ACTUALIZACION_ROLES_ASIGNACION_SQLSERVER.md migra una instalación compatible; no fue ejecutada. Las reglas y límites del alcance se describen en DATABASE.md de PostgreSQL.

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Tickets.Api.Data;
 using Tickets.Api.DTOs;
 using Tickets.Api.Services;
+using Tickets.Api.Models;
 namespace Tickets.Api.Controllers.Tickets;
 
 /// <summary>Expone creación idempotente de eventos, con autor derivado del JWT y acceso de datos separado.</summary>
@@ -17,6 +18,12 @@ public sealed class ControladorCrearEvento(AccesoEventosPostgres eventos, Acceso
         var usuario = IdentidadTecnico.Obtener(User);
         if (usuario == 0 || !await tickets.Activo(usuario, ct)) return Unauthorized();
         if (!solicitud.EsValida()) return BadRequest();
+        var rol = await tickets.Rol(usuario, ct);
+        if (rol == 4 && solicitud.EventType is not (TipoEventoTicket.CREADO or TipoEventoTicket.PROGRAMADO)) return Forbid();
+        if (rol == 3 && solicitud.EventType is not (TipoEventoTicket.ASIGNADO or TipoEventoTicket.REASIGNADO or TipoEventoTicket.REPROGRAMADO)) return Forbid();
+        if (rol == 2 && solicitud.EventType is TipoEventoTicket.ASIGNADO or TipoEventoTicket.REASIGNADO) return Forbid();
+        if (solicitud.EventType is TipoEventoTicket.SEGUIMIENTO or TipoEventoTicket.EN_ATENCION or TipoEventoTicket.RESUELTO)
+            if (!await tickets.PuedeOperar(usuario, id, ct)) return Forbid();
         var evento = await eventos.Guardar(usuario, id, solicitud, ct);
         return evento is null ? NotFound() : Ok(new { id = evento.Value });
     }

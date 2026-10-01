@@ -49,23 +49,24 @@ class FormularioNuevoTicket extends GetView<ControladorNuevoTicket> {
             '${TextosApp.hora}: ${TimeOfDay.fromDateTime(controller.programado.value).format(context)}',
           ),
         ),
-        Wrap(
-          spacing: 8,
-          children: [
-            OutlinedButton(
-              onPressed: controller.ocupado.value
-                  ? null
-                  : () => controller.seleccionar(ImageSource.camera),
-              child: const Text(TextosApp.camara),
-            ),
-            OutlinedButton(
-              onPressed: controller.ocupado.value
-                  ? null
-                  : () => controller.seleccionar(ImageSource.gallery),
-              child: const Text(TextosApp.galeria),
-            ),
-          ],
-        ),
+        if (controller.sesion.usuario?.roleId != 4)
+          Wrap(
+            spacing: 8,
+            children: [
+              OutlinedButton(
+                onPressed: controller.ocupado.value
+                    ? null
+                    : () => controller.seleccionar(ImageSource.camera),
+                child: const Text(TextosApp.camara),
+              ),
+              OutlinedButton(
+                onPressed: controller.ocupado.value
+                    ? null
+                    : () => controller.seleccionar(ImageSource.gallery),
+                child: const Text(TextosApp.galeria),
+              ),
+            ],
+          ),
         if (controller.foto.value != null)
           const Text(TextosApp.fotoPreparada, style: FuentesApp.body),
         if (controller.error.value.isNotEmpty)
