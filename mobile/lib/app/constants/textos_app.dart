@@ -2,6 +2,17 @@
 /// Permite reutilizar mensajes sin duplicarlos ni anticipar textos de pantallas
 /// futuras; los errores técnicos no se muestran mediante excepciones sin procesar.
 abstract class TextosApp {
+  static const editarTicket = 'Editar ticket';
+  static const agregarSeguimiento = 'Agregar seguimiento';
+  static const seguimiento = 'Seguimiento';
+  static const trabajoRealizado = 'Descripción del trabajo realizado';
+  static const resolverTicket = 'Resolver ticket';
+  static const faltaSeguimiento =
+      'Registra qué trabajo realizaste antes de resolver el ticket.';
+  static const sinSeguimiento = 'Sin seguimiento registrado.';
+  static const errorSeguimiento = 'No se pudo guardar el seguimiento.';
+  static const errorResolver = 'No se pudo resolver el ticket.';
+  static const imagenNoDisponible = 'No se pudo mostrar la fotografía.';
   static const detalleTicket = 'Detalle del ticket';
   static const identificadorTicket = 'Ticket';
   static const identificadorLocal = 'Identificador local';

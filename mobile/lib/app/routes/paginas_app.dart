@@ -4,6 +4,12 @@ import '../../modules/detalle_ticket/controlador_detalle_ticket.dart';
 import '../database/repositorio_tickets.dart';
 import '../database/repositorio_sucursales.dart';
 import '../services/servicio_sesion.dart';
+import '../services/servicio_imagen.dart';
+import '../database/repositorio_evidencias.dart';
+import '../../modules/editar_ticket/main_editar_ticket.dart';
+import '../../modules/editar_ticket/controlador_editar_ticket.dart';
+import '../../modules/seguimiento/main_seguimiento.dart';
+import '../../modules/seguimiento/controlador_seguimiento.dart';
 import '../../modules/login/main_login.dart';
 import '../../modules/home/main_home.dart';
 import 'rutas.dart';
@@ -30,6 +36,33 @@ abstract class PaginasApp {
             Get.find<RepositorioTickets>(),
             Get.find<RepositorioSucursales>(),
             Get.find<ServicioSesion>(),
+            Get.find<RepositorioEvidencias>(),
+          ),
+        ),
+      ),
+    ),
+    GetPage(
+      name: Rutas.editarTicket,
+      page: () => const VistaEditarTicket(),
+      binding: BindingsBuilder(
+        () => Get.lazyPut(
+          () => ControladorEditarTicket(
+            Get.find<RepositorioTickets>(),
+            Get.find<ServicioSesion>(),
+          ),
+        ),
+      ),
+    ),
+    GetPage(
+      name: Rutas.seguimiento,
+      page: () => const VistaSeguimiento(),
+      binding: BindingsBuilder(
+        () => Get.lazyPut(
+          () => ControladorSeguimiento(
+            Get.find<RepositorioTickets>(),
+            Get.find<RepositorioEvidencias>(),
+            Get.find<ServicioSesion>(),
+            Get.find<ServicioImagen>(),
           ),
         ),
       ),

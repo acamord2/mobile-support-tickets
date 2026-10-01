@@ -191,6 +191,21 @@ class ServicioSincronizacion extends GetxService {
       if (!await _validarDescarga(agenda)) return;
       if (!vigente()) return;
       await tickets!.descargar(usuario, agenda.data as List);
+      final locales = await tickets!.agenda(usuario);
+      for (final dato in agenda.data as List) {
+        if (!vigente()) return;
+        final remoto = dato as Map;
+        final local = locales.firstWhereOrNull(
+          (t) => t.idRemoto == remoto['id'],
+        );
+        if (local != null && remoto['evidences'] is List) {
+          await evidencias!.descargar(
+            local.idLocal,
+            usuario,
+            remoto['evidences'] as List,
+          );
+        }
+      }
       final restantes = OperacionesSqlite.exigir(
         await _cola.obtenerPendientes(usuarioId: usuario),
       );

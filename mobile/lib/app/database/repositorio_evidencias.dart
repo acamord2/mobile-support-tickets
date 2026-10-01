@@ -7,6 +7,50 @@ import 'operacion_pendiente.dart';
 class RepositorioEvidencias {
   final OperacionesSqlite sql;
   RepositorioEvidencias(this.sql);
+
+  /// Lista seguimiento propio por ticket y fecha desde SQLite para consulta offline.
+  Future<List<Map<String, Object?>>> listar(int ticket, int usuario) async =>
+      OperacionesSqlite.exigir(
+        await sql.seleccionar(
+          'evidencias',
+          donde: 'ticket_id_local = ? AND usuario_id = ?',
+          argumentos: [ticket, usuario],
+          orden: 'created_at, id_local',
+        ),
+      );
+
+  /// Descarga evidencias remotas sin duplicar las ya confirmadas ni tocar pendientes.
+  /// Conserva las fechas originales de registros capturados en este dispositivo.
+  Future<void> descargar(int ticket, int usuario, List datos) async {
+    OperacionesSqlite.exigir(
+      await sql.transaccion((tx) async {
+        for (final dato in datos) {
+          final e = Map<String, dynamic>.from(dato as Map);
+          final existentes = OperacionesSqlite.exigir(
+            await tx.seleccionar(
+              'evidencias',
+              donde: 'id_remoto = ? AND usuario_id = ?',
+              argumentos: [e['id'], usuario],
+            ),
+          );
+          if (existentes.isNotEmpty) continue;
+          OperacionesSqlite.exigir(
+            await tx.insertar('evidencias', {
+              'ticket_id_local': ticket,
+              'usuario_id': usuario,
+              'id_remoto': e['id'],
+              'descripcion': e['description'],
+              'created_at': e['createdAt'],
+              'photo_base64': e['photoBase64'],
+              'mime': e['photoBase64'] == null ? null : 'image/jpeg',
+              'sync_status': 'synced',
+            }),
+          );
+        }
+      }),
+    );
+  }
+
   Future<int> crear(
     int ticket,
     int usuario,

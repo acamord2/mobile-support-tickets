@@ -6,4 +6,6 @@ abstract class Rutas {
   static const inicio = '/inicio';
   static const nuevoTicket = '/nuevo-ticket';
   static const detalleTicket = '/detalle-ticket';
+  static const editarTicket = '/editar-ticket';
+  static const seguimiento = '/seguimiento';
 }

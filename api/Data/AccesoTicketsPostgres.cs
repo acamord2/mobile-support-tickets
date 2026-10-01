@@ -29,7 +29,20 @@ public sealed class AccesoTicketsPostgres(IConexion conexion)
     public async Task<List<RespuestaTicket>> Agenda(int usuario, CancellationToken ct)
     {
         await using var cn = await conexion.OpenConnectionAsync(ct);
-        return await Leer(cn,usuario,null,ct);
+        var agenda = await Leer(cn,usuario,null,ct);
+        await using var cmd = cn.CreateCommand();
+        cmd.CommandText = """
+            SELECT e."Id",e."TicketId",e."Description",e."PhotoBase64",e."CreatedAt"
+            FROM public."Evidences" e JOIN public."Tickets" t ON t."Id"=e."TicketId"
+            WHERE t."TechnicianId"=@usuario ORDER BY e."CreatedAt",e."Id"
+            """;
+        Parametro(cmd,"usuario",usuario);
+        await using var r = await cmd.ExecuteReaderAsync(ct);
+        var porId = agenda.ToDictionary(t => t.Id);
+        while (await r.ReadAsync(ct))
+            if (porId.TryGetValue(r.GetInt32(1),out var ticket))
+                ticket.Evidences.Add(new(r.GetInt32(0),r.GetString(2),r.IsDBNull(3)?null:r.GetString(3),r.GetDateTime(4)));
+        return agenda;
     }
     /// <summary>Inserta con ON CONFLICT y lee en un comando posterior; la restricción protege concurrencia y el segundo snapshot recupera el mismo Id ante reintentos.</summary>
     public async Task<RespuestaTicket?> Crear(int usuario, SolicitudTicket solicitud, CancellationToken ct)

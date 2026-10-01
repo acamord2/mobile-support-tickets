@@ -7,6 +7,7 @@ import 'package:tikets/app/database/conexion_sqlite.dart';
 import 'package:tikets/app/database/operaciones_sqlite.dart';
 import 'package:tikets/app/database/repositorio_tickets.dart';
 import 'package:tikets/app/database/repositorio_sucursales.dart';
+import 'package:tikets/app/database/repositorio_evidencias.dart';
 import 'package:tikets/app/database/repositorio_cola.dart';
 import 'package:tikets/app/database/operacion_pendiente.dart';
 import 'package:tikets/app/database/estado_sincronizacion.dart';
@@ -49,6 +50,7 @@ void main() {
     sql = OperacionesSqlite(cn);
     tickets = Get.put(RepositorioTickets(sql));
     sucursales = Get.put(RepositorioSucursales(sql));
+    Get.put(RepositorioEvidencias(sql));
     Get.lazyPut<ControladorInicio>(
       () => InicioPruebaDetalle(
         Get.find<ServicioSesion>(),
@@ -92,7 +94,12 @@ void main() {
         },
       ),
     );
-    detalle = ControladorDetalleTicket(tickets, sucursales, sesion);
+    detalle = ControladorDetalleTicket(
+      tickets,
+      sucursales,
+      sesion,
+      Get.find<RepositorioEvidencias>(),
+    );
   });
   tearDown(() async {
     Get.reset();

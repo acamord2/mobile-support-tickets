@@ -6,6 +6,7 @@ import '../../app/theme/fuentes_app.dart';
 import 'controlador_detalle_ticket.dart';
 import 'widgets_detalle_ticket/informacion_detalle_ticket.dart';
 import 'widgets_detalle_ticket/accion_detalle_ticket.dart';
+import 'widgets_detalle_ticket/seguimiento_ticket.dart';
 
 /// Compone detalle local y acciones recibidas del controller; no consulta servicios.
 /// Volver retira solo esta ruta y conserva la sesión y el Home existente.
@@ -38,12 +39,39 @@ class VistaDetalleTicket extends GetView<ControladorDetalleTicket> {
                   estado: controller.estadoTexto,
                 ),
                 const SizedBox(height: 24),
+                if (controller.puedeEditar)
+                  OutlinedButton(
+                    onPressed: controller.guardando.value
+                        ? null
+                        : controller.editar,
+                    child: const Text(TextosApp.editarTicket),
+                  ),
                 AccionDetalleTicket(
                   puedeComenzar: controller.puedeComenzar,
                   guardando: controller.guardando.value,
                   estado: controller.estadoTexto,
                   alComenzar: controller.comenzarAtencion,
                 ),
+                if (controller.puedeSeguir) ...[
+                  OutlinedButton(
+                    onPressed: controller.guardando.value
+                        ? null
+                        : controller.agregarSeguimiento,
+                    child: const Text(TextosApp.agregarSeguimiento),
+                  ),
+                  FilledButton(
+                    onPressed: controller.guardando.value
+                        ? null
+                        : controller.resolver,
+                    child: Text(
+                      controller.guardando.value
+                          ? TextosApp.guardando
+                          : TextosApp.resolverTicket,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 24),
+                SeguimientoTicket(registros: controller.seguimientos.toList()),
               ],
             ],
           ),

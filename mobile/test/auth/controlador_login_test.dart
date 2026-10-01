@@ -106,6 +106,8 @@ void main() {
       expect(find.text('Nombre de prueba'), findsOneWidget);
       expect(Get.key.currentState!.canPop(), isFalse);
       expect(controlador.isClosed, isTrue);
+      await tester.tap(find.byIcon(Icons.more_vert));
+      await tester.pumpAndSettle();
       await tester.tap(find.text(TextosApp.cerrarSesion));
       await tester.pumpAndSettle();
       expect(sesion.usuario, isNull);
