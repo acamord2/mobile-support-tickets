@@ -1,7 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- El cliente HTTP necesita acceso a red también fuera del modo debug. -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Evita restaurar tokens cifrados sin su clave y sesiones tras reinstalación. -->
     <application
+        android:allowBackup="false"
         android:label="tikets"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">

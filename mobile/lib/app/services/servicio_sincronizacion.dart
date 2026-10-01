@@ -19,7 +19,7 @@ class ServicioSincronizacion extends GetxService {
   final apiDisponible = Rxn<bool>();
 
   /// Recibe infraestructura compartida; no crea transportes ni abre la base local.
-  /// El token se consultará en memoria al enviar, nunca se incluirá en la cola.
+  /// El token vigente se consultará mediante la fachada al enviar, nunca se incluirá en la cola.
   ServicioSincronizacion(
     this._conectividad,
     this._api,
@@ -29,7 +29,13 @@ class ServicioSincronizacion extends GetxService {
 
   /// Expone si existen las condiciones locales mínimas, sin garantizar acceso API.
   /// La comprobación remota debe seguir manejando timeout y errores del transporte.
-  bool get puedeIntentarEnvio => !_conectividad.sinRed && _sesion.existeSesion;
+  bool get puedeIntentarEnvio => !_conectividad.sinRed && _sesion.token != null;
+
+  /// Prepara el tratamiento de respuestas protegidas sin implementar envíos de Tickets.
+  /// Un 401 exige nueva autenticación manteniendo identidad, SQLite y pendientes.
+  Future<void> registrarEstadoProtegido(int? estado) async {
+    if (estado == EstadoApi.unauthorized) await _sesion.marcarReautenticacion();
+  }
 
   /// Lee trabajo local pendiente sin alterarlo ni devolver respuestas de la API.
   /// No inicia envíos hasta definir contratos, autoría y conflictos del recurso.

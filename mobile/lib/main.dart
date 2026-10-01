@@ -9,6 +9,7 @@ import 'app/theme/colores_app.dart';
 /// La configuración de navegación permanece en su módulo para que las futuras
 /// pantallas se incorporen sin ampliar la responsabilidad del punto de entrada.
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const AppTickets());
 }
 

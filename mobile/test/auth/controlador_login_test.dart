@@ -1,3 +1,4 @@
+import '../soporte/sesion_simulada.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -18,6 +19,7 @@ import 'conexion_simulada.dart';
 /// Verifica validación, carga, sesión y logout a través de las vistas para detectar
 /// errores de binding/ciclo de vida sin credenciales demo ni conexiones externas.
 void main() {
+  setUp(() => Get.put(crearSesionSimulada(), permanent: true));
   tearDown(Get.reset);
   testWidgets('Login inicia vacío, oculta contraseña y rechaza campos vacíos', (
     tester,

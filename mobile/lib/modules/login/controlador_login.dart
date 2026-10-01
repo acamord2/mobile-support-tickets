@@ -42,11 +42,18 @@ class ControladorLogin extends GetxController {
         error.value = resultado.mensaje ?? TextosApp.errorLogin;
         return;
       }
-      _sesion.establecer(sesion);
       contrasena.clear();
+      if (!await _sesion.establecer(sesion)) {
+        if (!isClosed) error.value = TextosApp.errorSesion;
+        return;
+      }
+      if (isClosed) return;
       Get.offAllNamed<void>(Rutas.inicio);
     } finally {
-      if (!isClosed) cargando.value = false;
+      if (!isClosed) {
+        contrasena.clear();
+        cargando.value = false;
+      }
     }
   }
 

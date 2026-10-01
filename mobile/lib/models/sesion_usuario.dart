@@ -6,7 +6,7 @@ class SesionUsuario {
   final String token;
   final Usuario usuario;
 
-  /// Construye una sesión en memoria para consumir endpoints protegidos después.
+  /// Construye una sesión en el servicio de sesión para consumir endpoints protegidos después.
   /// Conserva el token sin interpretarlo porque su validación corresponde a la API.
   const SesionUsuario({required this.token, required this.usuario});
 

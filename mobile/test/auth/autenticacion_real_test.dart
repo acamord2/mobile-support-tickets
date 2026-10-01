@@ -1,10 +1,10 @@
+import '../soporte/sesion_simulada.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tikets/app/network/cliente_api.dart';
 import 'package:tikets/app/network/conexion.dart';
 import 'package:tikets/app/network/estado_api.dart';
 import 'package:tikets/app/network/rutas_api.dart';
 import 'package:tikets/modules/login/servicio_autenticacion.dart';
-import 'package:tikets/app/services/servicio_sesion.dart';
 
 /// Comprueba opt-in el canal Flutter → API → PostgreSQL sin publicar credenciales.
 /// Recibe usuario/password y URL externamente; las ejecuciones habituales omiten
@@ -23,8 +23,8 @@ void main() {
       conexion,
     ).iniciarSesion(usuario, password);
     expect(resultado.exito, isTrue, reason: resultado.mensaje);
-    final sesion = ServicioSesion();
-    sesion.establecer(resultado.sesion!);
+    final sesion = crearSesionSimulada();
+    await sesion.establecer(resultado.sesion!);
     final identidad = await conexion.get(RutasApi.me, token: sesion.token);
     expect(identidad.statusCode, EstadoApi.ok);
     expect(identidad.success, isTrue);
@@ -33,7 +33,7 @@ void main() {
     if (datos is Map<String, dynamic>) {
       expect(datos['username'] == usuario, isTrue);
     }
-    sesion.limpiar();
+    await sesion.limpiar();
     expect(sesion.existeSesion, isFalse);
     expect(sesion.token, isNull);
   }, skip: !habilitado);

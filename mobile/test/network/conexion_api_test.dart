@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import '../soporte/sesion_simulada.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -63,6 +64,7 @@ void main() {
   test(
     'El binding resuelve el contrato y permite reconstruirlo tras liberarlo',
     () async {
+      Get.put(crearSesionSimulada(), permanent: true);
       DependenciasApp().dependencies();
       final first = Get.find<IConexionApi>();
       expect(first, isA<Conexion>());

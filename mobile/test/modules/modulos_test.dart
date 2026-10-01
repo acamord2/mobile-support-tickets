@@ -1,3 +1,4 @@
+import '../soporte/sesion_simulada.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -17,6 +18,7 @@ import 'package:tikets/widgets/apartada/indicador_desconexion.dart';
 /// Verifica composición modular e indicador transversal con conectividad simulada.
 /// Usa identidad ficticia en memoria y navegación GetX sin HTTP ni PostgreSQL.
 void main() {
+  setUp(() => Get.put(crearSesionSimulada(), permanent: true));
   tearDown(Get.reset);
   testWidgets(
     'Login/Home reutilizan indicador que aparece solo al perder red',
@@ -42,7 +44,7 @@ void main() {
         greaterThan(700),
       );
       final sesion = Get.find<ServicioSesion>();
-      sesion.establecer(
+      await sesion.establecer(
         SesionUsuario.fromJson({
           'token': 'token-simulado',
           'user': {'id': 2, 'username': 'prueba', 'name': 'Persona de prueba'},

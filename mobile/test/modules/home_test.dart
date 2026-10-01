@@ -1,3 +1,4 @@
+import '../soporte/sesion_simulada.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -22,6 +23,7 @@ import '../auth/conexion_simulada.dart';
 /// Comprueba accesos deshabilitados, semántica, layout y logout para conservar
 /// comportamiento útil offline sin afirmar funcionalidades todavía inexistentes.
 void main() {
+  setUp(() => Get.put(crearSesionSimulada(), permanent: true));
   tearDown(Get.reset);
 
   /// Monta el flujo real de rutas con una identidad pública exclusiva del test.
@@ -43,7 +45,7 @@ void main() {
     );
     await tester.pumpWidget(const AppTickets());
     await tester.pumpAndSettle();
-    Get.find<ServicioSesion>().establecer(
+    await Get.find<ServicioSesion>().establecer(
       SesionUsuario.fromJson({
         'token': 'token-simulado',
         'user': {'id': 9, 'username': 'prueba', 'name': nombre},

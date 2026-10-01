@@ -2,6 +2,12 @@
 /// Permite reutilizar mensajes sin duplicarlos ni anticipar textos de pantallas
 /// futuras; los errores técnicos no se muestran mediante excepciones sin procesar.
 abstract class TextosApp {
+  static const cargandoSesion = 'Restaurando sesión';
+  static const errorSesion =
+      'No se pudo completar el almacenamiento de la sesión.';
+  static const reintentar = 'Reintentar';
+  static const loginRequiereConexion =
+      'Necesitas conexión de red para iniciar sesión.';
   static const appName = 'Incidencias técnicas';
   static const requestTimeout = 'La petición excedió el tiempo de espera.';
   static const apiUnavailable = 'No se pudo conectar con la API.';

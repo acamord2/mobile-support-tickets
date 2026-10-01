@@ -1,3 +1,4 @@
+import '../soporte/sesion_simulada.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -12,7 +13,6 @@ import 'package:tikets/app/network/cliente_api.dart';
 import 'package:tikets/app/network/conexion.dart';
 import 'package:tikets/app/network/rutas_api.dart';
 import 'package:tikets/app/services/servicio_conectividad.dart';
-import 'package:tikets/app/services/servicio_sesion.dart';
 import 'package:tikets/app/services/servicio_sincronizacion.dart';
 
 /// Verifica la base de sincronización sin envíos de negocio ni dependencia de API.
@@ -54,7 +54,12 @@ void main() {
         cambios: const Stream.empty(),
       );
       await red.refrescar();
-      final servicio = ServicioSincronizacion(red, api, cola, ServicioSesion());
+      final servicio = ServicioSincronizacion(
+        red,
+        api,
+        cola,
+        crearSesionSimulada(),
+      );
       expect(servicio.apiDisponible.value, isNull);
       expect(servicio.puedeIntentarEnvio, isFalse);
       expect(await servicio.comprobarDisponibilidadApi(), isFalse);

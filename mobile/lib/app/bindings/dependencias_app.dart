@@ -11,6 +11,9 @@ import '../database/conexion_sqlite.dart';
 import '../database/operaciones_sqlite.dart';
 import '../database/repositorio_cola.dart';
 import '../services/servicio_sincronizacion.dart';
+import '../services/almacenamiento_token.dart';
+import '../database/repositorio_sesion_local.dart';
+import '../../modules/arranque/controlador_arranque.dart';
 
 /// Centraliza la selección e inyección del canal API mediante GetX.
 /// Registra una fábrica diferida para no abrir transportes antes de necesitarlos
@@ -19,12 +22,11 @@ class DependenciasApp extends Bindings {
   /// Registra IConexionApi como Conexion con un cliente propio.
   /// GetX conserva la fábrica para reconstruirla si se libera; el callback de
   /// ciclo de vida onClose dispone el cliente al eliminar la dependencia.
-  /// Conserva una sesión global en memoria y recrea servicios/controllers por ruta
+  /// Conserva una fachada de sesión persistente y recrea servicios/controllers por ruta
   /// para liberar campos al navegar y obtener un formulario vacío al cerrar sesión.
   @override
   void dependencies() {
     Get.lazyPut<IConexionApi>(() => Conexion(ClienteApi()), fenix: true);
-    Get.put(ServicioSesion(), permanent: true);
     Get.put(ServicioConectividad(), permanent: true);
     Get.lazyPut(() => ConexionSqlite(), fenix: true);
     Get.lazyPut(
@@ -33,6 +35,27 @@ class DependenciasApp extends Bindings {
     );
     Get.lazyPut(
       () => RepositorioCola(Get.find<OperacionesSqlite>()),
+      fenix: true,
+    );
+    Get.lazyPut<AlmacenamientoToken>(
+      () => AlmacenamientoTokenSeguro(),
+      fenix: true,
+    );
+    Get.lazyPut(
+      () => RepositorioSesionLocal(
+        Get.find<OperacionesSqlite>(),
+        Get.find<AlmacenamientoToken>(),
+      ),
+      fenix: true,
+    );
+    if (!Get.isRegistered<ServicioSesion>()) {
+      Get.put(
+        ServicioSesion(Get.find<RepositorioSesionLocal>()),
+        permanent: true,
+      );
+    }
+    Get.lazyPut(
+      () => ControladorArranque(Get.find<ServicioSesion>()),
       fenix: true,
     );
     Get.lazyPut(
@@ -45,7 +68,10 @@ class DependenciasApp extends Bindings {
       fenix: true,
     );
     Get.lazyPut(
-      () => ServicioAutenticacion(Get.find<IConexionApi>()),
+      () => ServicioAutenticacion(
+        Get.find<IConexionApi>(),
+        conectividad: Get.find<ServicioConectividad>(),
+      ),
       fenix: true,
     );
     Get.lazyPut(
