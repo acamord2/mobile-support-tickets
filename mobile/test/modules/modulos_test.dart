@@ -11,7 +11,7 @@ import 'package:tikets/models/sesion_usuario.dart';
 import 'package:tikets/modules/login/main_login.dart';
 import 'package:tikets/modules/home/main_home.dart';
 import 'package:tikets/modules/login/widgets_login/formulario_login.dart';
-import 'package:tikets/modules/home/widgets_home/contenido_inicio.dart';
+import 'package:tikets/modules/home/widgets_home/cuerpo_inicio.dart';
 import 'package:tikets/widgets/apartada/indicador_desconexion.dart';
 
 /// Verifica composición modular e indicador transversal con conectividad simulada.
@@ -51,7 +51,7 @@ void main() {
       Get.offAllNamed<void>(Rutas.inicio);
       await tester.pumpAndSettle();
       expect(find.byType(VistaInicio), findsOneWidget);
-      expect(find.byType(ContenidoInicio), findsOneWidget);
+      expect(find.byType(CuerpoInicio), findsOneWidget);
       expect(find.byIcon(Icons.cloud_off), findsOneWidget);
       expect(find.text('Persona de prueba'), findsOneWidget);
       red.redDisponible.value = true;

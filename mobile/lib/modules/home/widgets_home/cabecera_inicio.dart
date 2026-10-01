@@ -1,23 +1,33 @@
 import 'package:flutter/material.dart';
-import '../../../app/theme/colores_app.dart';
+import '../../../app/constants/textos_app.dart';
+import '../../../app/theme/fuentes_app.dart';
 import '../../../widgets/apartada/indicador_desconexion.dart';
 
-/// Presenta la cabecera de Home y el indicador transversal de desconexión.
-/// Conserva la composición dentro del módulo sin importar widgets de login.
-class CabeceraInicio extends StatelessWidget implements PreferredSizeWidget {
-  /// Crea una cabecera sencilla que solo consume estado visual compartido.
-  const CabeceraInicio({super.key});
+/// Muestra aplicación, saludo e identidad pública recibida del controller.
+/// Reutiliza el indicador global a la derecha sin detectar red ni leer sesión.
+class CabeceraInicio extends StatelessWidget {
+  final String nombreTecnico;
 
-  /// Reserva el espacio superior para distribuir correctamente la pantalla.
-  @override
-  Size get preferredSize => const Size.fromHeight(40);
+  /// Recibe solo texto visible para separar presentación y autenticación.
+  const CabeceraInicio({super.key, required this.nombreTecnico});
 
-  /// Alinea el indicador a la derecha sin añadir navegación o lógica de negocio.
+  /// Compone textos flexibles y el indicador sin imponer alturas al nombre.
   @override
-  Widget build(BuildContext context) => AppBar(
-    backgroundColor: ColoresApp.background,
-    automaticallyImplyLeading: false,
-    toolbarHeight: preferredSize.height,
-    actions: const [IndicadorDesconexion(), SizedBox(width: 16)],
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      const Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(child: Text(TextosApp.appName, style: FuentesApp.title)),
+          SizedBox(width: 16),
+          IndicadorDesconexion(),
+        ],
+      ),
+      const SizedBox(height: 24),
+      const Text(TextosApp.bienvenida, style: FuentesApp.body),
+      const SizedBox(height: 4),
+      Text(nombreTecnico, style: FuentesApp.title),
+    ],
   );
 }

@@ -3,7 +3,7 @@ import '../../app/routes/rutas.dart';
 import '../../models/usuario.dart';
 import '../../app/services/servicio_sesion.dart';
 
-/// Coordina la identidad y salida de la pantalla neutra autenticada.
+/// Coordina la identidad y salida del Home principal autenticado.
 /// Delega la memoria al servicio y mantiene navegación fuera de la vista;
 /// no consume endpoints ni anticipa funciones de tickets.
 class ControladorInicio extends GetxController {
@@ -16,6 +16,10 @@ class ControladorInicio extends GetxController {
   /// Devuelve únicamente la identidad pública que puede mostrar la pantalla.
   /// El JWT queda en ServicioSesion y no llega a la presentación.
   Usuario? get usuario => _sesion.usuario;
+
+  /// Expone el nombre público autenticado sin consultar datos remotos o locales.
+  /// La vista recibe texto listo para representar y nunca necesita leer el JWT.
+  String get nombreTecnico => usuario?.name ?? '';
 
   /// Devuelve al login si se abrió la ruta autenticada sin una sesión en memoria.
   /// Comprueba tras montar la vista para no navegar durante su construcción.

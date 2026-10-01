@@ -1,4 +1,4 @@
-/// Centraliza los textos utilizados por la plantilla y su infraestructura HTTP.
+/// Centraliza los textos utilizados por Login, Home y su infraestructura HTTP.
 /// Permite reutilizar mensajes sin duplicarlos ni anticipar textos de pantallas
 /// futuras; los errores técnicos no se muestran mediante excepciones sin procesar.
 abstract class TextosApp {
@@ -15,6 +15,12 @@ abstract class TextosApp {
   static const autenticando = 'Iniciando sesión';
   static const bienvenida = 'Bienvenido';
   static const cerrarSesion = 'Cerrar sesión';
+  static const misTickets = 'Mis tickets';
+  static const descripcionTickets = 'Consulta y atiende tus tickets asignados.';
+  static const sincronizar = 'Sincronizar';
+  static const descripcionSincronizar =
+      'Actualiza la información disponible en el dispositivo.';
+  static const moduloNoDisponible = 'Todavía no disponible';
   static const sinConexion = 'Sin conexión de red';
   static const errorSqlite = 'No se pudo completar la operación local.';
   static const camposLoginRequeridos = 'Escribe tu usuario y contraseña.';
