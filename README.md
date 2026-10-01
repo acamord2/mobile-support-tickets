@@ -173,7 +173,15 @@ flutter drive --driver=test_driver/prueba_autenticacion.dart --target=integratio
 
 La integración Android comprueba login, identidad pública, historial y logout. Las capturas quedan en build/pruebas-integracion, excluidas de Git. Los dart-define de credenciales se utilizan solo para la ejecución de pruebas; el APK normal se compila sin ellos. El reporte está en [docs/autenticacion.md](docs/autenticacion.md).
 
-## Paquetes
+## Home principal
+
+Después del login, Home muestra el nombre de la aplicación, saludo y nombre público del técnico obtenido de ServicioSesion a través de ControladorInicio. main_home.dart compone CabeceraInicio, CuerpoInicio y PieInicio; TarjetaModulo reutiliza icono, título, descripción, acción y disponibilidad.
+
+Los accesos Mis tickets y Sincronizar muestran **Todavía no disponible** y no ejecutan acciones. Todavía no existe Tickets ni sincronización de negocio; el health técnico no se presenta como una sincronización completa. No hay estadísticas, cifras ficticias ni rutas nuevas.
+
+Home sigue disponible offline: IndicadorDesconexion aparece en la esquina superior derecha cuando el servicio global confirma ausencia de red, sin bloquear o redirigir la pantalla. Cerrar sesión reutiliza la limpieza e historial existentes. El contenido tiene scroll, textos flexibles y semántica accesible para las tarjetas. Responsabilidad, estructura y pruebas: [docs/home.md](docs/home.md).
+
+## Dependencias
 
 Flutter: GetX 4.7.3, http 1.6.0, Flutter Test y Flutter Lints 6.0.0. integration_test pertenece al SDK y se usa únicamente como dependencia de desarrollo para validar el dispositivo físico y capturar pantallas públicas.
 
