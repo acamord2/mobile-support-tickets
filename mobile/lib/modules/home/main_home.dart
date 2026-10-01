@@ -76,6 +76,8 @@ class VistaInicio extends GetView<ControladorInicio> {
                         ),
                       ...visibles.map(
                         (t) => TarjetaTicketAgenda(
+                          alSeleccionar: () =>
+                              controller.abrirDetalle(t.idLocal),
                           ticket: t,
                           sucursal: controller.nombreSucursal(t.sucursalId),
                         ),

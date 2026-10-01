@@ -2,6 +2,18 @@
 /// Permite reutilizar mensajes sin duplicarlos ni anticipar textos de pantallas
 /// futuras; los errores técnicos no se muestran mediante excepciones sin procesar.
 abstract class TextosApp {
+  static const detalleTicket = 'Detalle del ticket';
+  static const identificadorTicket = 'Ticket';
+  static const identificadorLocal = 'Identificador local';
+  static const problemaTicket = 'Problema';
+  static const atencionProgramada = 'Atención programada';
+  static const ticketPendiente = 'Pendiente';
+  static const ticketResuelto = 'Resuelto';
+  static const comenzarAtencion = 'Comenzar atención';
+  static const ticketNoDisponible =
+      'El ticket no está disponible en este dispositivo para tu usuario.';
+  static const errorComenzarAtencion =
+      'No se pudo guardar el inicio de atención. Intenta nuevamente.';
   static const soporteTecnico = 'Soporte Técnico';
   static const buenosDias = 'Buenos días';
   static const buenasTardes = 'Buenas tardes';

@@ -1,0 +1,54 @@
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import '../../app/constants/textos_app.dart';
+import '../../app/theme/colores_app.dart';
+import '../../app/theme/fuentes_app.dart';
+import 'controlador_detalle_ticket.dart';
+import 'widgets_detalle_ticket/informacion_detalle_ticket.dart';
+import 'widgets_detalle_ticket/accion_detalle_ticket.dart';
+
+/// Compone detalle local y acciones recibidas del controller; no consulta servicios.
+/// Volver retira solo esta ruta y conserva la sesión y el Home existente.
+class VistaDetalleTicket extends GetView<ControladorDetalleTicket> {
+  const VistaDetalleTicket({super.key});
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    backgroundColor: ColoresApp.background,
+    appBar: AppBar(
+      title: const Text(TextosApp.detalleTicket),
+      leading: BackButton(onPressed: () => Get.back<void>()),
+    ),
+    body: Obx(() {
+      if (controller.cargando.value) {
+        return const Center(child: CircularProgressIndicator());
+      }
+      final ticket = controller.ticket.value;
+      return Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600),
+          child: ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              if (controller.error.value.isNotEmpty)
+                Text(controller.error.value, style: FuentesApp.error),
+              if (ticket != null) ...[
+                InformacionDetalleTicket(
+                  ticket: ticket,
+                  sucursal: controller.sucursal.value,
+                  estado: controller.estadoTexto,
+                ),
+                const SizedBox(height: 24),
+                AccionDetalleTicket(
+                  puedeComenzar: controller.puedeComenzar,
+                  guardando: controller.guardando.value,
+                  estado: controller.estadoTexto,
+                  alComenzar: controller.comenzarAtencion,
+                ),
+              ],
+            ],
+          ),
+        ),
+      );
+    }),
+  );
+}

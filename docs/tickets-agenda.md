@@ -1,5 +1,15 @@
 # Tickets y agenda local-first
 
+## Detalle y comienzo de atención
+
+Home abre `/detalle-ticket` con el Id local. El controller del módulo detalle_ticket obtiene ticket propio y sucursal desde SQLite; la vista muestra identificador, problema, descripción, sucursal/dirección disponibles, programación local y estado. No consulta la API al abrir.
+
+Únicamente Pending ofrece Comenzar atención. La acción reutiliza RepositorioTickets.actualizar para guardar InProgress y sync_status pending junto con la operación actualizar de tickets en una transacción. La cola contiene usuario propietario e id_local; no se sincroniza desde la pantalla. El PUT existente admite InProgress y no requirió cambios. InProgress no ofrece comenzar nuevamente y Resolved queda de consulta. Volver conserva sesión/filtros y Home recarga SQLite para actualizar lista y conteos.
+
+El esquema actual permite consultar incidencias previas por sucursal y evidencias fechadas existentes, pero no guarda una cronología de cambios de estado ni trabajos realizados como eventos. Un historial completo requeriría definir información persistente adicional; no se implementó historial ni se modificó PostgreSQL.
+
+Validación de esta etapa: flutter analyze sin incidencias; pruebas específicas de detalle y Home con SQLite en memoria y sin canal HTTP. No se ejecutaron suite completa, APK, prueba física, dotnet build ni pruebas PostgreSQL por no estar afectadas. Código propio documentado en español. La preparación de fixtures con ClientRequestId null revela una advertencia existente de sqflite sobre argumentos null en RepositorioTickets.descargar; no impide las pruebas y no se cambió ese flujo en esta etapa.
+
 ## Estado entregado
 
 PostgreSQL conserva la estructura confirmada manualmente por el usuario. Se verificaron por lectura ScheduledAt, ClientRequestId, PhotoBase64, RoleId, IsActive, Roles y UQ_Tickets_TechnicianId_ClientRequestId. No se ejecutó nuevamente ningún ALTER ni los documentos de migración. La vista nueva public.agenda_tickets se instaló con autorización explícita; su única definición canónica vive en database/VISTAS.md. OBJETOS_TICKETS_POSTGRESQL.md indica cómo instalarla en otra base ya migrada.

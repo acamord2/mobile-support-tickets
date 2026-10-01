@@ -130,6 +130,12 @@ class ControladorInicio extends GetxController {
     if (!isClosed) await cargar();
   }
 
+  /// Abre por Id local y refresca SQLite al volver sin sincronizar ni perder filtros.
+  Future<void> abrirDetalle(int idLocal) async {
+    await Get.toNamed<void>(Rutas.detalleTicket, arguments: idLocal);
+    if (!isClosed) await cargar();
+  }
+
   String nombreSucursal(int id) =>
       catalogo.firstWhereOrNull((s) => s.id == id)?.nombre ??
       TextosApp.sucursal;
