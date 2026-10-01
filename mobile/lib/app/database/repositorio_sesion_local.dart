@@ -26,6 +26,8 @@ class RepositorioSesionLocal {
           'id_usuario': sesion.usuario.id,
           'username': sesion.usuario.username,
           'nombre': sesion.usuario.name,
+          'role_id': sesion.usuario.roleId,
+          'rol': sesion.usuario.role,
           'autenticado_en': sesion.autenticadoEn.toUtc().toIso8601String(),
           'expira_en': sesion.expiraEn?.toUtc().toIso8601String(),
         }),
@@ -51,6 +53,8 @@ class RepositorioSesionLocal {
       'id': fila['id_usuario'],
       'username': fila['username'],
       'name': fila['nombre'],
+      'roleId': fila['role_id'],
+      'role': fila['rol'],
     });
     return SesionLocal(
       usuario: usuario,

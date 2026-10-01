@@ -22,6 +22,9 @@ class ServicioSesion extends GetxService {
   /// Reconoce identidad previamente autenticada sin exigir JWT vigente.
   bool get existeSesion => usuario != null;
 
+  /// Expone el rol público persistido sin replicar el catálogo de permisos.
+  int? get roleId => usuario?.roleId;
+
   /// Distingue identidad local de autorización sin expulsar al usuario offline.
   /// exp solo orienta al cliente; la firma y autorización las valida la API.
   bool get requiereReautenticacion =>

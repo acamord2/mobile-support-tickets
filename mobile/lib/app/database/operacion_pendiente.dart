@@ -9,6 +9,7 @@ enum TipoOperacionLocal { crear, actualizar, eliminar }
 /// No incluye sesión, token ni credenciales; el repositorio valida su persistencia.
 class OperacionPendiente {
   final int id;
+  final int? usuarioId;
   final String recurso;
   final TipoOperacionLocal operacion;
   final Map<String, Object?> payload;
@@ -21,6 +22,7 @@ class OperacionPendiente {
   /// El mapeo vive junto al modelo técnico, fuera de módulos y presentación.
   OperacionPendiente.desdeFila(Map<String, Object?> fila)
     : id = fila['id'] as int,
+      usuarioId = fila['usuario_id'] as int?,
       recurso = fila['recurso'] as String,
       operacion = TipoOperacionLocal.values.byName(fila['operacion'] as String),
       payload = Map<String, Object?>.from(

@@ -22,6 +22,7 @@ class RepositorioCola {
   /// Rechaza campos sensibles incluso anidados y valores Bearer/JWT antes de escribir.
   Future<ResultadoSqlite<int>> agregarPendiente({
     required String recurso,
+    int? usuarioId,
     required TipoOperacionLocal operacion,
     required Map<String, Object?> payload,
   }) => OperacionesSqlite.controlar(() async {
@@ -32,6 +33,7 @@ class RepositorioCola {
     return OperacionesSqlite.exigir(
       await _operaciones.insertar(EsquemaSqlite.cola, {
         'recurso': recurso.trim(),
+        'usuario_id': usuarioId,
         'operacion': operacion.name,
         'payload': jsonEncode(payload),
         'creado_en': DateTime.now().toUtc().toIso8601String(),
@@ -43,21 +45,24 @@ class RepositorioCola {
 
   /// Lee pendientes y errores reintentables por id para preservar el orden local.
   /// No devuelve operaciones procesando ni sincronizadas como trabajo por enviar.
-  Future<ResultadoSqlite<List<OperacionPendiente>>> obtenerPendientes() =>
-      OperacionesSqlite.controlar(() async {
-        final filas = OperacionesSqlite.exigir(
-          await _operaciones.seleccionar(
-            EsquemaSqlite.cola,
-            donde: 'estado IN (?, ?)',
-            argumentos: [
-              EstadoSincronizacion.pendiente.name,
-              EstadoSincronizacion.error.name,
-            ],
-            orden: 'id ASC',
-          ),
-        );
-        return filas.map(OperacionPendiente.desdeFila).toList();
-      });
+  Future<ResultadoSqlite<List<OperacionPendiente>>> obtenerPendientes({
+    int? usuarioId,
+  }) => OperacionesSqlite.controlar(() async {
+    final filas = OperacionesSqlite.exigir(
+      await _operaciones.seleccionar(
+        EsquemaSqlite.cola,
+        donde:
+            'estado IN (?, ?)${usuarioId == null ? '' : ' AND usuario_id = ?'}',
+        argumentos: [
+          EstadoSincronizacion.pendiente.name,
+          EstadoSincronizacion.error.name,
+          ?usuarioId,
+        ],
+        orden: 'id ASC',
+      ),
+    );
+    return filas.map(OperacionPendiente.desdeFila).toList();
+  });
 
   /// Reclama un pendiente/error e incrementa intentos atómicamente antes del envío.
   /// Una transición inválida falla sin modificar una operación ya completada.
@@ -88,6 +93,16 @@ class RepositorioCola {
           ),
         );
       });
+
+  /// Recupera operaciones interrumpidas del propietario al iniciar un ciclo exclusivo.
+  /// Conserva claves y payload para reintentar después de cerrar la aplicación.
+  Future<ResultadoSqlite<int>> recuperar(int usuario) =>
+      _operaciones.actualizar(
+        EsquemaSqlite.cola,
+        {'estado': EstadoSincronizacion.pendiente.name},
+        donde: 'usuario_id = ? AND estado = ?',
+        argumentos: [usuario, EstadoSincronizacion.procesando.name],
+      );
 
   /// Confirma solo una operación procesando y conserva su fila como sincronizada.
   /// No elimina historial técnico ni presupone que un envío sin respuesta fue exitoso.

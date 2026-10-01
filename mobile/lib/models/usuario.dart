@@ -3,12 +3,20 @@
 /// de autenticación hacia controllers y vistas.
 class Usuario {
   final int id;
+  final int? roleId;
+  final String? role;
   final String username;
   final String name;
 
   /// Construye una identidad inmutable con los tres campos públicos del contrato.
   /// No incorpora contraseña ni hash porque la presentación solo necesita identidad.
-  const Usuario({required this.id, required this.username, required this.name});
+  const Usuario({
+    required this.id,
+    required this.username,
+    required this.name,
+    this.roleId,
+    this.role,
+  });
 
   /// Lee y valida los campos públicos del JSON sin incluirlo en errores.
   /// Rechaza respuestas incompletas para que el servicio controle el fallo y no
@@ -25,6 +33,12 @@ class Usuario {
         name.trim().isEmpty) {
       throw const FormatException('Identidad pública inválida.');
     }
-    return Usuario(id: id, username: username, name: name);
+    return Usuario(
+      id: id,
+      username: username,
+      name: name,
+      roleId: json['roleId'] as int?,
+      role: json['role'] as String?,
+    );
   }
 }
