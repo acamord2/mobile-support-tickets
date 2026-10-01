@@ -16,14 +16,14 @@ builder.Services.AddControllers();
 // EF Core permanece disponible, pero sin registro activo ni conexiones paralelas:
 // las lecturas y health actuales utilizan exclusivamente IConexion.
 builder.Services.AddScoped<IConexion, Conexion>();
-builder.Services.AddScoped<IUserDataAccess, PostgresUserDataAccess>();
-builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
-builder.Services.AddScoped<AuthService>();
-builder.Services.AddScoped<IDatabaseHealthService, DatabaseHealthService>();
+builder.Services.AddScoped<IAccesoUsuarios, AccesoUsuariosPostgres>();
+builder.Services.AddScoped<IPasswordHasher<Usuario>, PasswordHasher<Usuario>>();
+builder.Services.AddScoped<ServicioAutenticacion>();
+builder.Services.AddScoped<IServicioSaludBaseDatos, ServicioSaludBaseDatos>();
 
 // Las opciones se validan al iniciar para detectar configuración JWT incompleta
 // antes de atender solicitudes; no contienen credenciales PostgreSQL hardcodeadas.
-builder.Services.AddOptions<JwtOptions>()
+builder.Services.AddOptions<OpcionesJwt>()
     .Bind(builder.Configuration.GetSection("Jwt"))
     .ValidateDataAnnotations()
     .Validate(options => Encoding.UTF8.GetByteCount(options.Key) >= 32, "Jwt:Key debe tener al menos 32 bytes.")
@@ -31,7 +31,7 @@ builder.Services.AddOptions<JwtOptions>()
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer();
 builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
-    .Configure<Microsoft.Extensions.Options.IOptions<JwtOptions>>((options, settings) =>
+    .Configure<Microsoft.Extensions.Options.IOptions<OpcionesJwt>>((options, settings) =>
     {
         var jwt = settings.Value;
         // Se conservan los nombres originales de claims para que /me lea sub,
@@ -63,7 +63,7 @@ builder.Services.AddSwaggerGen(options =>
         BearerFormat = "JWT",
         Description = "Introduce solamente el JWT obtenido en /api/auth/login."
     });
-    options.OperationFilter<BearerSecurityOperationFilter>();
+    options.OperationFilter<FiltroSeguridadBearer>();
 });
 
 var app = builder.Build();
