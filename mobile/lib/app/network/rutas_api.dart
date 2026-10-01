@@ -5,4 +5,7 @@ abstract class RutasApi {
   static const healthDatabase = '/api/health/database';
   static const login = '/api/auth/login';
   static const me = '/api/auth/me';
+  static const tickets = '/api/tickets';
+  static const sucursales = '/api/branches';
+  static String evidencia(int ticket) => '$tickets/$ticket/evidence';
 }
