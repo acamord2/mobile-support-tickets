@@ -76,6 +76,7 @@ BEGIN TRY
             [CreatedAt] datetimeoffset(7) NOT NULL,
             [UpdatedAt] datetimeoffset(7) NOT NULL,
             [ScheduledAt] datetimeoffset(7) NOT NULL,
+            [ClientRequestId] uniqueidentifier NULL,
             CONSTRAINT [FK_Tickets_Branches] FOREIGN KEY ([BranchId]) REFERENCES dbo.[Branches] ([Id]) ON DELETE NO ACTION,
             CONSTRAINT [FK_Tickets_Users] FOREIGN KEY ([TechnicianId]) REFERENCES dbo.[Users] ([Id]) ON DELETE NO ACTION,
             CONSTRAINT [CK_Tickets_Status] CHECK ([Status] IN (N'Pending', N'InProgress', N'Resolved')),
@@ -83,6 +84,10 @@ BEGIN TRY
         );
     END;
 
+    IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'dbo.Tickets') AND name = N'UQ_Tickets_TechnicianId_ClientRequestId')
+        CREATE UNIQUE INDEX [UQ_Tickets_TechnicianId_ClientRequestId]
+            ON dbo.[Tickets] ([TechnicianId], [ClientRequestId])
+            WHERE [ClientRequestId] IS NOT NULL;
     IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'dbo.Tickets') AND name = N'IX_Tickets_BranchId')
         CREATE INDEX [IX_Tickets_BranchId] ON dbo.[Tickets] ([BranchId]);
     IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'dbo.Tickets') AND name = N'IX_Tickets_TechnicianId_Status')
@@ -95,6 +100,7 @@ BEGIN TRY
             [TicketId] int NOT NULL,
             [Description] nvarchar(max) NOT NULL,
             [PhotoPath] nvarchar(max) NULL,
+            [PhotoBase64] nvarchar(max) NULL,
             [CreatedAt] datetimeoffset(7) NOT NULL,
             CONSTRAINT [FK_Evidences_Tickets] FOREIGN KEY ([TicketId]) REFERENCES dbo.[Tickets] ([Id]) ON DELETE NO ACTION
         );
@@ -119,7 +125,7 @@ RoleId es FK con default 2. IsActive BIT almacena 0/1 y default 1; SQL Server co
 
 CreatedAt/UpdatedAt/ScheduledAt usan DATETIMEOFFSET(7); la aplicación seguirá escribiendo UTC. PostgreSQL timestamptz conserva el instante normalizado, no el identificador de zona original; SQL Server puede conservar un offset. ScheduledAt es independiente de creación/modificación, sin default que sustituya la cita por la fecha actual.
 
-Evidences mantiene Description, PhotoPath nullable y CreatedAt; no se implementa aún almacenamiento Base64. NVARCHAR(MAX) es la equivalencia de texto largo y podría soportar el campo Base64 futuro, pero no se añade ahora otro campo de imagen. Las FK NO ACTION equivalen al comportamiento restrictivo solicitado, sin cascadas de borrado.
+Evidences mantiene Description, PhotoPath nullable y CreatedAt; PhotoBase64 nullable prepara el almacenamiento Base64 autorizado; todavía no se implementa procesamiento runtime. NVARCHAR(MAX) es la equivalencia de texto largo y podría soportar el campo Base64 futuro, y se usa directamente para PhotoBase64, conservando PhotoPath. Las FK NO ACTION equivalen al comportamiento restrictivo solicitado, sin cascadas de borrado.
 
 ## Verificación de una instalación nueva
 
@@ -138,3 +144,11 @@ UNION ALL SELECT N'Evidences', COUNT_BIG(*) FROM dbo.[Evidences];
 ```
 
 Resultado previsto: Roles 2, restantes tablas 0. Después ejecutar FUNCIONES_SP_SQLSERVER.md; revisar VISTAS_SQLSERVER.md y TRIGGERS_SQLSERVER.md (sin objetos). DATOS_PRUEBA_SQLSERVER.md se ejecuta opcionalmente solo para desarrollo. No necesita un archivo de actualización SQL Server porque no existe una instalación propia que migrar.
+
+## Idempotencia y fotografía equivalentes
+
+ClientRequestId UNIQUEIDENTIFIER NULL es una clave móvil persistente independiente del Id int. El índice UNIQUE filtrado por ClientRequestId IS NOT NULL garantiza unicidad por técnico para claves presentes y permite múltiples tickets sin clave, como PostgreSQL. No usar un UNIQUE compuesto sin filtro: SQL Server trata NULL de forma distinta. El filtro evita restringir los tickets antiguos sin identificador.
+
+PhotoBase64 NVARCHAR(MAX) NULL almacena el contenido íntegro sin prefijo, conservando PhotoPath. El límite futuro de 1 MB se aplica sobre los bytes de imagen comprimidos/decodificados, no sobre longitud textual. No hay datos demo ni claves generadas nuevas en este ajuste.
+
+SQL Server documentado/no validado contra instancia real. No existe migración SQL Server ni provider runtime nuevo. Referencia: [CREATE INDEX y filtro](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-index-transact-sql).

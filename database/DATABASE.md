@@ -82,6 +82,8 @@ CREATE TABLE IF NOT EXISTS public."Tickets" (
     "CreatedAt" timestamptz NOT NULL,
     "UpdatedAt" timestamptz NOT NULL,
     "ScheduledAt" timestamptz NOT NULL,
+    "ClientRequestId" uuid NULL,
+    CONSTRAINT "UQ_Tickets_TechnicianId_ClientRequestId" UNIQUE ("TechnicianId", "ClientRequestId"),
     CONSTRAINT "CK_Tickets_Status" CHECK ("Status" IN ('Pending', 'InProgress', 'Resolved')),
     CONSTRAINT "CK_Tickets_Dates" CHECK ("UpdatedAt" >= "CreatedAt")
 );
@@ -94,6 +96,7 @@ CREATE TABLE IF NOT EXISTS public."Evidences" (
     "TicketId" integer NOT NULL REFERENCES public."Tickets" ("Id") ON DELETE RESTRICT,
     "Description" text NOT NULL,
     "PhotoPath" text NULL,
+    "PhotoBase64" text NULL,
     "CreatedAt" timestamptz NOT NULL
 );
 
@@ -116,7 +119,7 @@ Campos: Id, Name y Address. Id es la PK int identity y los datos básicos son NO
 
 ### Tickets
 
-Campos: Id, BranchId, TechnicianId, Title, Description, Status, CreatedAt, UpdatedAt y ScheduledAt. Id es la PK int identity; todos los campos son NOT NULL.
+Campos: Id, BranchId, TechnicianId, Title, Description, Status, CreatedAt, UpdatedAt, ScheduledAt y ClientRequestId. Id es la PK int identity; ClientRequestId es nullable y los otros campos son NOT NULL.
 
 - BranchId referencia Branches.Id para asegurar que la incidencia pertenece a una sucursal existente.
 - TechnicianId referencia Users.Id para asegurar que el técnico asignado existe.
@@ -129,7 +132,7 @@ Campos: Id, BranchId, TechnicianId, Title, Description, Status, CreatedAt, Updat
 
 ### Evidences
 
-Campos: Id, TicketId, Description, PhotoPath y CreatedAt. Id es la PK int identity. TicketId referencia Tickets.Id; ON DELETE RESTRICT impide dejar evidencias sin ticket. Description y CreatedAt son NOT NULL; PhotoPath admite NULL para permitir evidencia descriptiva sin fotografía. IX_Evidences_TicketId facilita recuperar las evidencias relacionadas.
+Campos: Id, TicketId, Description, PhotoPath, PhotoBase64 y CreatedAt. Id es la PK int identity. TicketId referencia Tickets.Id; ON DELETE RESTRICT impide dejar evidencias sin ticket. Description y CreatedAt son NOT NULL; PhotoPath admite NULL para permitir evidencia descriptiva sin fotografía. IX_Evidences_TicketId facilita recuperar las evidencias relacionadas.
 
 ### Relaciones
 
@@ -169,6 +172,16 @@ Después de este documento, continuar con FUNCIONES_SP.md, VISTAS.md y TRIGGERS.
 
 ## Evolución controlada y fechas
 
-Users y Branches no tienen campos temporales en el esquema actual; no se añaden fechas de auditoría sin requisito. Evidences conserva CreatedAt y PhotoPath TEXT nullable. No se implementa Base64 ni se modifica evidencia en esta etapa. Tickets añade solo ScheduledAt. No hay índices nuevos: el índice existente por técnico/estado continúa válido; el índice de agenda se evaluará al implementar y medir su consulta.
+Users y Branches no tienen campos temporales en el esquema actual; no se añaden fechas de auditoría sin requisito. Evidences conserva CreatedAt y PhotoPath TEXT nullable. PhotoBase64 TEXT nullable está autorizado para contenido Base64 completo sin prefijo; PhotoPath se conserva. El procesamiento y la sincronización todavía no están implementados. Tickets conserva ScheduledAt y añade ClientRequestId nullable para idempotencia móvil. La restricción nueva de unicidad crea su índice; el índice existente por técnico/estado continúa válido; el índice de agenda se evaluará al implementar y medir su consulta.
 
 Para la base ya instalada ejecutar manualmente ACTUALIZACION_POSTGRESQL.md, con la función canónica de FUNCIONES_SP.md dentro de la misma transacción según sus instrucciones. No ejecutar este instalador para intentar migrar: IF NOT EXISTS no altera tablas antiguas. La API sigue usando el esquema anterior hasta que el usuario confirme la aplicación de SQL; no instala ninguno de estos documentos.
+
+## Idempotencia móvil y fotografía autorizadas
+
+ClientRequestId UUID nullable identifica una creación móvil y no sustituye Tickets.Id int. Se generará una sola vez en el dispositivo y se conservará en SQLite en todos los reintentos. UQ_Tickets_TechnicianId_ClientRequestId protege el par técnico/clave frente a concurrencia; la futura API recuperará el mismo ticket ante conflicto. PostgreSQL permite varios NULL para un técnico con esta restricción, conservando tickets antiguos sin clave. No se generan ni rellenan claves en el instalador.
+
+PhotoBase64 TEXT nullable conserva el contenido Base64 íntegro, sin prefijo data:. PhotoPath permanece disponible. La futura aplicación producirá JPEG, reducirá dimensiones y comprimirá antes de codificar; la API validará como máximo 1 MB de bytes decodificados y nunca truncará el contenido. No se añade una columna MIME en esta etapa: la implementación futura deberá fijar y validar el formato admitido.
+
+Para la base existente ya migrada aplicar manualmente ACTUALIZACION_TICKETS_POSTGRESQL.md. Este instalador nuevo incluye ambas columnas y la restricción directamente. Ningún SQL de esta etapa se ejecutó; no hay cambios runtime ni nuevos objetos de agenda hasta la confirmación manual.
+
+Referencias: [unicidad PostgreSQL y NULL](https://www.postgresql.org/docs/17/ddl-constraints.html), [índices filtrados SQL Server](https://learn.microsoft.com/en-us/sql/relational-databases/indexes/create-filtered-indexes).
