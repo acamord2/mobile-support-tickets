@@ -6,12 +6,14 @@ import 'package:tikets/main.dart';
 import 'package:tikets/app/constants/textos_app.dart';
 import 'package:tikets/app/routes/rutas.dart';
 import 'package:tikets/app/services/servicio_sesion.dart';
+import 'package:tikets/app/services/servicio_conectividad.dart';
 import 'package:tikets/modules/home/main_home.dart';
 import 'package:tikets/modules/login/main_login.dart';
 
 /// Ejecuta el formulario real en Android contra API y PostgreSQL de desarrollo.
 /// Obtiene credenciales externamente para no incluir la cuenta demo en tests,
 /// verifica navegación/logout y captura solo pantallas públicas, nunca el JWT.
+/// Simula el indicador offline mediante su estado sin cambiar la red del teléfono.
 void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   const usuario = String.fromEnvironment('DEMO_USERNAME');
@@ -38,7 +40,19 @@ void main() {
     expect(sesion.existeSesion, isTrue);
     expect(find.text(sesion.usuario!.name), findsOneWidget);
     expect(Get.key.currentState!.canPop(), isFalse);
+    expect(find.text(TextosApp.misTickets), findsOneWidget);
+    expect(find.text(TextosApp.sincronizar), findsOneWidget);
+    expect(find.text(TextosApp.moduloNoDisponible), findsNWidgets(2));
+    expect(tester.takeException(), isNull);
     await binding.takeScreenshot('inicio');
+    final conectividad = Get.find<ServicioConectividad>();
+    conectividad.redDisponible.value = false;
+    await tester.pump();
+    expect(find.byIcon(Icons.cloud_off), findsOneWidget);
+    expect(Get.currentRoute, Rutas.inicio);
+    await binding.takeScreenshot('inicio_sin_red');
+    await conectividad.refrescar();
+    await tester.pump();
     await tester.tap(find.text(TextosApp.cerrarSesion));
     await tester.pumpAndSettle();
     expect(Get.currentRoute, Rutas.login);
