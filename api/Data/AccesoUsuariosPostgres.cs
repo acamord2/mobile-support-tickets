@@ -23,7 +23,13 @@ public class AccesoUsuariosPostgres(IConexion databaseConnection) : IAccesoUsuar
     {
         await using var connection = await databaseConnection.OpenConnectionAsync(cancellationToken);
         await using var command = connection.CreateCommand();
-        command.CommandText = "SELECT * FROM public.get_user_by_username(@username)";
+        command.CommandText = """
+            SELECT f.*, u."RoleId", u."IsActive", r."Name" AS "Role"
+            FROM public.get_user_by_username(@username) f
+            JOIN public."Users" u ON u."Id" = f."Id"
+            JOIN public."Roles" r ON r."Id" = u."RoleId"
+            WHERE u."IsActive" = 1
+            """;
         var parameter = command.CreateParameter();
         parameter.ParameterName = "username";
         parameter.Value = username;
@@ -36,7 +42,10 @@ public class AccesoUsuariosPostgres(IConexion databaseConnection) : IAccesoUsuar
             Id = reader.GetInt32(reader.GetOrdinal("Id")),
             Username = reader.GetString(reader.GetOrdinal("Username")),
             PasswordHash = reader.GetString(reader.GetOrdinal("PasswordHash")),
-            Name = reader.GetString(reader.GetOrdinal("Name"))
+            Name = reader.GetString(reader.GetOrdinal("Name")),
+            RoleId = reader.GetInt32(reader.GetOrdinal("RoleId")),
+            IsActive = reader.GetInt16(reader.GetOrdinal("IsActive")),
+            Role = reader.GetString(reader.GetOrdinal("Role"))
         };
         if (await reader.ReadAsync(cancellationToken))
             throw new InvalidOperationException("La consulta de usuario devolvió más de un resultado.");

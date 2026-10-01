@@ -17,6 +17,7 @@ builder.Services.AddControllers();
 // las lecturas y health actuales utilizan exclusivamente IConexion.
 builder.Services.AddScoped<IConexion, Conexion>();
 builder.Services.AddScoped<IAccesoUsuarios, AccesoUsuariosPostgres>();
+builder.Services.AddScoped<AccesoTicketsPostgres>();
 builder.Services.AddScoped<IPasswordHasher<Usuario>, PasswordHasher<Usuario>>();
 builder.Services.AddScoped<ServicioAutenticacion>();
 builder.Services.AddScoped<IServicioSaludBaseDatos, ServicioSaludBaseDatos>();

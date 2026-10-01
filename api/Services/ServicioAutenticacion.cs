@@ -36,7 +36,7 @@ public class ServicioAutenticacion(
     public async Task<RespuestaLogin?> LoginAsync(SolicitudLogin request, CancellationToken cancellationToken)
     {
         var user = await users.GetByUsernameAsync(request.Username, cancellationToken);
-        if (user is null || passwordHasher.VerifyHashedPassword(user, user.PasswordHash, request.Password)
+        if (user is null || user.IsActive != 1 || passwordHasher.VerifyHashedPassword(user, user.PasswordHash, request.Password)
             == PasswordVerificationResult.Failed)
         {
             return null;
@@ -48,7 +48,9 @@ public class ServicioAutenticacion(
         {
             new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString(CultureInfo.InvariantCulture)),
             new Claim("username", user.Username),
-            new Claim("name", user.Name)
+            new Claim("name", user.Name),
+            new Claim("roleId", user.RoleId.ToString(CultureInfo.InvariantCulture)),
+            new Claim("role", user.Role)
         };
         var credentials = new SigningCredentials(
             new SymmetricSecurityKey(Encoding.UTF8.GetBytes(settings.Key)),
@@ -63,6 +65,6 @@ public class ServicioAutenticacion(
 
         return new RespuestaLogin(
             new JwtSecurityTokenHandler().WriteToken(token),
-            new RespuestaUsuario(user.Id, user.Username, user.Name));
+            new RespuestaUsuario(user.Id, user.Username, user.Name, user.RoleId, user.Role));
     }
 }

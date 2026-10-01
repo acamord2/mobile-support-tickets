@@ -10,5 +10,6 @@ public class Evidencia
     public int TicketId { get; set; }
     public string Description { get; set; } = string.Empty;
     public string? PhotoPath { get; set; }
+    public string? PhotoBase64 { get; set; }
     public DateTime CreatedAt { get; set; }
 }
