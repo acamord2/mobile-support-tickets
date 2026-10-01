@@ -108,6 +108,7 @@ class ControladorEditarTicket extends GetxController {
         descripcion: descripcion.text,
         estado: t.estado,
         programado: programado.value,
+        autorNombre: sesion.usuario!.name,
       );
       if (volver) Get.back(result: true);
       return true;

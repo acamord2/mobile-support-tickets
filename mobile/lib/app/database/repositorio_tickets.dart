@@ -3,6 +3,8 @@ import 'operaciones_sqlite.dart';
 import 'repositorio_cola.dart';
 import 'operacion_pendiente.dart';
 import 'identificador_cliente.dart';
+import 'repositorio_eventos.dart';
+import '../../models/tipo_evento_ticket.dart';
 
 /// Persiste tickets y operaciones atómicamente usando la conexión SQLite común.
 /// La agenda siempre procede de aquí; descargas respetan cambios locales pendientes.
@@ -50,6 +52,7 @@ class RepositorioTickets {
     required String descripcion,
     required DateTime programado,
     Map<String, Object?>? evidencia,
+    String? autorNombre,
   }) async {
     return OperacionesSqlite.exigir(
       await sql.transaccion((tx) async {
@@ -95,6 +98,24 @@ class RepositorioTickets {
             ),
           );
         }
+        final eventos = RepositorioEventos(tx);
+        await eventos.agregar(
+          id,
+          usuario,
+          TipoEventoTicket.creado,
+          'Ticket registrado',
+          autor: autorNombre,
+          fecha: fecha,
+        );
+        await eventos.agregar(
+          id,
+          usuario,
+          TipoEventoTicket.programado,
+          'Atención programada',
+          autor: autorNombre,
+          fecha: fecha,
+          programado: programado,
+        );
         return id;
       }),
     );
@@ -109,12 +130,36 @@ class RepositorioTickets {
     required String descripcion,
     required String estado,
     required DateTime programado,
+    String? autorNombre,
   }) async {
     if (!['Pending', 'InProgress', 'Resolved'].contains(estado)) {
       throw const FormatException('Estado inválido.');
     }
     OperacionesSqlite.exigir(
       await sql.transaccion((tx) async {
+        final previas = OperacionesSqlite.exigir(
+          await tx.seleccionar(
+            'tickets',
+            donde: 'id_local = ? AND usuario_id = ?',
+            argumentos: [id, usuario],
+          ),
+        );
+        if (previas.isEmpty) throw StateError('Ticket no autorizado.');
+        final previo = TicketLocal.desdeFila(previas.single);
+        if (previo.estado == 'Resolved') throw StateError('Ticket resuelto.');
+        if (previo.estado != estado &&
+            !((previo.estado == 'Pending' && estado == 'InProgress') ||
+                (previo.estado == 'InProgress' && estado == 'Resolved'))) {
+          throw StateError('Transición inválida.');
+        }
+        if (estado == 'Resolved' && previo.estado != estado) {
+          final registros = await RepositorioEventos(tx).listar(id, usuario);
+          if (!registros.any(
+            (e) => e['tipo_evento'] == TipoEventoTicket.seguimiento.clave,
+          )) {
+            throw StateError('Falta seguimiento manual.');
+          }
+        }
         final n = OperacionesSqlite.exigir(
           await tx.actualizar(
             'tickets',
@@ -131,6 +176,28 @@ class RepositorioTickets {
           ),
         );
         if (n != 1) throw StateError('Ticket no autorizado.');
+        final eventos = RepositorioEventos(tx);
+        if (!previo.programado.isAtSameMomentAs(programado)) {
+          await eventos.agregar(
+            id,
+            usuario,
+            TipoEventoTicket.reprogramado,
+            'Atención reprogramada',
+            autor: autorNombre,
+            anterior: previo.programado,
+            programado: programado,
+          );
+        }
+        if (previo.estado != estado) {
+          final iniciado = estado == 'InProgress';
+          await eventos.agregar(
+            id,
+            usuario,
+            iniciado ? TipoEventoTicket.enAtencion : TipoEventoTicket.resuelto,
+            iniciado ? 'Atención iniciada' : 'Ticket resuelto',
+            autor: autorNombre,
+          );
+        }
         OperacionesSqlite.exigir(
           await RepositorioCola(tx).agregarPendiente(
             usuarioId: usuario,

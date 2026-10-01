@@ -139,14 +139,16 @@ void main() {
       final cola = OperacionesSqlite.exigir(
         await RepositorioCola(sql).obtenerPendientes(usuarioId: 1),
       );
-      expect(cola, hasLength(1));
-      expect(cola.single.usuarioId, 1);
-      expect(cola.single.recurso, 'tickets');
-      expect(cola.single.operacion, TipoOperacionLocal.actualizar);
-      expect(cola.single.payload, {'id_local': 1});
-      expect(cola.single.estado, EstadoSincronizacion.pendiente);
-      expect(cola.single.intentos, 0);
-      expect(cola.single.ultimoError, isNull);
+      expect(cola.where((p) => p.recurso == 'eventos'), hasLength(1));
+      final colaTickets = cola.where((p) => p.recurso == 'tickets').toList();
+      expect(colaTickets, hasLength(1));
+      expect(colaTickets.single.usuarioId, 1);
+      expect(colaTickets.single.recurso, 'tickets');
+      expect(colaTickets.single.operacion, TipoOperacionLocal.actualizar);
+      expect(colaTickets.single.payload, {'id_local': 1});
+      expect(colaTickets.single.estado, EstadoSincronizacion.pendiente);
+      expect(colaTickets.single.intentos, 0);
+      expect(colaTickets.single.ultimoError, isNull);
     },
   );
   for (final id in [2, 3]) {

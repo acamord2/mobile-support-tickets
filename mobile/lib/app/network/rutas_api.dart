@@ -8,4 +8,5 @@ abstract class RutasApi {
   static const tickets = '/api/tickets';
   static const sucursales = '/api/branches';
   static String evidencia(int ticket) => '$tickets/$ticket/evidence';
+  static String eventos(int ticket) => '$tickets/$ticket/events';
 }

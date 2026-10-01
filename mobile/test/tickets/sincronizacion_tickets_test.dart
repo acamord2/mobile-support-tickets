@@ -32,6 +32,7 @@ void main() {
   late Conexion api;
   var posts = 0;
   var codigo = 200;
+  var idEvento = 300;
   var disponible = true;
   final claves = <String>[];
   final rutas = <String>[];
@@ -94,6 +95,12 @@ void main() {
             return http.Response(
               disponible ? ' {"status":"ok","database":"connected"}' : '{}',
               disponible ? 200 : 503,
+            );
+          }
+          if (req.url.path.endsWith('/events')) {
+            return http.Response(
+              req.method == 'POST' ? '{"id":${idEvento++}}' : '[]',
+              200,
             );
           }
           if (req.method == 'PUT') {
@@ -195,7 +202,7 @@ void main() {
       1,
       titulo: 'Trabajo nuevo',
       descripcion: 'Actualizado',
-      estado: 'Resolved',
+      estado: 'InProgress',
       programado: DateTime.utc(2026, 10, 3),
     );
     await sync.sincronizar();
@@ -224,7 +231,7 @@ void main() {
     expect((await tickets.obtener(id, 1))!.syncStatus, 'pending');
     expect(
       OperacionesSqlite.exigir(await cola.obtenerPendientes(usuarioId: 1)),
-      hasLength(1),
+      hasLength(3),
     );
   });
   test(

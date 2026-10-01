@@ -71,7 +71,10 @@ class VistaDetalleTicket extends GetView<ControladorDetalleTicket> {
                   ),
                 ],
                 const SizedBox(height: 24),
-                SeguimientoTicket(registros: controller.seguimientos.toList()),
+                SeguimientoTicket(
+                  registros: controller.seguimientos.toList(),
+                  evidencias: controller.evidenciasDisponibles.toList(),
+                ),
               ],
             ],
           ),

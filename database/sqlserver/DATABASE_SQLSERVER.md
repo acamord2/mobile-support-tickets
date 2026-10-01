@@ -1,5 +1,7 @@
 # Estructura equivalente SQL Server
 
+**Propuesta pendiente:** el bloque TicketEvents y la clave compuesta de Evidences no están instalados. No ejecutar esta definición hasta aprobarla; para una base existente compatible se prepara ACTUALIZACION_SEGUIMIENTO_SQLSERVER.md.
+
 SQL Server está **documentado/no validado contra instancia real**. PostgreSQL sigue siendo el motor runtime actual. No hay proveedor SQL Server ni instancia configurada en esta prueba; este documento no se ejecutó. Requiere SQL Server 2016 SP1 o posterior para CREATE OR ALTER PROCEDURE, SSMS o herramienta compatible con separadores GO.
 
 Este instalador crea una base nueva equivalente a DATABASE.md PostgreSQL. No sirve para migrar una base SQL Server preexistente incompatible. Las comprobaciones OBJECT_ID permiten repetir solo una instalación con el mismo esquema; no alteran tablas antiguas. Los roles 1/2 son referencias funcionales, no cuentas demo.
@@ -102,11 +104,46 @@ BEGIN TRY
             [PhotoPath] nvarchar(max) NULL,
             [PhotoBase64] nvarchar(max) NULL,
             [CreatedAt] datetimeoffset(7) NOT NULL,
-            CONSTRAINT [FK_Evidences_Tickets] FOREIGN KEY ([TicketId]) REFERENCES dbo.[Tickets] ([Id]) ON DELETE NO ACTION
+            CONSTRAINT [FK_Evidences_Tickets] FOREIGN KEY ([TicketId]) REFERENCES dbo.[Tickets] ([Id]) ON DELETE NO ACTION,
+            CONSTRAINT [UQ_Evidences_TicketId_Id] UNIQUE ([TicketId], [Id])
         );
     END;
     IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'dbo.Evidences') AND name = N'IX_Evidences_TicketId')
         CREATE INDEX [IX_Evidences_TicketId] ON dbo.[Evidences] ([TicketId]);
+
+    IF OBJECT_ID(N'dbo.TicketEvents', N'U') IS NULL
+    BEGIN
+        CREATE TABLE dbo.[TicketEvents] (
+            [Id] int IDENTITY(1,1) NOT NULL CONSTRAINT [PK_TicketEvents] PRIMARY KEY,
+            [TicketId] int NOT NULL,
+            [EventType] nvarchar(20) COLLATE Latin1_General_100_BIN2 NOT NULL,
+            [Description] nvarchar(max) NOT NULL,
+            [CreatedAt] datetimeoffset(7) NOT NULL,
+            [UserId] int NOT NULL,
+            [ClientRequestId] uniqueidentifier NOT NULL,
+            [PreviousScheduledAt] datetimeoffset(7) NULL,
+            [ScheduledAt] datetimeoffset(7) NULL,
+            [EvidenceId] int NULL,
+            CONSTRAINT [FK_TicketEvents_Tickets] FOREIGN KEY ([TicketId]) REFERENCES dbo.[Tickets] ([Id]) ON DELETE NO ACTION,
+            CONSTRAINT [FK_TicketEvents_Users] FOREIGN KEY ([UserId]) REFERENCES dbo.[Users] ([Id]) ON DELETE NO ACTION,
+            CONSTRAINT [UQ_TicketEvents_UserId_ClientRequestId] UNIQUE ([UserId], [ClientRequestId]),
+            CONSTRAINT [FK_TicketEvents_Evidences] FOREIGN KEY ([TicketId], [EvidenceId])
+                REFERENCES dbo.[Evidences] ([TicketId], [Id]) ON DELETE NO ACTION,
+            CONSTRAINT [CK_TicketEvents_EventType] CHECK (
+                [EventType] IN (N'CREADO', N'PROGRAMADO', N'REPROGRAMADO', N'EN_ATENCION', N'SEGUIMIENTO', N'RESUELTO')),
+            CONSTRAINT [CK_TicketEvents_Description] CHECK (
+                LEN(LTRIM(RTRIM([Description]))) > 0 OR ([EventType] = N'SEGUIMIENTO' AND [EvidenceId] IS NOT NULL)),
+            CONSTRAINT [CK_TicketEvents_Evidence] CHECK ([EvidenceId] IS NULL OR [EventType] = N'SEGUIMIENTO'),
+            CONSTRAINT [CK_TicketEvents_Schedule] CHECK (
+                ([EventType] = N'PROGRAMADO' AND [PreviousScheduledAt] IS NULL AND [ScheduledAt] IS NOT NULL)
+                OR ([EventType] = N'REPROGRAMADO' AND [PreviousScheduledAt] IS NOT NULL
+                    AND [ScheduledAt] IS NOT NULL AND [PreviousScheduledAt] <> [ScheduledAt])
+                OR ([EventType] NOT IN (N'PROGRAMADO', N'REPROGRAMADO')
+                    AND [PreviousScheduledAt] IS NULL AND [ScheduledAt] IS NULL))
+        );
+    END;
+    IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'dbo.TicketEvents') AND name = N'IX_TicketEvents_TicketId_CreatedAt_Id')
+        CREATE INDEX [IX_TicketEvents_TicketId_CreatedAt_Id] ON dbo.[TicketEvents] ([TicketId], [CreatedAt], [Id]);
 
     COMMIT TRANSACTION;
 END TRY
@@ -119,7 +156,7 @@ GO
 
 ## Equivalencia funcional
 
-Roles usa Id int explícito para referencias estables 1 Administrador / 2 Técnico. Las otras cuatro tablas usan int identity, como PostgreSQL. No se añaden UUID, fechas de auditoría ni objetos de agenda pendientes.
+Roles usa Id int explícito para referencias estables 1 Administrador / 2 Técnico. Las tablas de negocio y usuarios usan int identity, como PostgreSQL. Los UUID de tickets y eventos sirven para reintentos; no se añaden objetos de agenda ni auditoría avanzada.
 
 RoleId es FK con default 2. IsActive BIT almacena 0/1 y default 1; SQL Server convierte entradas numéricas a BIT, por lo que la futura API deberá validar entrada lógica y no utilizar el tipo como validador de formularios. Username y Status usan collation binaria para conservar distinción de mayúsculas del contrato actual. Los textos Unicode utilizan NVARCHAR y literales N'...'.
 
@@ -140,10 +177,11 @@ SELECT N'Roles' AS tabla, COUNT_BIG(*) AS filas FROM dbo.[Roles]
 UNION ALL SELECT N'Users', COUNT_BIG(*) FROM dbo.[Users]
 UNION ALL SELECT N'Branches', COUNT_BIG(*) FROM dbo.[Branches]
 UNION ALL SELECT N'Tickets', COUNT_BIG(*) FROM dbo.[Tickets]
-UNION ALL SELECT N'Evidences', COUNT_BIG(*) FROM dbo.[Evidences];
+UNION ALL SELECT N'Evidences', COUNT_BIG(*) FROM dbo.[Evidences]
+UNION ALL SELECT N'TicketEvents', COUNT_BIG(*) FROM dbo.[TicketEvents];
 ```
 
-Resultado previsto: Roles 2, restantes tablas 0. Después ejecutar FUNCIONES_SP_SQLSERVER.md; revisar VISTAS_SQLSERVER.md y TRIGGERS_SQLSERVER.md (sin objetos). DATOS_PRUEBA_SQLSERVER.md se ejecuta opcionalmente solo para desarrollo. No necesita un archivo de actualización SQL Server porque no existe una instalación propia que migrar.
+Resultado previsto: Roles 2, restantes tablas 0. Después ejecutar FUNCIONES_SP_SQLSERVER.md; revisar VISTAS_SQLSERVER.md y TRIGGERS_SQLSERVER.md (sin objetos). DATOS_PRUEBA_SQLSERVER.md se ejecuta opcionalmente solo para desarrollo. Para una instalación existente compatible, la propuesta de seguimiento se prepara en ACTUALIZACION_SEGUIMIENTO_SQLSERVER.md, sin ejecución.
 
 ## Idempotencia y fotografía equivalentes
 
@@ -151,4 +189,11 @@ ClientRequestId UNIQUEIDENTIFIER NULL es una clave móvil persistente independie
 
 PhotoBase64 NVARCHAR(MAX) NULL almacena el contenido íntegro sin prefijo, conservando PhotoPath. El límite futuro de 1 MB se aplica sobre los bytes de imagen comprimidos/decodificados, no sobre longitud textual. No hay datos demo ni claves generadas nuevas en este ajuste.
 
-SQL Server documentado/no validado contra instancia real. No existe migración SQL Server ni provider runtime nuevo. Referencia: [CREATE INDEX y filtro](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-index-transact-sql).
+SQL Server documentado/no validado contra instancia real. La actualización de seguimiento es únicamente documental; no existe provider runtime SQL Server. Referencia: [CREATE INDEX y filtro](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-index-transact-sql).
+
+
+## TicketEvents — propuesta no instalada
+
+Equivale a TicketEvents de PostgreSQL: mismos diez campos, seis tipos, autor FK, UUID obligatorio por usuario, programación anterior/nueva y enlace opcional a Evidence del mismo Ticket mediante FK compuesta. Se añaden UQ_Evidences_TicketId_Id e índice cronológico TicketId/CreatedAt/Id. No hay Base64 en eventos, datos demo, backfill, nuevos triggers o SP. Las fechas se escribirán UTC conservando el instante del evento offline.
+
+El diseño de autoría, previsualización, SQLite y reutilización de cola se detalla en DATABASE.md de PostgreSQL. Esta definición de instalación nueva anticipa la propuesta; debe aprobarse antes de ejecutarla. SQL Server permanece documental/no validado contra instancia real.

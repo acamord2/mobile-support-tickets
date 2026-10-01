@@ -32,14 +32,16 @@ class ServicioNuevoTicket {
     String titulo,
     String descripcion,
     DateTime programado,
-    ImagenProcesada? foto,
-  ) async {
+    ImagenProcesada? foto, {
+    String? autorNombre,
+  }) async {
     return tickets.crear(
       usuario: usuario,
       sucursal: sucursal,
       titulo: titulo,
       descripcion: descripcion,
       programado: programado,
+      autorNombre: autorNombre,
       evidencia: foto == null
           ? null
           : {

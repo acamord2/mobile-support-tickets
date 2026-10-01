@@ -27,6 +27,7 @@ abstract class EsquemaSqlite {
     ''');
     if (version >= 2) await _crearSesion(db);
     if (version >= 3) await _crearTickets(db);
+    if (version >= 4) await _crearEventos(db);
   }
 
   /// Impide una actualización desconocida en vez de borrar la base o sus datos.
@@ -34,7 +35,26 @@ abstract class EsquemaSqlite {
   static Future<void> actualizar(Database db, int anterior, int nueva) async {
     if (anterior < 2 && nueva >= 2) await _crearSesion(db);
     if (anterior < 3 && nueva >= 3) await _crearTickets(db);
-    if (nueva > 3) throw UnsupportedError('Migración desconocida.');
+    if (anterior < 4 && nueva >= 4) await _crearEventos(db);
+    if (nueva > 4) throw UnsupportedError('Migración desconocida.');
+  }
+
+  /// Añade bitácora inmutable sin reconstruir historia desconocida ni borrar datos.
+  /// Las referencias remotas se obtienen de ticket/evidencia, evitando duplicarlas.
+  static Future<void> _crearEventos(Database db) async {
+    await db.execute('''CREATE TABLE ticket_eventos (
+      id_local INTEGER PRIMARY KEY AUTOINCREMENT, id_remoto INTEGER,
+      ticket_id_local INTEGER NOT NULL REFERENCES tickets(id_local),
+      usuario_id INTEGER NOT NULL, autor_id INTEGER NOT NULL, usuario_nombre TEXT,
+      tipo_evento TEXT NOT NULL CHECK(tipo_evento IN ('CREADO','PROGRAMADO','REPROGRAMADO','EN_ATENCION','SEGUIMIENTO','RESUELTO')),
+      descripcion TEXT NOT NULL, created_at TEXT NOT NULL, client_request_id TEXT NOT NULL,
+      previous_scheduled_at TEXT, scheduled_at TEXT,
+      evidencia_id_local INTEGER REFERENCES evidencias(id_local),
+      sync_status TEXT NOT NULL CHECK(sync_status IN ('synced','pending')),
+      UNIQUE(usuario_id,id_remoto), UNIQUE(usuario_id,client_request_id))''');
+    await db.execute(
+      'CREATE INDEX ix_eventos_ticket ON ticket_eventos(usuario_id,ticket_id_local,created_at,id_local)',
+    );
   }
 
   /// Añade negocio y autoría en una sola migración conservando sesión y cola.

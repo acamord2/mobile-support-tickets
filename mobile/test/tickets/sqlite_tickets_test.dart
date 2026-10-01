@@ -64,7 +64,7 @@ void main() {
       );
       final p = OperacionesSqlite.exigir(
         await cola.obtenerPendientes(usuarioId: 1),
-      ).single;
+      ).where((p) => p.recurso == 'tickets').single;
       expect(p.usuarioId, 1);
       expect(p.payload, {'id_local': id});
       expect(await tickets.obtener(id, 2), isNull);
@@ -117,7 +117,7 @@ void main() {
       expect((await tickets.obtener(id, 1))!.titulo, 'Prueba');
       final p = OperacionesSqlite.exigir(
         await cola.obtenerPendientes(usuarioId: 1),
-      ).single;
+      ).where((p) => p.recurso == 'tickets').single;
       await cola.marcarProcesando(p.id);
       await tickets.confirmar(id, 107, 1, p.id);
       await tickets.descargar(1, [remoto]);
@@ -137,7 +137,7 @@ void main() {
       final original = (await tickets.obtener(id, 1))!;
       final primera = OperacionesSqlite.exigir(
         await cola.obtenerPendientes(usuarioId: 1),
-      ).single;
+      ).where((p) => p.recurso == 'tickets').single;
       await cola.marcarProcesando(primera.id);
       await tickets.actualizar(
         id,
@@ -170,7 +170,7 @@ void main() {
     expect(await evidencias.obtener(evidencia, 2), isNull);
     expect(
       OperacionesSqlite.exigir(await cola.obtenerPendientes(usuarioId: 1)),
-      hasLength(2),
+      hasLength(4),
     );
   });
   test(
@@ -227,7 +227,7 @@ void main() {
           (await nueva.ejecutar(
             (db) => db.rawQuery('PRAGMA user_version'),
           )).single['user_version'],
-          3,
+          4,
         );
       } finally {
         await nueva.cerrar();

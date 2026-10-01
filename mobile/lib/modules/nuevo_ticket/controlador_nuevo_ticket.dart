@@ -108,6 +108,7 @@ class ControladorNuevoTicket extends GetxController {
         descripcion.text,
         programado.value,
         foto.value,
+        autorNombre: sesion.usuario!.name,
       );
       Get.back(result: true);
     } catch (_) {

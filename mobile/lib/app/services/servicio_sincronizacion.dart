@@ -3,6 +3,7 @@ import '../database/repositorio_cola.dart';
 import '../database/repositorio_tickets.dart';
 import '../database/repositorio_sucursales.dart';
 import '../database/repositorio_evidencias.dart';
+import '../database/repositorio_eventos.dart';
 import '../database/operaciones_sqlite.dart';
 import '../database/operacion_pendiente.dart';
 import '../database/resultado_sqlite.dart';
@@ -105,7 +106,9 @@ class ServicioSincronizacion extends GetxService {
       for (final p in pendientes) {
         if (!vigente()) return;
         if (p.usuarioId != usuario) continue;
-        if (p.recurso != 'tickets' && p.recurso != 'evidencias') {
+        if (p.recurso != 'tickets' &&
+            p.recurso != 'evidencias' &&
+            p.recurso != 'eventos') {
           estado.value = EstadoSincronizacionActual.pendientes;
           continue;
         }
@@ -135,7 +138,7 @@ class ServicioSincronizacion extends GetxService {
                 payload: t.paraCrear(),
               );
             }
-          } else {
+          } else if (p.recurso == 'evidencias') {
             final e = await evidencias!.obtener(local, usuario);
             if (e == null) throw StateError('Evidencia ausente.');
             final t = await tickets!.obtener(
@@ -153,6 +156,44 @@ class ServicioSincronizacion extends GetxService {
                 'description': e['descripcion'],
                 'photoBase64': e['photo_base64'],
                 'mime': e['mime'],
+              },
+            );
+          } else {
+            final e = await RepositorioEventos(
+              tickets!.sql,
+            ).obtener(local, usuario);
+            if (e == null) throw StateError('Evento ausente.');
+            final t = await tickets!.obtener(
+              e['ticket_id_local'] as int,
+              usuario,
+            );
+            int? evidencia;
+            if (e['evidencia_id_local'] != null) {
+              final foto = await evidencias!.obtener(
+                e['evidencia_id_local'] as int,
+                usuario,
+              );
+              evidencia = foto?['id_remoto'] as int?;
+              if (evidencia == null) {
+                OperacionesSqlite.exigir(await _cola.devolverPendiente(p.id));
+                continue;
+              }
+            }
+            if (t?.idRemoto == null) {
+              OperacionesSqlite.exigir(await _cola.devolverPendiente(p.id));
+              continue;
+            }
+            r = await _api.post(
+              RutasApi.eventos(t!.idRemoto!),
+              token: token,
+              payload: {
+                'eventType': e['tipo_evento'],
+                'description': e['descripcion'],
+                'createdAt': e['created_at'],
+                'clientRequestId': e['client_request_id'],
+                'previousScheduledAt': e['previous_scheduled_at'],
+                'scheduledAt': e['scheduled_at'],
+                'evidenceId': evidencia,
               },
             );
           }
@@ -173,8 +214,12 @@ class ServicioSincronizacion extends GetxService {
           final remoto = (r.data as Map)['id'] as int;
           if (p.recurso == 'tickets') {
             await tickets!.confirmar(local, remoto, usuario, p.id);
-          } else {
+          } else if (p.recurso == 'evidencias') {
             await evidencias!.confirmar(local, remoto, usuario, p.id);
+          } else {
+            await RepositorioEventos(
+              tickets!.sql,
+            ).confirmar(local, remoto, usuario, p.id);
           }
         } catch (_) {
           await _cola.marcarError(p.id, ErrorSincronizacion.respuesta);
@@ -204,6 +249,17 @@ class ServicioSincronizacion extends GetxService {
             usuario,
             remoto['evidences'] as List,
           );
+        }
+        if (local != null) {
+          final eventosRemotos = await _api.get(
+            RutasApi.eventos(local.idRemoto!),
+            token: token,
+          );
+          if (!await _validarDescarga(eventosRemotos)) return;
+          if (!vigente()) return;
+          await RepositorioEventos(
+            tickets!.sql,
+          ).descargar(local.idLocal, usuario, eventosRemotos.data as List);
         }
       }
       final restantes = OperacionesSqlite.exigir(

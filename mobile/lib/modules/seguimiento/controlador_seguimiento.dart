@@ -6,6 +6,7 @@ import '../../app/database/repositorio_tickets.dart';
 import '../../app/database/repositorio_evidencias.dart';
 import '../../app/services/servicio_sesion.dart';
 import '../../app/services/servicio_imagen.dart';
+import '../../app/database/repositorio_eventos.dart';
 
 /// Registra trabajo descriptivo con foto opcional usando evidencia y cola existentes.
 /// La compresión pertenece a ServicioImagen; ninguna acción depende de conectividad.
@@ -52,10 +53,10 @@ class ControladorSeguimiento extends GetxController {
     }
   }
 
-  /// Exige descripción y ticket propio En atención; guarda evidencia+cola sin API.
+  /// Exige texto o foto y ticket propio En atención; guarda evento y cola sin API.
   Future<bool> guardar({bool volver = true}) async {
     if (ocupado.value) return false;
-    if (descripcion.text.trim().isEmpty ||
+    if ((descripcion.text.trim().isEmpty && foto.value == null) ||
         descripcion.text.trim().length > 10000) {
       error.value = TextosApp.faltaSeguimiento;
       return false;
@@ -73,10 +74,11 @@ class ControladorSeguimiento extends GetxController {
         error.value = TextosApp.ticketNoDisponible;
         return false;
       }
-      await evidencias.crear(
+      await RepositorioEventos(evidencias.sql).guardarSeguimiento(
         t.idLocal,
         usuario!,
         descripcion.text,
+        autor: sesion.usuario!.name,
         base64: foto.value?.base64,
         mime: foto.value?.mime,
       );
@@ -88,6 +90,11 @@ class ControladorSeguimiento extends GetxController {
     } finally {
       ocupado.value = false;
     }
+  }
+
+  /// Quita solo la fotografía del borrador; no modifica evidencia persistida.
+  void quitarFoto() {
+    if (!ocupado.value) foto.value = null;
   }
 
   @override

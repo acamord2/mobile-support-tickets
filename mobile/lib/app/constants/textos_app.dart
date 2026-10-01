@@ -2,6 +2,17 @@
 /// Permite reutilizar mensajes sin duplicarlos ni anticipar textos de pantallas
 /// futuras; los errores técnicos no se muestran mediante excepciones sin procesar.
 abstract class TextosApp {
+  static const evidenciasDisponibles = 'Evidencias disponibles';
+  static const quitarFoto = 'Quitar foto';
+  static const previewFoto = 'Previsualización de la fotografía';
+  static const eventoCreado = 'Ticket registrado';
+  static const eventoProgramado = 'Atención programada';
+  static const eventoReprogramado = 'Atención reprogramada';
+  static const eventoEnAtencion = 'Atención iniciada';
+  static const eventoResuelto = 'Ticket resuelto';
+  static const programacionAnterior = 'Anterior';
+  static const programacionNueva = 'Nueva';
+  static const autorEvento = 'Usuario';
   static const editarTicket = 'Editar ticket';
   static const agregarSeguimiento = 'Agregar seguimiento';
   static const seguimiento = 'Seguimiento';

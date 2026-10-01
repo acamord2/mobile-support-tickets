@@ -5,6 +5,8 @@ import '../../app/database/repositorio_tickets.dart';
 import '../../app/database/repositorio_sucursales.dart';
 import '../../app/database/repositorio_evidencias.dart';
 import '../../app/routes/rutas.dart';
+import '../../app/database/repositorio_eventos.dart';
+import '../../models/tipo_evento_ticket.dart';
 import '../../app/services/servicio_sesion.dart';
 import '../../models/ticket_local.dart';
 import '../../models/sucursal_local.dart';
@@ -17,6 +19,7 @@ class ControladorDetalleTicket extends GetxController {
   final ServicioSesion _sesion;
   final RepositorioEvidencias _evidencias;
   final seguimientos = <Map<String, Object?>>[].obs;
+  final evidenciasDisponibles = <Map<String, Object?>>[].obs;
   final ticket = Rxn<TicketLocal>();
   final sucursal = Rxn<SucursalLocal>();
   final cargando = false.obs;
@@ -52,10 +55,20 @@ class ControladorDetalleTicket extends GetxController {
       final local = await _tickets.obtener(id, usuario);
       if (local == null) throw StateError('Ticket no disponible.');
       final catalogo = await _sucursales.obtener(usuario);
-      final registros = await _evidencias.listar(id, usuario);
+      final registros = await RepositorioEventos(
+        _evidencias.sql,
+      ).listar(id, usuario);
+      final fotos = await _evidencias.listar(id, usuario);
       if (isClosed || _sesion.usuario?.id != usuario) return;
       ticket.value = local;
       seguimientos.assignAll(registros);
+      evidenciasDisponibles.assignAll(
+        fotos.where(
+          (foto) => !registros.any(
+            (evento) => evento['evidencia_id_local'] == foto['id_local'],
+          ),
+        ),
+      );
       sucursal.value = catalogo.firstWhereOrNull(
         (s) => s.id == local.sucursalId,
       );
@@ -64,6 +77,7 @@ class ControladorDetalleTicket extends GetxController {
         ticket.value = null;
         sucursal.value = null;
         seguimientos.clear();
+        evidenciasDisponibles.clear();
         error.value = TextosApp.ticketNoDisponible;
       }
     } finally {
@@ -91,7 +105,7 @@ class ControladorDetalleTicket extends GetxController {
     if (!isClosed && _id != null) await cargar(_id!);
   }
 
-  /// Exige trabajo descriptivo existente y persiste Resolved con la cola actual.
+  /// Exige seguimiento manual existente y persiste Resolved con la cola actual.
   /// No exige fotografía ni admite reabrir o retroceder estados.
   Future<void> resolver() async {
     if (guardando.value || !puedeSeguir) return;
@@ -106,9 +120,11 @@ class ControladorDetalleTicket extends GetxController {
           _sesion.usuario?.id != usuario) {
         throw StateError('Ticket no autorizado.');
       }
-      final registros = await _evidencias.listar(id, usuario);
+      final registros = await RepositorioEventos(
+        _tickets.sql,
+      ).listar(id, usuario);
       if (!registros.any(
-        (e) => (e['descripcion'] as String).trim().isNotEmpty,
+        (e) => e['tipo_evento'] == TipoEventoTicket.seguimiento.clave,
       )) {
         error.value = TextosApp.faltaSeguimiento;
         return;
@@ -120,6 +136,7 @@ class ControladorDetalleTicket extends GetxController {
         descripcion: actual.descripcion,
         estado: 'Resolved',
         programado: actual.programado,
+        autorNombre: _sesion.usuario!.name,
       );
       await cargar(id);
     } catch (_) {
@@ -157,6 +174,7 @@ class ControladorDetalleTicket extends GetxController {
           descripcion: actual.descripcion,
           estado: 'InProgress',
           programado: actual.programado,
+          autorNombre: _sesion.usuario!.name,
         );
       }
       await cargar(id);

@@ -1,3 +1,4 @@
+import 'package:tikets/app/database/repositorio_eventos.dart';
 import 'dart:convert';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -104,7 +105,9 @@ void main() {
         seguir.guardar(volver: false),
       ]);
       expect(guardados.where((v) => v), hasLength(1));
-      final registros = await evidencias.listar(id, 1);
+      final registros = (await RepositorioEventos(
+        tickets.sql,
+      ).listar(id, 1)).where((e) => e['tipo_evento'] == 'SEGUIMIENTO').toList();
       expect(registros, hasLength(1));
       expect(registros.single['photo_base64'], isNull);
       await detalle.resolver();
@@ -116,14 +119,14 @@ void main() {
       expect(finalizado.idLocal, original.idLocal);
       expect(detalle.puedeEditar, isFalse);
       expect(detalle.puedeSeguir, isFalse);
-      expect(detalle.seguimientos, hasLength(1));
+      expect(detalle.seguimientos, hasLength(6));
       expect(await editar.guardar(volver: false), isFalse);
       expect(await seguir.guardar(volver: false), isFalse);
       await detalle.comenzarAtencion();
       expect((await tickets.obtener(id, 1))!.estado, 'Resolved');
       expect(
         OperacionesSqlite.exigir(await cola.obtenerPendientes(usuarioId: 1)),
-        hasLength(5),
+        hasLength(10),
       );
       expect(await evidencias.listar(id, 2), isEmpty);
     },
@@ -150,6 +153,7 @@ void main() {
       var postTickets = 0, postFotos = 0;
       final rutas = <String>[];
       Map<String, dynamic>? remoto;
+      final eventosRemotos = <Map<String, dynamic>>[];
       final api = Conexion(
         ClienteApi(
           baseUrl: 'http://api.example.test',
@@ -171,6 +175,31 @@ void main() {
               };
               return http.Response('{"id":50}', 200);
             }
+            if (r.url.path.endsWith('/events')) {
+              if (r.method == 'POST') {
+                final e = jsonDecode(r.body) as Map<String, dynamic>;
+                final previo = eventosRemotos
+                    .where((x) => x['clientRequestId'] == e['clientRequestId'])
+                    .toList();
+                if (previo.isEmpty) {
+                  eventosRemotos.add({
+                    ...e,
+                    'id': 80 + eventosRemotos.length,
+                    'userId': 1,
+                    'userName': 'Prueba',
+                  });
+                }
+                final existente = eventosRemotos.firstWhere(
+                  (x) => x['clientRequestId'] == e['clientRequestId'],
+                );
+                return http.Response(jsonEncode({'id': existente['id']}), 200);
+              }
+              return http.Response(
+                jsonEncode(eventosRemotos),
+                200,
+                headers: {'content-type': 'application/json; charset=utf-8'},
+              );
+            }
             if (r.method == 'PUT') {
               remoto!.addAll(jsonDecode(r.body) as Map<String, dynamic>);
               return http.Response('{"id":50}', 200);
@@ -187,7 +216,7 @@ void main() {
                   'createdAt': DateTime.now().toUtc().toIso8601String(),
                 },
               ];
-              return http.Response('{"id":70}', 200);
+              return http.Response('{"id":70}', postFotos == 1 ? 503 : 200);
             }
             if (r.url.path == '/api/branches') return http.Response('[]', 200);
             if (r.url.path == '/api/tickets') {
@@ -215,6 +244,10 @@ void main() {
       expect(rutas, isEmpty);
       red.redDisponible.value = true;
       await sync.sincronizar();
+      expect(sync.estado.value, EstadoSincronizacionActual.error);
+      expect(postTickets, 1);
+      expect(eventosRemotos, hasLength(3));
+      await sync.sincronizar();
       expect(
         sync.estado.value,
         EstadoSincronizacionActual.actualizado,
@@ -228,8 +261,10 @@ void main() {
         lessThan(rutas.indexOf('POST /api/tickets/50/evidence')),
       );
       await sync.sincronizar();
+      expect(eventosRemotos, hasLength(5));
+      expect(await RepositorioEventos(tickets.sql).listar(id, 1), hasLength(5));
       expect(postTickets, 1);
-      expect(postFotos, 1);
+      expect(postFotos, 2);
       expect(await tickets.agenda(1), hasLength(1));
       expect(await evidencias.listar(id, 1), hasLength(1));
       expect(
