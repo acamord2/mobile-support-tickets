@@ -7,11 +7,11 @@ import 'package:tikets/app/network/estado_api.dart';
 import 'package:tikets/app/network/i_conexion_api.dart';
 import 'package:tikets/app/network/respuesta_api.dart';
 import 'package:tikets/app/routes/rutas.dart';
-import 'package:tikets/controllers/controlador_login.dart';
+import 'package:tikets/modules/login/controlador_login.dart';
 import 'package:tikets/main.dart';
-import 'package:tikets/services/servicio_sesion.dart';
-import 'package:tikets/views/vista_login.dart';
-import 'package:tikets/views/vista_inicio.dart';
+import 'package:tikets/app/services/servicio_sesion.dart';
+import 'package:tikets/modules/login/main_login.dart';
+import 'package:tikets/modules/home/main_home.dart';
 import 'conexion_simulada.dart';
 
 /// Prueba el controlador con navegación real GetX y transporte simulado.

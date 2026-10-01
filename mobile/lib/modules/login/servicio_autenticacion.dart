@@ -1,9 +1,9 @@
-import '../app/constants/textos_app.dart';
-import '../app/network/estado_api.dart';
-import '../app/network/i_conexion_api.dart';
-import '../app/network/rutas_api.dart';
-import '../models/resultado_autenticacion.dart';
-import '../models/sesion_usuario.dart';
+import '../../app/constants/textos_app.dart';
+import '../../app/network/estado_api.dart';
+import '../../app/network/i_conexion_api.dart';
+import '../../app/network/rutas_api.dart';
+import '../../models/resultado_autenticacion.dart';
+import '../../models/sesion_usuario.dart';
 
 /// Autentica mediante el contrato de conexión y convierte JSON a modelos simples.
 /// Concentra payload y status del login para que controllers y vistas no conozcan

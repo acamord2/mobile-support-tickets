@@ -1,7 +1,7 @@
 import 'package:get/get.dart';
-import '../app/routes/rutas.dart';
-import '../models/usuario.dart';
-import '../services/servicio_sesion.dart';
+import '../../app/routes/rutas.dart';
+import '../../models/usuario.dart';
+import '../../app/services/servicio_sesion.dart';
 
 /// Coordina la identidad y salida de la pantalla neutra autenticada.
 /// Delega la memoria al servicio y mantiene navegación fuera de la vista;

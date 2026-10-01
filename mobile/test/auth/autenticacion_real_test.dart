@@ -3,8 +3,8 @@ import 'package:tikets/app/network/cliente_api.dart';
 import 'package:tikets/app/network/conexion.dart';
 import 'package:tikets/app/network/estado_api.dart';
 import 'package:tikets/app/network/rutas_api.dart';
-import 'package:tikets/services/servicio_autenticacion.dart';
-import 'package:tikets/services/servicio_sesion.dart';
+import 'package:tikets/modules/login/servicio_autenticacion.dart';
+import 'package:tikets/app/services/servicio_sesion.dart';
 
 /// Comprueba opt-in el canal Flutter → API → PostgreSQL sin publicar credenciales.
 /// Recibe usuario/password y URL externamente; las ejecuciones habituales omiten

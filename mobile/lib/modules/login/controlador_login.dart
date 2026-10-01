@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../app/constants/textos_app.dart';
-import '../app/routes/rutas.dart';
-import '../services/servicio_autenticacion.dart';
-import '../services/servicio_sesion.dart';
+import '../../app/constants/textos_app.dart';
+import '../../app/routes/rutas.dart';
+import 'servicio_autenticacion.dart';
+import '../../app/services/servicio_sesion.dart';
 
 /// Coordina campos, carga y navegación usando servicios inyectados.
 /// Mantiene HTTP y JSON fuera de la presentación, valida campos localmente y

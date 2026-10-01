@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:tikets/main.dart';
 import 'package:tikets/app/routes/rutas.dart';
-import 'package:tikets/views/vista_login.dart';
+import 'package:tikets/modules/login/main_login.dart';
 import 'package:tikets/app/constants/textos_app.dart';
 
 /// Comprueba que el arranque resuelva login sin credenciales precargadas.

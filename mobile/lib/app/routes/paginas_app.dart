@@ -1,6 +1,6 @@
 import 'package:get/get.dart';
-import '../../views/vista_login.dart';
-import '../../views/vista_inicio.dart';
+import '../../modules/login/main_login.dart';
+import '../../modules/home/main_home.dart';
 import 'rutas.dart';
 
 /// Relaciona los nombres centralizados con las vistas mediante [GetPage].

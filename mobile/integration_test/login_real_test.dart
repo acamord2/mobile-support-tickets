@@ -5,9 +5,9 @@ import 'package:integration_test/integration_test.dart';
 import 'package:tikets/main.dart';
 import 'package:tikets/app/constants/textos_app.dart';
 import 'package:tikets/app/routes/rutas.dart';
-import 'package:tikets/services/servicio_sesion.dart';
-import 'package:tikets/views/vista_inicio.dart';
-import 'package:tikets/views/vista_login.dart';
+import 'package:tikets/app/services/servicio_sesion.dart';
+import 'package:tikets/modules/home/main_home.dart';
+import 'package:tikets/modules/login/main_login.dart';
 
 /// Ejecuta el formulario real en Android contra API y PostgreSQL de desarrollo.
 /// Obtiene credenciales externamente para no incluir la cuenta demo en tests,
