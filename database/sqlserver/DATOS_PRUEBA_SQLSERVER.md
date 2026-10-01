@@ -76,4 +76,30 @@ JOIN dbo.[Users] u ON u.[Id] = t.[TechnicianId]
 WHERE u.[Username] = N'tecnico1' AND t.[Title] IN (N'Demo: revisión de equipo', N'Demo: conexión intermitente');
 ```
 
-La muestra nueva espera un usuario Técnico activo (RoleId 2, IsActive 1), dos sucursales, dos tickets y una evidencia. Las verificaciones no muestran PasswordHash. Los roles funcionales no deben confundirse con una cuenta administradora demo: no se crea ninguna.
+La muestra nueva espera un usuario Técnico activo (RoleId 2, IsActive 1), dos sucursales, dos tickets y una evidencia. Las verificaciones no muestran PasswordHash. Este bloque principal crea solo la muestra del Técnico. El bloque independiente siguiente añade la cuenta administradora demo admin1.
+
+
+## Administrador admin1 para validar roles
+
+Credencial pública exclusivamente de desarrollo: **admin1 / AdminDemo123***. Nombre: Administrador Demo; RoleId 1 (Administrador), IsActive 1. El hash ASP.NET es exactamente el generado y verificado en DATOS_PRUEBA.md. Este bloque independiente conserva las cuentas existentes. SQL Server continúa documentado, sin validación contra instancia real; no habilita funcionalidades administrativas.
+
+```sql
+USE [tickets_db];
+GO
+SET XACT_ABORT ON;
+BEGIN TRANSACTION;
+IF NOT EXISTS (SELECT 1 FROM dbo.[Roles] WHERE [Id] = 1 AND [Name] = N'Administrador')
+    THROW 50003, N'Instalar primero el rol Administrador.', 1;
+
+IF NOT EXISTS (SELECT 1 FROM dbo.[Users] WITH (UPDLOCK, HOLDLOCK) WHERE [Username] = N'admin1')
+    INSERT INTO dbo.[Users] ([Username], [PasswordHash], [Name], [RoleId], [IsActive])
+    VALUES (N'admin1', N'AQAAAAIAAYagAAAAEPeyUp5aPa5HMUJF63XNzJg6pTjdPAUNbC6T+QFbvR+ZZEBAW+TAJvumKNRSkWKO8Q==', N'Administrador Demo', 1, 1);
+COMMIT;
+
+SELECT u.[Id], u.[Username], u.[Name], u.[RoleId], r.[Name] AS [Role], u.[IsActive]
+FROM dbo.[Users] u JOIN dbo.[Roles] r ON r.[Id] = u.[RoleId]
+WHERE u.[Username] = N'admin1';
+GO
+```
+
+El equivalente admin1 comparte el hash demo de PostgreSQL. SQL Server no se ejecutó ni se validó contra instancia real; la validación local de autenticación/rol corresponde a PostgreSQL y está registrada en DATOS_PRUEBA.md.

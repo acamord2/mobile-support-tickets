@@ -100,3 +100,20 @@ WHERE u."Username" = 'tecnico1' AND t."Title" IN
 ```
 
 La muestra requiere el esquema nuevo con Roles, RoleId, IsActive y ScheduledAt. Primero aplicar ACTUALIZACION_POSTGRESQL.md en una base existente, o DATABASE.md en una nueva. Roles base se instalan como referencias funcionales; este documento solo añade desarrollo/demo y asigna tecnico1 al rol 2. No ejecutar sobre producción.
+
+## Administrador admin1 para validar roles
+
+Credencial pública exclusivamente de desarrollo: **admin1 / AdminDemo123***. Nombre: Administrador Demo; RoleId 1 (Administrador), IsActive 1. El hash se genera y verifica con PasswordHasher<Usuario> de ASP.NET Core. Este bloque independiente inserta únicamente admin1 si está ausente; no modifica cuentas existentes. No habilita panel ni navegación administrativa.
+
+
+```sql
+INSERT INTO public."Users" ("Username", "PasswordHash", "Name", "RoleId", "IsActive")
+VALUES ('admin1', 'AQAAAAIAAYagAAAAEPeyUp5aPa5HMUJF63XNzJg6pTjdPAUNbC6T+QFbvR+ZZEBAW+TAJvumKNRSkWKO8Q==', 'Administrador Demo', 1, 1)
+ON CONFLICT ("Username") DO NOTHING;
+
+SELECT u."Id", u."Username", u."Name", u."RoleId", r."Name" AS "Role", u."IsActive"
+FROM public."Users" u JOIN public."Roles" r ON r."Id" = u."RoleId"
+WHERE u."Username" = 'admin1';
+```
+
+Validación local: admin1 fue creado con Id 3, RoleId 1 e IsActive 1; el reintento insertó cero filas. Login y /me devolvieron 200 y rol Administrador sin PasswordHash. El formulario Flutter existente se probó contra la API real en el runner de widgets (conectividad e identidad de UI simuladas); ServicioSesion y el repositorio real conservaron RoleId/rol al cerrar y reabrir un archivo SQLite FFI separado. No se realizó instalación/prueba física ni se agregaron funcionalidades administrativas. dotnet build: cero errores/advertencias; flutter analyze sin incidencias; flutter test: 68 aprobadas y 2 optativas omitidas; prueba adicional de Login/persistencia: 1 aprobada. Runtime sin cambios; documentación del código revisada.
