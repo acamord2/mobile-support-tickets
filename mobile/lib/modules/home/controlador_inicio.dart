@@ -190,8 +190,10 @@ class ControladorInicio extends GetxController {
     if (!isClosed) await cargar();
   }
 
+  /// Abre el formulario con el tipo de ruta de GetX y recarga SQLite al regresar.
+  /// No requiere convertir el resultado a bool porque siempre refresca la lista.
   Future<void> nuevo() async {
-    await Get.toNamed<bool>(Rutas.nuevoTicket);
+    await Get.toNamed(Rutas.nuevoTicket);
     if (!isClosed) await cargar();
   }
 
