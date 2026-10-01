@@ -1,45 +1,84 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../app/constants/textos_app.dart';
 import '../../app/theme/colores_app.dart';
+import '../../app/theme/fuentes_app.dart';
 import 'controlador_inicio.dart';
 import 'widgets_home/cabecera_inicio.dart';
-import 'widgets_home/cuerpo_inicio.dart';
+import 'widgets_home/resumen_agenda.dart';
+import 'widgets_home/tarjeta_ticket_agenda.dart';
 import 'widgets_home/pie_inicio.dart';
+import '../../app/services/servicio_sincronizacion.dart';
 
-/// Compone el Home principal con identidad, accesos y logout independientes.
-/// Obtiene el controller mediante GetX y entrega solo estado público y eventos;
-/// no realiza consultas y mantiene utilizable la pantalla offline.
+/// Compone Mi agenda con estado recibido del controller; toda información de negocio
+/// viene del repositorio SQLite, incluso después de sincronizar o crear offline.
 class VistaInicio extends GetView<ControladorInicio> {
-  /// Crea la composición sin leer API ni SQLite desde la vista.
   const VistaInicio({super.key});
-
-  /// Distribuye contenido desplazable y logout visible con estilos centrales.
-  /// El ancho flexible y el scroll evitan overflow en teléfonos y textos grandes.
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: ColoresApp.background,
+    floatingActionButton: FloatingActionButton(
+      onPressed: controller.nuevo,
+      tooltip: TextosApp.nuevoTicket,
+      child: const Icon(Icons.add),
+    ),
     body: SafeArea(
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 600),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      CabeceraInicio(nombreTecnico: controller.nombreTecnico),
-                      const SizedBox(height: 32),
-                      const CuerpoInicio(),
-                    ],
-                  ),
+                child: ListView(
+                  padding: const EdgeInsets.all(20),
+                  children: [
+                    CabeceraInicio(nombreTecnico: controller.nombreTecnico),
+                    Text(controller.fechaActual, style: FuentesApp.body),
+                    const SizedBox(height: 16),
+                    Obx(
+                      () => ResumenAgenda(conteos: Map.of(controller.conteos)),
+                    ),
+                    const SizedBox(height: 16),
+                    Obx(
+                      () => Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Text(
+                            controller.estadoTexto,
+                            style: FuentesApp.estadoModulo,
+                          ),
+                          OutlinedButton(
+                            onPressed:
+                                controller.sincronizacion?.estado.value ==
+                                    EstadoSincronizacionActual.sincronizando
+                                ? null
+                                : controller.sincronizar,
+                            child: const Text(TextosApp.sincronizar),
+                          ),
+                          if (controller.error.value.isNotEmpty)
+                            Text(
+                              controller.error.value,
+                              style: FuentesApp.error,
+                            ),
+                          if (controller.agenda.isEmpty)
+                            const Text(
+                              TextosApp.sinTickets,
+                              style: FuentesApp.body,
+                            ),
+                          ...controller.agenda.map(
+                            (t) => TarjetaTicketAgenda(
+                              ticket: t,
+                              sucursal: controller.nombreSucursal(t.sucursalId),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+                padding: const EdgeInsets.all(20),
                 child: PieInicio(alCerrarSesion: controller.cerrarSesion),
               ),
             ],

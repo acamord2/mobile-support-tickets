@@ -1,3 +1,9 @@
+import '../database/repositorio_tickets.dart';
+import '../database/repositorio_sucursales.dart';
+import '../database/repositorio_evidencias.dart';
+import '../services/servicio_imagen.dart';
+import '../../modules/nuevo_ticket/servicio_nuevo_ticket.dart';
+import '../../modules/nuevo_ticket/controlador_nuevo_ticket.dart';
 import 'package:get/get.dart';
 import '../network/cliente_api.dart';
 import '../network/i_conexion_api.dart';
@@ -16,17 +22,19 @@ import '../database/repositorio_sesion_local.dart';
 import '../../modules/arranque/controlador_arranque.dart';
 
 /// Centraliza la selección e inyección del canal API mediante GetX.
-/// Registra una fábrica diferida para no abrir transportes antes de necesitarlos
-/// y permitir que futuros servicios soliciten IConexionApi por su contrato.
+/// Conserva el transporte global mientras la aplicación está abierta para que
+/// retirar Login no cierre el cliente que todavía utiliza sincronización.
 class DependenciasApp extends Bindings {
-  /// Registra IConexionApi como Conexion con un cliente propio.
-  /// GetX conserva la fábrica para reconstruirla si se libera; el callback de
-  /// ciclo de vida onClose dispone el cliente al eliminar la dependencia.
+  /// Registra IConexionApi como Conexion permanente con un cliente propio.
+  /// No abre sockets hasta una petición; conserva el canal entre rutas y permite
+  /// sustituirlo previamente en pruebas. onClose lo libera al finalizar la app.
   /// Conserva una fachada de sesión persistente y recrea servicios/controllers por ruta
   /// para liberar campos al navegar y obtener un formulario vacío al cerrar sesión.
   @override
   void dependencies() {
-    Get.lazyPut<IConexionApi>(() => Conexion(ClienteApi()), fenix: true);
+    if (!Get.isRegistered<IConexionApi>()) {
+      Get.put<IConexionApi>(Conexion(ClienteApi()), permanent: true);
+    }
     Get.put(ServicioConectividad(), permanent: true);
     Get.lazyPut(() => ConexionSqlite(), fenix: true);
     Get.lazyPut(
@@ -35,6 +43,35 @@ class DependenciasApp extends Bindings {
     );
     Get.lazyPut(
       () => RepositorioCola(Get.find<OperacionesSqlite>()),
+      fenix: true,
+    );
+    Get.lazyPut(
+      () => RepositorioTickets(Get.find<OperacionesSqlite>()),
+      fenix: true,
+    );
+    Get.lazyPut(
+      () => RepositorioSucursales(Get.find<OperacionesSqlite>()),
+      fenix: true,
+    );
+    Get.lazyPut(
+      () => RepositorioEvidencias(Get.find<OperacionesSqlite>()),
+      fenix: true,
+    );
+    Get.lazyPut(() => ServicioImagen(), fenix: true);
+    Get.lazyPut(
+      () => ServicioNuevoTicket(
+        Get.find<RepositorioTickets>(),
+        Get.find<RepositorioEvidencias>(),
+        Get.find<ServicioImagen>(),
+      ),
+      fenix: true,
+    );
+    Get.lazyPut(
+      () => ControladorNuevoTicket(
+        Get.find<ServicioNuevoTicket>(),
+        Get.find<RepositorioSucursales>(),
+        Get.find<ServicioSesion>(),
+      ),
       fenix: true,
     );
     Get.lazyPut<AlmacenamientoToken>(
@@ -64,6 +101,9 @@ class DependenciasApp extends Bindings {
         Get.find<IConexionApi>(),
         Get.find<RepositorioCola>(),
         Get.find<ServicioSesion>(),
+        tickets: Get.find<RepositorioTickets>(),
+        sucursales: Get.find<RepositorioSucursales>(),
+        evidencias: Get.find<RepositorioEvidencias>(),
       ),
       fenix: true,
     );
@@ -82,7 +122,13 @@ class DependenciasApp extends Bindings {
       fenix: true,
     );
     Get.lazyPut(
-      () => ControladorInicio(Get.find<ServicioSesion>()),
+      () => ControladorInicio(
+        Get.find<ServicioSesion>(),
+        repositorio: Get.find<RepositorioTickets>(),
+        sucursales: Get.find<RepositorioSucursales>(),
+        sincronizacion: Get.find<ServicioSincronizacion>(),
+        conectividad: Get.find<ServicioConectividad>(),
+      ),
       fenix: true,
     );
   }

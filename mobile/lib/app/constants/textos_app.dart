@@ -2,6 +2,32 @@
 /// Permite reutilizar mensajes sin duplicarlos ni anticipar textos de pantallas
 /// futuras; los errores técnicos no se muestran mediante excepciones sin procesar.
 abstract class TextosApp {
+  static const agenda = 'Mi agenda';
+  static const nuevoTicket = 'Nuevo ticket';
+  static const sucursal = 'Sucursal';
+  static const titulo = 'Problema / título';
+  static const descripcion = 'Descripción';
+  static const fecha = 'Fecha programada';
+  static const hora = 'Hora programada';
+  static const guardar = 'Guardar';
+  static const pendientes = 'Pendientes';
+  static const enAtencion = 'En atención';
+  static const resueltos = 'Resueltos';
+  static const sinTickets = 'No hay tickets disponibles en este dispositivo.';
+  static const sinSucursales =
+      'Sincroniza primero para descargar las sucursales.';
+  static const datosTicketInvalidos =
+      'Selecciona sucursal y completa título y descripción.';
+  static const foto = 'Fotografía';
+  static const camara = 'Tomar fotografía';
+  static const galeria = 'Seleccionar fotografía';
+  static const fotoPreparada = 'Fotografía preparada';
+  static const errorImagen = 'No se pudo preparar la fotografía.';
+  static const guardando = 'Guardando';
+  static const actualizado = 'Actualizado';
+  static const sincronizando = 'Sincronizando';
+  static const reautenticacion = 'Inicia sesión nuevamente para sincronizar.';
+  static const pendienteLocal = 'Pendiente de sincronizar';
   static const cargandoSesion = 'Restaurando sesión';
   static const errorSesion =
       'No se pudo completar el almacenamiento de la sesión.';

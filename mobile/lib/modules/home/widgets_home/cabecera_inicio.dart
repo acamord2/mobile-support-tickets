@@ -19,7 +19,7 @@ class CabeceraInicio extends StatelessWidget {
       const Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(child: Text(TextosApp.appName, style: FuentesApp.title)),
+          Expanded(child: Text(TextosApp.agenda, style: FuentesApp.title)),
           SizedBox(width: 16),
           IndicadorDesconexion(),
         ],

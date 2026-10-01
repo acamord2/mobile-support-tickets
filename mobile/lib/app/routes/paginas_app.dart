@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 import '../../modules/login/main_login.dart';
 import '../../modules/home/main_home.dart';
 import 'rutas.dart';
+import '../../modules/nuevo_ticket/main_nuevo_ticket.dart';
 import '../../modules/arranque/main_arranque.dart';
 
 /// Relaciona los nombres centralizados con las vistas mediante [GetPage].
@@ -14,5 +15,6 @@ abstract class PaginasApp {
     GetPage(name: Rutas.arranque, page: () => const VistaArranque()),
     GetPage(name: Rutas.login, page: () => const VistaLogin()),
     GetPage(name: Rutas.inicio, page: () => const VistaInicio()),
+    GetPage(name: Rutas.nuevoTicket, page: () => const VistaNuevoTicket()),
   ];
 }

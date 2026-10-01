@@ -4,4 +4,5 @@ abstract class Rutas {
   static const arranque = '/arranque';
   static const login = '/login';
   static const inicio = '/inicio';
+  static const nuevoTicket = '/nuevo-ticket';
 }
