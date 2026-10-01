@@ -10,6 +10,19 @@ import 'package:tikets/app/services/servicio_conectividad.dart';
 import 'package:tikets/modules/home/main_home.dart';
 import 'package:tikets/modules/login/main_login.dart';
 
+/// Espera navegación mientras concluye IO nativo de SQLite o almacén seguro.
+/// Evita asumir que ausencia de animaciones significa que terminó persistencia.
+Future<void> esperarRuta(WidgetTester tester, String ruta) async {
+  for (var intento = 0; intento < 200; intento++) {
+    await tester.pump(const Duration(milliseconds: 100));
+    if (Get.currentRoute == ruta) {
+      await tester.pumpAndSettle();
+      return;
+    }
+  }
+  fail('No concluyó la navegación esperada.');
+}
+
 /// Ejecuta el formulario real en Android contra API y PostgreSQL de desarrollo.
 /// Obtiene credenciales externamente para no incluir la cuenta demo en tests,
 /// verifica navegación/logout y captura solo pantallas públicas, nunca el JWT.
@@ -26,6 +39,11 @@ void main() {
     }
     await tester.pumpWidget(const AppTickets());
     await tester.pumpAndSettle();
+    if (Get.currentRoute == Rutas.inicio) {
+      expect(await Get.find<ServicioSesion>().limpiar(), isTrue);
+      Get.offAllNamed<void>(Rutas.login);
+    }
+    await esperarRuta(tester, Rutas.login);
     expect(find.byType(VistaLogin), findsOneWidget);
     await binding.convertFlutterSurfaceToImage();
     await tester.pump();
@@ -33,7 +51,7 @@ void main() {
     await tester.enterText(find.byType(TextField).first, usuario);
     await tester.enterText(find.byType(TextField).last, password);
     await tester.tap(find.text(TextosApp.iniciarSesion));
-    await tester.pumpAndSettle();
+    await esperarRuta(tester, Rutas.inicio);
     expect(Get.currentRoute, Rutas.inicio);
     expect(find.byType(VistaInicio), findsOneWidget);
     final sesion = Get.find<ServicioSesion>();
@@ -54,7 +72,7 @@ void main() {
     await conectividad.refrescar();
     await tester.pump();
     await tester.tap(find.text(TextosApp.cerrarSesion));
-    await tester.pumpAndSettle();
+    await esperarRuta(tester, Rutas.login);
     expect(Get.currentRoute, Rutas.login);
     expect(sesion.usuario, isNull);
     expect(sesion.token, isNull);
