@@ -71,6 +71,8 @@ void main() {
     await binding.takeScreenshot('inicio_sin_red');
     await conectividad.refrescar();
     await tester.pump();
+    await tester.tap(find.byType(PopupMenuButton<String>));
+    await tester.pumpAndSettle();
     await tester.tap(find.text(TextosApp.cerrarSesion));
     await esperarRuta(tester, Rutas.login);
     expect(Get.currentRoute, Rutas.login);

@@ -20,7 +20,7 @@ class TarjetaTicketAgenda extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '${ticket.programado.toLocal().toString().split(' ').first} ${TimeOfDay.fromDateTime(ticket.programado.toLocal()).format(context)}',
+            TimeOfDay.fromDateTime(ticket.programado.toLocal()).format(context),
             style: FuentesApp.body,
           ),
           Text(ticket.titulo, style: FuentesApp.tituloTarjeta),

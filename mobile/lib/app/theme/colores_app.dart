@@ -7,6 +7,7 @@ abstract class ColoresApp {
   static const background = Color(0xFFFAFAFA);
   static const text = Color(0xFF212121);
   static const primary = Color(0xFF195A9B);
+  static const seleccion = primary;
   static const error = Color(0xFFB3261E);
   static const tarjeta = Color(0xFFFFFFFF);
   static const borde = Color(0xFFD6DCE3);

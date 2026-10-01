@@ -14,7 +14,7 @@ import 'package:tikets/models/sesion_usuario.dart';
 import 'package:tikets/modules/login/main_login.dart';
 import 'package:tikets/modules/home/main_home.dart';
 import 'package:tikets/modules/login/widgets_login/formulario_login.dart';
-import 'package:tikets/modules/home/widgets_home/resumen_agenda.dart';
+import 'package:tikets/modules/home/widgets_home/filtros_agenda.dart';
 import 'package:tikets/widgets/apartada/indicador_desconexion.dart';
 
 /// Verifica composición modular e indicador transversal con conectividad simulada.
@@ -58,12 +58,14 @@ void main() {
       expect(find.byType(VistaInicio), findsOneWidget);
       expect(Get.find<IConexionApi>(), same(canal));
       expect(canal.isClosed, isFalse);
-      expect(find.byType(ResumenAgenda), findsOneWidget);
+      expect(find.byType(FiltrosAgenda), findsOneWidget);
       expect(find.byIcon(Icons.cloud_off), findsOneWidget);
       expect(find.text('Persona de prueba'), findsOneWidget);
       red.redDisponible.value = true;
       await tester.pump();
       expect(find.byIcon(Icons.cloud_off), findsNothing);
+      await tester.tap(find.byType(PopupMenuButton<String>));
+      await tester.pumpAndSettle();
       await tester.tap(find.text(TextosApp.cerrarSesion));
       await tester.pumpAndSettle();
       expect(find.byType(VistaLogin), findsOneWidget);

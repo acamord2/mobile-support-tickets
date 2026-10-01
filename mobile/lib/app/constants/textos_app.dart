@@ -2,6 +2,12 @@
 /// Permite reutilizar mensajes sin duplicarlos ni anticipar textos de pantallas
 /// futuras; los errores técnicos no se muestran mediante excepciones sin procesar.
 abstract class TextosApp {
+  static const soporteTecnico = 'Soporte Técnico';
+  static const buenosDias = 'Buenos días';
+  static const buenasTardes = 'Buenas tardes';
+  static const buenasNoches = 'Buenas noches';
+  static const sinTicketsFiltrados =
+      'No hay tickets con los filtros seleccionados.';
   static const agenda = 'Mi agenda';
   static const nuevoTicket = 'Nuevo ticket';
   static const sucursal = 'Sucursal';

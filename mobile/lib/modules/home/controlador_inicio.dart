@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'filtro_agenda.dart';
 import 'package:get/get.dart';
 import '../../app/routes/rutas.dart';
 import '../../models/usuario.dart';
@@ -20,6 +21,24 @@ class ControladorInicio extends GetxController {
   final ServicioSincronizacion? sincronizacion;
   final ServicioConectividad? conectividad;
   final agenda = <TicketLocal>[].obs;
+  final filtrosSeleccionados = <FiltroAgenda>{}.obs;
+
+  /// Filtra por unión de estados sin alterar agenda, orden ni conteos totales.
+  /// Una selección vacía representa todos los tickets previamente cargados.
+  List<TicketLocal> get ticketsVisibles {
+    final seleccion = filtrosSeleccionados.toSet();
+    return seleccion.isEmpty
+        ? agenda.toList()
+        : agenda
+              .where((t) => seleccion.any((f) => f.estado == t.estado))
+              .toList();
+  }
+
+  /// Alterna cada filtro independientemente para permitir selección múltiple inmediata.
+  void alternarFiltro(FiltroAgenda filtro) {
+    if (!filtrosSeleccionados.remove(filtro)) filtrosSeleccionados.add(filtro);
+  }
+
   final catalogo = <SucursalLocal>[].obs;
   final conteos = <String, int>{
     'Pending': 0,
@@ -38,8 +57,13 @@ class ControladorInicio extends GetxController {
   });
   Usuario? get usuario => _sesion.usuario;
   String get nombreTecnico => usuario?.name ?? '';
-  String get fechaActual =>
-      DateTime.now().toLocal().toString().split(' ').first;
+
+  /// Selecciona un saludo local según la hora sin agregar una fecha al encabezado.
+  String get saludo => DateTime.now().hour < 12
+      ? TextosApp.buenosDias
+      : DateTime.now().hour < 19
+      ? TextosApp.buenasTardes
+      : TextosApp.buenasNoches;
 
   /// Traduce estados técnicos reales a mensajes centralizados para la presentación.
   String get estadoTexto {
