@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS public."Roles" (
 );
 
 -- Repetir el instalador no debe aceptar silenciosamente un catálogo con IDs distintos.
-DO $
+DO $$
 BEGIN
     IF EXISTS (SELECT 1 FROM public."Roles"
         WHERE ("Id" = 1 AND "Name" <> 'Administrador')
@@ -48,7 +48,7 @@ BEGIN
         RAISE EXCEPTION 'El catálogo Roles no coincide con los IDs funcionales 1/2.';
     END IF;
 END;
-$;
+$$;
 
 INSERT INTO public."Roles" ("Id", "Name")
 VALUES (1, 'Administrador'), (2, 'Técnico')

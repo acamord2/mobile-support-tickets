@@ -60,13 +60,13 @@ Las vistas principales de cada módulo componen sus widgets internos. Ningún m�
 
 La instalación se realiza manualmente mediante pgAdmin Query Tool. La API no instala ni ejecuta automáticamente ninguno de estos documentos:
 
-1. [DATABASE.md](database/DATABASE.md): crear tickets_db y las tablas, restricciones e índices.
+1. [DATABASE.md](database/DATABASE.md): instalación PostgreSQL nueva completa con Roles, Users.RoleId/IsActive y Tickets.ScheduledAt. Para una base ya existente usar [ACTUALIZACION_POSTGRESQL.md](database/ACTUALIZACION_POSTGRESQL.md) y su orden transaccional, sin repetir el instalador.
 2. [FUNCIONES_SP.md](database/FUNCIONES_SP.md): instalar get_user_by_username.
 3. [VISTAS.md](database/VISTAS.md): actualmente no hay SQL que ejecutar.
 4. [TRIGGERS.md](database/TRIGGERS.md): actualmente no hay SQL que ejecutar.
 5. [DATOS_PRUEBA.md](database/DATOS_PRUEBA.md): carga opcional solo para desarrollo/demo.
 
-Para una BD funcional limpia, realizar los pasos 1–4, sin datos demo. Para desarrollar con una muestra, ejecutar además el paso 5. Cada tipo de objeto tiene una sola fuente SQL documental.
+Para una BD funcional limpia, realizar los pasos 1–4, sin datos demo; Roles contiene las dos referencias funcionales necesarias. Los scripts nuevos están preparados y no se han aplicado sobre la base local. Para desarrollar con una muestra, ejecutar además el paso 5. Cada tipo de objeto tiene una sola fuente SQL documental.
 
 La muestra contiene un técnico, dos sucursales, dos tickets y una evidencia descriptiva. La cuenta pública demo está documentada en DATOS_PRUEBA.md. La tabla almacena únicamente el hash verificado por PasswordHasher<Usuario>. La carga se realiza manualmente; la API nunca instala ni inserta estos datos.
 
@@ -100,7 +100,7 @@ La conexión se obtiene exclusivamente de ConnectionStrings:DefaultConnection. J
 
 Cada endpoint existente tiene su propio Controller. Login conserva ServicioAutenticacion compartido; Me lee la identidad del JWT; SaludBaseDatos utiliza IServicioSaludBaseDatos y CanConnectAsync sin consultar tablas. GET /api/health/database es anónimo y devuelve 200/connected o 503/unavailable, sin información sensible.
 
-PostgreSQL fue seleccionado para esta implementación. IAccesoUsuarios separa a la autenticación de AccesoUsuariosPostgres, de modo que otro proveedor relacional podría sustituirse adaptando el acceso y los objetos de BD sin cambiar el contrato HTTP. No se implementa SQL Server.
+PostgreSQL fue seleccionado para esta implementación. IAccesoUsuarios separa a la autenticación de AccesoUsuariosPostgres, de modo que otro proveedor relacional podría sustituirse adaptando el acceso y los objetos de BD sin cambiar el contrato HTTP. SQL Server se documenta para portabilidad; todavía no hay proveedor runtime conectado.
 
 IConexion centraliza la apertura mediante Conexion. AccesoUsuariosPostgres utiliza DbCommand parametrizado y ServicioSaludBaseDatos comprueba únicamente la apertura. EF Core y ContextoBaseDatos se conservan sin uso ni registro activo, pendientes de una decisión posterior sobre su eliminación.
 
@@ -228,3 +228,13 @@ Las clases, interfaces y archivos propios se nombran en español; los tipos de f
 Ejecutar `dotnet run --launch-profile lan` desde api/ para escuchar en interfaces de desarrollo (HTTP 5263, Development). Compilar desde mobile/ con `flutter build apk --debug "--dart-define=API_BASE_URL=$env:API_BASE_URL"`, donde API_BASE_URL se configura externamente como `http://IP_DEL_EQUIPO:5263`. El teléfono y equipo deben compartir LAN. No requiere USB ni adb reverse; no usar localhost del teléfono para llegar al equipo. Producción necesita HTTPS y configuración propia.
 
 El arranque restaura Home sin API. JWT expirado o 401 conserva identidad y pendientes pero bloquea acceso remoto hasta nueva autenticación. Logout comprueba pendientes y borra solamente identidad/JWT; la autoría de futuras operaciones de Tickets sigue pendiente. Android deshabilita backup para evitar restauraciones de sesión y claves cifradas incompatibles tras reinstalación. Detalles, comandos, limitaciones y resultados: [sesion-persistente.md](docs/sesion-persistente.md).
+
+## Bases de datos soportadas/documentadas
+
+**Actual: PostgreSQL**, motor conectado y probado de la API. La actualización estructural preparada en ACTUALIZACION_POSTGRESQL.md se aplica manualmente por el usuario y todavía no se ha ejecutado. DATABASE.md representa una instalación nueva completa; no requiere ejecutar después la migración.
+
+**Documentada para portabilidad: SQL Server**, motor principal de la empresa. Los cinco documentos equivalentes de [database/sqlserver](database/sqlserver/DATABASE_SQLSERVER.md) permiten preparar una instalación nueva, la función equivalente mediante SP y datos demo separados. **SQL Server documentado/no validado contra instancia real**; no está conectado a la API ni se añadieron dependencias SqlClient/EF SQL Server.
+
+Roles tiene IDs funcionales 1 Administrador / 2 Técnico. Users añade RoleId e IsActive (0/1) y Tickets añade ScheduledAt independiente de creación/modificación. La función actualizada de PostgreSQL excluye cuentas inactivas una vez instalada, conservando el contrato de Login. El runtime sigue sin requerir las columnas nuevas antes de que confirmes la migración. La exposición del rol en DTO/sesión y las funciones de Tickets quedan para después de esa confirmación.
+
+Orden para la base existente: revisar estructura → BEGIN/ALTER de ACTUALIZACION_POSTGRESQL.md → SQL canónico de FUNCIONES_SP.md en la misma conexión/transacción → verificaciones → COMMIT o ROLLBACK → DATOS_PRUEBA.md opcional. No ejecutar SQL Server en esta etapa. Equivalencias, límites de JWT/usuario inactivo y estrategia futura de SQLite: [portabilidad-base-datos.md](docs/portabilidad-base-datos.md).
