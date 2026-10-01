@@ -9,4 +9,21 @@ abstract class TextosApp {
       'La API devolvió una respuesta que no es JSON válido.';
   static const communicationError = 'Ocurrió un error al realizar la petición.';
   static const requestFailed = 'La API rechazó la petición.';
+  static const usuario = 'Usuario';
+  static const contrasena = 'Contraseña';
+  static const iniciarSesion = 'Iniciar sesión';
+  static const autenticando = 'Iniciando sesión';
+  static const bienvenida = 'Bienvenido';
+  static const cerrarSesion = 'Cerrar sesión';
+  static const camposLoginRequeridos = 'Escribe tu usuario y contraseña.';
+  static const datosLoginInvalidos =
+      'Revisa los datos de usuario y contraseña.';
+  static const credencialesIncorrectas = 'Usuario o contraseña incorrectos.';
+  static const errorServidor =
+      'El servidor no está disponible. Intenta más tarde.';
+  static const errorConexionLogin =
+      'No se pudo conectar. Revisa la conexión e inténtalo de nuevo.';
+  static const respuestaLoginInvalida =
+      'No se pudo validar la respuesta de autenticación.';
+  static const errorLogin = 'No se pudo iniciar sesión. Inténtalo de nuevo.';
 }

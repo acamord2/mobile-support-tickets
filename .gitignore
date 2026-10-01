@@ -3,6 +3,7 @@
 .dart_tool/
 **/.dart_tool/
 **/build/
+**/.kotlin/
 **/coverage/
 **/.flutter-plugins-dependencies
 **/bin/
