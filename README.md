@@ -2,7 +2,7 @@
 
 Repositorio público: [mobile-support-tickets](https://github.com/acamord2/mobile-support-tickets).
 
-Prueba técnica con login Flutter/GetX funcional, API ASP.NET Core .NET 10, JWT, Swagger y PostgreSQL instalado manualmente. La sesión móvil vive solo en memoria; tickets y funcionamiento offline todavía no están implementados.
+Prueba técnica con login Flutter/GetX funcional, API ASP.NET Core .NET 10, JWT y PostgreSQL instalado manualmente. Flutter está organizado en módulos y dispone de infraestructura SQLite, cola local e indicador offline. La sesión vive solo en memoria; todavía no hay datos de Tickets ni sincronización de negocio.
 
 ## Estructura
 
@@ -15,13 +15,13 @@ mobile/
     app/network/       # HTTP, respuestas, códigos, rutas API y configuración
     app/constants/     # textos utilizados
     app/theme/         # colores y tipografía utilizados
-    app/database/     # futura base local
+    app/database/      # SQLite real, operaciones comunes y cola técnica
+    app/services/      # sesión, conectividad y base de sincronización
     models/
-    controllers/
-    services/
-    views/vista_login.dart
-    views/vista_inicio.dart
-    widgets/
+    modules/
+      login/           # main_login.dart, controller, servicio y widgets_login
+      home/            # main_home.dart, controller y widgets_home
+    widgets/apartada/   # indicador transversal de desconexión
   test/
 api/
   Controllers/
@@ -46,7 +46,7 @@ docs/
   linea-base.md
 ```
 
-Flutter contiene modelos, controllers y servicios de autenticación. La carpeta de base local continúa reservada para una etapa posterior. El código nativo generado por Flutter permanece en mobile. No se agregan capas adicionales.
+Las vistas principales de cada módulo componen sus widgets internos. Ningún módulo importa widgets internos de otro; comparte rutas, modelos y servicios globales. El código nativo generado por Flutter permanece en mobile. La estructura completa está en [arquitectura-local-first.md](docs/arquitectura-local-first.md).
 
 ## Requisitos
 
@@ -177,13 +177,21 @@ La integración Android comprueba login, identidad pública, historial y logout.
 
 Flutter: GetX 4.7.3, http 1.6.0, Flutter Test y Flutter Lints 6.0.0. integration_test pertenece al SDK y se usa únicamente como dependencia de desarrollo para validar el dispositivo físico y capturar pantallas públicas.
 
+Infraestructura local: sqflite 2.4.2+1, path 1.9.1 y connectivity_plus 6.1.5. Se conserva una versión de conectividad compatible con Gradle actual. Para pruebas normales de SQLite real se utiliza sqflite_common_ffi 2.3.7+1 únicamente en desarrollo, sin añadir FFI al código de ejecución Android. pubspec.lock fija las versiones resueltas.
+
+En Windows, Flutter puede pedir Developer Mode para generar enlaces de plugins de escritorio. No se cambió esta configuración del equipo; con las dependencias ya resueltas se validaron Android, análisis y tests usando --no-pub. No se habilita soporte SQLite de escritorio para la app mediante la dependencia de pruebas.
+
 API: Npgsql.EntityFrameworkCore.PostgreSQL 10.0.3, Microsoft.AspNetCore.Authentication.JwtBearer 10.0.12 y Swashbuckle.AspNetCore 10.2.3. EF Core y Npgsql son dependencias transitivas; PasswordHasher proviene del framework ASP.NET Core.
 
 ## Documentación y alcance
 
 El código específico de la solución se documenta en español: XML en C# y comentarios /// en Dart, explicando intención, funcionamiento y decisión. Los documentos database/ separan estructura, datos y objetos SQL. El boilerplate de las plantillas no necesita comentarios añadidos.
 
-Login consume la API existente. No se implementan tickets, historial, SQLite, fotografías, sincronización ni persistencia del token. La base local futura contendrá únicamente datos necesarios para offline y tendrá su propia abstracción; sus controllers no accederán directamente a SQLite.
+Login consume la API existente como excepción explícita al flujo local-first. El negocio persistente futuro se leerá exclusivamente desde SQLite mediante repositorios; sincronización escribirá SQLite antes de refrescar UI. Las vistas/widgets no ejecutan HTTP, SQL, JSON, sincronización ni reglas de negocio.
+
+ConexionSqlite abre de forma diferida incidencias_tecnicas.db, versión 1, y crea solo cola_sincronizacion. OperacionesSqlite reutiliza CRUD parametrizado y transacciones. RepositorioCola administra pendientes, procesando, sincronizado y error. El payload es JSON sin credenciales; la sesión/token permanece en memoria. Una red disponible no garantiza API sana. El indicador offline consume ServicioConectividad y se oculta al tener red; ServicioSincronizacion únicamente lee cola y comprueba health cuando se solicita expresamente.
+
+La cola funciona localmente, pero todavía no hay tablas/repositorios de Tickets, envío de pendientes, descarga de negocio, reintentos automáticos ni resolución de conflictos. No se implementan historial, fotografías o persistencia JWT. El diagrama, contratos de infraestructura y límites están en [arquitectura-local-first.md](docs/arquitectura-local-first.md).
 
 La línea base anterior está registrada en docs/linea-base.md. El estado posterior y las validaciones de infraestructura reutilizable están en docs/infraestructura.md. El README final se ampliará conforme avance el proyecto.
 
