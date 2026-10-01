@@ -1,5 +1,15 @@
 # Tickets y agenda local-first
 
+## MVP de atención completo
+
+Editar modifica título, descripción y programación, conservando sucursal, estado, IDs, autoría, creación y UUID. Los tickets resueltos no se editan. Seguimiento reutiliza Evidences.Description y fotografía opcional: no hay tabla de historial ni ALTER.
+
+Pending → InProgress → Resolved son las únicas transiciones disponibles. Resolver comprueba en SQLite que exista trabajo descriptivo antes de actualizar estado y cola. Toda escritura es local primero y no espera API. Detalle muestra seguimiento fechado e imagen local; Home conserva filtros y recarga sus conteos al volver.
+
+El GET existente de tickets incluye evidences del propietario; sincronización las almacena por Id remoto sin duplicar las confirmadas ni sustituir pendientes. La cola actual envía ticket antes de evidencia y utiliza PUT para edición/estado. No se cambiaron URL, puertos, perfiles LAN ni esquema PostgreSQL.
+
+Validación de cierre: dotnet build sin errores/advertencias tras detener la API que bloqueaba su ejecutable; flutter analyze sin incidencias. Una ejecución de la suite Flutter produjo 81 aprobadas, 2 opt-in omitidas y un test antiguo de logout que no abría el menú; corregido y revalidado junto con el flujo MVP (6 pruebas aprobadas). El flujo nuevo prueba edición offline, resolución sin foto con texto obligatorio, foto JPEG comprimida, descarga y sincronización sin duplicados. APK debug compilado con el dart-define LAN normal e instalado con adb install -r; SQLite y almacén seguro conservaron sus hashes. La prueba física final requiere intervención manual porque Android rechaza INJECT_EVENTS; no se utiliza flutter drive.
+
 ## Detalle y comienzo de atención
 
 Home abre `/detalle-ticket` con el Id local. El controller del módulo detalle_ticket obtiene ticket propio y sucursal desde SQLite; la vista muestra identificador, problema, descripción, sucursal/dirección disponibles, programación local y estado. No consulta la API al abrir.

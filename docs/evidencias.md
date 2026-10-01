@@ -1,5 +1,13 @@
 # Evidencias e imágenes
 
+## Seguimiento del MVP
+
+En un ticket En atención, Agregar seguimiento abre un formulario con descripción obligatoria del trabajo y fotografía opcional. ServicioImagen conserva compresión JPEG, Base64 completo y límite de 1 MiB. La evidencia y su operación se guardan mediante la transacción existente; no necesita Internet ni JWT vigente para trabajar localmente. Un ticket Resuelto permite consulta, sin nuevas modificaciones.
+
+Detalle lista descripción, fecha local, fotografía disponible y aviso pendiente desde SQLite. El GET de tickets incorpora las evidencias públicas del propietario para descarga; los registros ya confirmados se reconocen por Id remoto. No hay galería, almacenamiento externo ni campos nuevos. Resolver requiere una descripción de evidencia no vacía, sin exigir foto.
+
+Las pruebas específicas verificaron trabajo sin fotografía, guardado único ante doble pulsación, bloqueo de resolución sin texto, imagen JPEG real comprimida, envío después de crear el ticket remoto y reintento sin duplicados. La prueba física final se realiza manualmente sin flutter drive y se registra al concluir.
+
 La captura opcional del formulario NuevoTicket permite cámara o galería mediante image_picker. ServicioImagen recibe bytes y ejecuta trabajo en un isolate (compute), separado de widgets, controllers, repositorios y HTTP. Utiliza image para aplicar orientación, reducir la dimensión mayor a 1600 y producir JPEG con calidades 85/70/55/40; si no cumple, reduce dimensiones en intentos acotados. Mide bytes antes de Base64, devuelve Base64 sin prefijo, MIME image/jpeg, tamaño original/comprimido y dimensiones. Nunca trunca Base64. Datos inválidos producen FormatException controlada.
 
 ConfiguracionImagen.maximoBytes centraliza 1024 * 1024 bytes (1 MiB) en Flutter; ValidacionEvidencia.MaximoBytes centraliza el mismo contrato en la API. El límite es de JPEG comprimido, no de longitud Base64. Las pruebas generan imágenes sintéticas; no se versionaron fotografías personales. Las claves de permiso iOS explican cámara/galería; iOS no se compiló ni probó en este equipo Windows.
