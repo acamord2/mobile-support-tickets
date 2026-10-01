@@ -1,82 +1,53 @@
 # Tickets y agenda local-first
 
-## MVP de atención completo
+## Flujo del MVP
 
-Editar modifica título, descripción y programación, conservando sucursal, estado, IDs, autoría, creación y UUID. Los tickets resueltos no se editan. Seguimiento reutiliza Evidences.Description y fotografía opcional: no hay tabla de historial ni ALTER.
+Crear → detalle → editar programación → comenzar atención → registrar seguimiento → resolver → sincronizar. Toda escritura se guarda primero en SQLite, con evento y cola en la misma transacción lógica. Las vistas no consultan HTTP. Home conserva agenda, conteos y filtros.
 
-Pending → InProgress → Resolved son las únicas transiciones disponibles. Resolver comprueba en SQLite que exista trabajo descriptivo antes de actualizar estado y cola. Toda escritura es local primero y no espera API. Detalle muestra seguimiento fechado e imagen local; Home conserva filtros y recarga sus conteos al volver.
+Editar permite título, descripción y ScheduledAt; conserva sucursal, identidad, UUID y estado. Las únicas transiciones son Pending → InProgress → Resolved. Resolver exige un evento manual SEGUIMIENTO previo, con texto, foto o ambos. Los eventos automáticos y las evidencias antiguas no sustituyen ese requisito. Resolved conserva consulta de historia y evidencias, sin edición ni reapertura.
 
-El GET existente de tickets incluye evidences del propietario; sincronización las almacena por Id remoto sin duplicar las confirmadas ni sustituir pendientes. La cola actual envía ticket antes de evidencia y utiliza PUT para edición/estado. No se cambiaron URL, puertos, perfiles LAN ni esquema PostgreSQL.
+## Cronología y autoría
 
-Validación de cierre: dotnet build sin errores/advertencias tras detener la API que bloqueaba su ejecutable; flutter analyze sin incidencias. Una ejecución de la suite Flutter produjo 81 aprobadas, 2 opt-in omitidas y un test antiguo de logout que no abría el menú; corregido y revalidado junto con el flujo MVP (6 pruebas aprobadas). El flujo nuevo prueba edición offline, resolución sin foto con texto obligatorio, foto JPEG comprimida, descarga y sincronización sin duplicados. APK debug compilado con el dart-define LAN normal e instalado con adb install -r; SQLite y almacén seguro conservaron sus hashes. La prueba física final requiere intervención manual porque Android rechaza INJECT_EVENTS; no se utiliza flutter drive.
+La creación registra CREADO y PROGRAMADO. Cambiar la cita registra REPROGRAMADO con PreviousScheduledAt y ScheduledAt. Iniciar y resolver registran EN_ATENCION y RESUELTO. Los eventos son instantáneas inmutables, ordenadas por CreatedAt e Id; no se generan por UpdatedAt, confirmación o reintento.
 
-## Detalle y comienzo de atención
+El autor remoto se conserva mediante UserId y se entrega con nombre público. SQLite conserva autor_id y usuario_nombre; usuario_id identifica al propietario de la caché/cola. Mostrar un evento no toma el autor de la sesión actual. Las fechas se normalizan a UTC ISO-8601 y la UI las convierte a hora local.
 
-Home abre `/detalle-ticket` con el Id local. El controller del módulo detalle_ticket obtiene ticket propio y sucursal desde SQLite; la vista muestra identificador, problema, descripción, sucursal/dirección disponibles, programación local y estado. No consulta la API al abrir.
+Las evidencias previas permanecen disponibles en una sección separada cuando no están enlazadas a un evento. No se inventan eventos antiguos ni se atribuyen acciones históricas desconocidas.
 
-Únicamente Pending ofrece Comenzar atención. La acción reutiliza RepositorioTickets.actualizar para guardar InProgress y sync_status pending junto con la operación actualizar de tickets en una transacción. La cola contiene usuario propietario e id_local; no se sincroniza desde la pantalla. El PUT existente admite InProgress y no requirió cambios. InProgress no ofrece comenzar nuevamente y Resolved queda de consulta. Volver conserva sesión/filtros y Home recarga SQLite para actualizar lista y conteos.
+## SQLite v4
 
-El esquema actual permite consultar incidencias previas por sucursal y evidencias fechadas existentes, pero no guarda una cronología de cambios de estado ni trabajos realizados como eventos. Un historial completo requeriría definir información persistente adicional; no se implementó historial ni se modificó PostgreSQL.
+La migración v3 → v4 añade ticket_eventos con claves local/remota, ticket local, propietario, autor, tipo, descripción, fecha original, UUID, citas anterior/nueva, evidencia local opcional y sync_status. Las referencias remotas se obtienen de tickets/evidencias; no se duplica Base64. Se conservan sesión, tickets, sucursales, evidencias y cola. Las migraciones anteriores siguen disponibles para instalaciones v1/v2.
 
-Validación de esta etapa: flutter analyze sin incidencias; pruebas específicas de detalle y Home con SQLite en memoria y sin canal HTTP. No se ejecutaron suite completa, APK, prueba física, dotnet build ni pruebas PostgreSQL por no estar afectadas. Código propio documentado en español. La preparación de fixtures con ClientRequestId null revela una advertencia existente de sqflite sobre argumentos null en RepositorioTickets.descargar; no impide las pruebas y no se cambió ese flujo en esta etapa.
-
-## Estado entregado
-
-PostgreSQL conserva la estructura confirmada manualmente por el usuario. Se verificaron por lectura ScheduledAt, ClientRequestId, PhotoBase64, RoleId, IsActive, Roles y UQ_Tickets_TechnicianId_ClientRequestId. No se ejecutó nuevamente ningún ALTER ni los documentos de migración. La vista nueva public.agenda_tickets se instaló con autorización explícita; su única definición canónica vive en database/VISTAS.md. OBJETOS_TICKETS_POSTGRESQL.md indica cómo instalarla en otra base ya migrada.
-
-SQL Server continúa documentado/no validado contra instancia real. Su instalador incluye UNIQUEIDENTIFIER nullable y un índice UNIQUE filtrado por ClientRequestId IS NOT NULL para permitir varios NULL por técnico, además de PhotoBase64 NVARCHAR(MAX). La vista equivalente está en database/sqlserver/VISTAS_SQLSERVER.md. No hay provider ni conexión SQL Server.
-
-## Flujo
-
-API → ServicioSincronizacion → SQLite → repositorios → controllers → widgets. Login es la excepción explícita porque necesita autenticar remotamente; la agenda no consume respuestas HTTP. Home muestra fecha del dispositivo, identidad pública, indicador de red, conteos reales, agenda por ScheduledAt y acción rápida para crear.
-
-NuevoTicket selecciona una sucursal previamente descargada, título, descripción y programación (fecha/hora inicialmente ahora). La creación no necesita API ni JWT vigente. RepositorioTickets guarda ticket, UUID, evidencia opcional y cola en una misma transacción; vuelve a Home y consulta SQLite. No se ofrecen sucursales ficticias: sin catálogo local debe sincronizarse primero. No se añadió pantalla de atención/detalle ni panel administrativo en esta etapa; el repositorio y PUT preparan actualizaciones locales.
-
-## SQLite v3
-
-La migración v2 → v3 conserva sesion_local y cola_sincronizacion. Añade role_id/rol públicos a sesión y usuario_id a cola; el token permanece en flutter_secure_storage. Añade sucursales por usuario, tickets y evidencias. Las fechas created_at, updated_at y scheduled_at son ISO-8601 UTC completas; la UI convierte programación a hora local. También se permite migrar v1 pasando por v2 en la misma apertura.
-
-id_local no cambia. id_remoto es nullable hasta confirmar el servidor. client_request_id es UUID v4 generado una sola vez con Random.secure al crear localmente y nunca durante sincronización. Cada envío utiliza esa clave persistida. Las descargas reconocen Id remoto o clave móvil para evitar duplicar filas locales.
-
-La cola guarda referencias locales pequeñas, no token, contraseñas ni Base64. Cada operación nueva pertenece a usuario_id. Los pendientes previos se asignan solamente a la identidad presente durante la migración; los huérfanos sin identidad se conservan sin envío automático, porque no es seguro atribuirlos a otra cuenta. Logout elimina identidad/token, no negocio ni cola. Otra cuenta consulta su agenda y solo procesa sus operaciones. Estados procesando interrumpidos se recuperan dentro del ciclo exclusivo del propietario.
+Cada UUID se genera una sola vez. La cola guarda referencias pequeñas y propietario, sin JWT, contraseña ni fotografía. Otra cuenta no consulta ni procesa registros ajenos. Logout conserva negocio y pendientes; JWT permanece en flutter_secure_storage.
 
 ## API
 
 | Endpoint | Responsabilidad |
 |---|---|
-| GET /api/tickets | Agenda del técnico autenticado desde la vista |
-| POST /api/tickets | Creación idempotente; devuelve el ticket nuevo o existente |
-| PUT /api/tickets/{id} | Cambios editables del ticket propio, conserva identidad/creación/clave |
-| GET /api/branches | Catálogo real para SQLite |
-| POST /api/tickets/{id}/evidence | Evidencia autorizada, valida contenido y límite |
+| GET /api/tickets | Agenda propia |
+| POST /api/tickets | Crear por UUID persistente |
+| PUT /api/tickets/{id} | Actualizar campos operativos propios |
+| GET /api/branches | Catálogo para caché |
+| POST /api/tickets/{id}/evidence | Validar y guardar evidencia |
+| POST /api/tickets/{id}/events | Guardar instantánea idempotente |
+| GET /api/tickets/{id}/events | Descargar cronología con autor público |
 
-Cada endpoint tiene una clase y archivo propios en español. Controllers no contienen SQL. AccesoTicketsPostgres consume IConexion y comandos parametrizados; listado utiliza la vista. La identidad procede exclusivamente de sub validado en JWT. Los endpoints comprueban IsActive actual; /me también consulta la identidad activa y devuelve rol público. Un 401 requiere reautenticación sin borrar trabajo local. PasswordHash nunca aparece en JSON.
+Un endpoint corresponde a una clase y archivo. Controllers no contienen SQL; AccesoEventosPostgres reutiliza IConexion y parámetros. El JWT aporta el autor y se comprueba usuario activo y propiedad. No se permite elegir UserId ni enviar Base64 en el evento.
 
-La creación ejecuta INSERT ON CONFLICT (TechnicianId, ClientRequestId) DO NOTHING y luego SELECT en un comando posterior: la restricción UNIQUE es la garantía concurrente y la siguiente lectura recupera el registro confirmado por otro request. Repetir una clave no cambia el contenido del ticket existente; modificaciones posteriores usan PUT. La fecha de creación offline se transmite al crear; no se sustituye por la fecha programada.
+TicketEvents se instaló mediante la única migración PostgreSQL autorizada, sin datos demo adicionales, borrados ni otros ALTER. Sus FK son restrictivas y la relación compuesta impide enlazar evidencia de otro ticket. UNIQUE(UserId, ClientRequestId) garantiza idempotencia; INSERT ON CONFLICT y lectura posterior recuperan el mismo Id. La API no genera una segunda copia automática al recibir PUT. SQL Server permanece documentado y no ejecutado.
 
 ## Sincronización
 
-Un ciclo comprueba sesión/red/health, reclama operaciones propias, sube tickets, persiste Id remoto y confirmación atómicamente, luego envía evidencias y finalmente descarga sucursales y agenda a SQLite. Home se refresca del repositorio. Las llamadas simultáneas comparten el mismo ciclo. No hay polling, bucles permanentes ni reintentos infinitos: un intento al entrar a Home, otro en transición sin red → con red y botón manual.
+Se extiende ServicioSincronizacion existente: confirmar ticket remoto → confirmar evidencia opcional → enviar evento con referencias remotas. Cada operación mantiene su pendiente hasta confirmarse; negocio y evento tienen confirmaciones independientes. Un fallo de imagen conserva los pendientes y no recrea el ticket confirmado. Los reintentos conservan el UUID original del evento.
 
-El canal HTTP se registra como dependencia global permanente: retirar Login no debe cerrar el cliente que conserva sincronización. Las pruebas de navegación verifican que permanece abierto en Login → Home → logout y que el cierre explícito libera el canal.
-
-Estados públicos: sincronizando, actualizado, pendientes, offline, error y reautenticación. Un fallo no confirma operaciones ni simula éxito. Una edición durante envío mantiene pending mientras haya otra operación de ese ticket; una descarga no sobrescribe tickets pending. Se conservan cambios locales sin resolver automáticamente conflictos: cuando finalmente se envían, PUT aplica el estado local. Los registros retirados del servidor no se eliminan automáticamente del dispositivo en esta etapa.
+El ciclo descarga sucursales, tickets/evidencias y eventos a SQLite; reconoce Id remoto/UUID, conserva instantáneas existentes y no pisa negocio pending. Home vuelve a consultar repositorios. No hay otro sincronizador, polling, resolución avanzada de conflictos ni cambios de LAN/puertos/perfiles. Un 401 conserva trabajo e identidad local y exige reautenticación para operaciones remotas.
 
 ## Validación
 
-- dotnet build: cero errores y advertencias.
-- Pruebas API sin red: reglas de Base64/MIME/límite y rechazo de usuario inactivo con contraseña correcta en memoria. No se desactivaron cuentas reales.
-- API real: health/login/me/agenda/sucursales/Swagger correctos; acceso anónimo 401; Base64 inválido 400. Cinco POST concurrentes más reintento devolvieron un solo Ticket Id 3; evidencia repetida devolvió Id 2. Los dos registros fueron autorizados expresamente y se conservaron.
-- flutter analyze: sin incidencias.
-- flutter test: 68 correctas y 2 opt-in omitidas. Incluye migración/persistencia SQLite real, programación, conteos, protección pending, claves, autoría, logout, HTTP simulado offline/503/401/subida/descarga/reintento, PUT y orden de evidencia.
-- APK debug compilado con API_BASE_URL LAN externa; no se versiona la dirección del equipo.
-- No se utilizó emulador. El teléfono reconectado inició sesión; la primera prueba falló durante descarga antes de crear datos. Se corrigió el ciclo de vida del canal HTTP, validado mediante navegación GetX. La repetición física quedó bloqueada por INSTALL_FAILED_USER_RESTRICTED y requiere aceptar instalación por USB; aún no se afirma verificación física de SQLite/fotografía ni se creó el ticket adicional autorizado.
-- El primer flutter drive desinstaló la app automáticamente al terminar. No se puede garantizar conservación de datos locales anteriores ni restauración sin respaldo. Próximos intentos deben usar --keep-app-running; el APK normal se compiló de nuevo, pero su reinstalación está pendiente del teléfono.
+dotnet build: cero errores/advertencias tras liberar el ejecutable de la API anterior. flutter analyze: sin incidencias. La única suite final aprobó 84 pruebas y omitió dos opt-in; falló una expectativa antigua de versión 3, corregida a 4 y revalidada únicamente en su archivo: siete pruebas aprobadas.
 
-Pruebas reproducibles desde raíz: dotnet run --project tests/api/PruebasApi.csproj. El modo --real crea y conserva un ticket/evidencia nuevos por ejecución y requiere autorización; la credencial demo se lee exclusivamente de DATOS_PRUEBA.md, JWT solo en memoria, nunca en salida. Desde mobile: flutter analyze, flutter test y flutter build apk --debug "--dart-define=API_BASE_URL=$env:API_BASE_URL".
+Las pruebas específicas verifican migración real v3→v4 sin pérdida de filas, autor persistido, foto sola válida, vacío inválido, previsualización de los bytes procesados, resolución con seguimiento manual y sincronización después de fallo de evidencia sin duplicar ticket ni eventos. Swagger publica ambos endpoints de eventos y health LAN devuelve 200.
 
-Para prueba física: instalar APK sin desinstalar ni borrar datos; iniciar sesión, sincronizar, desactivar red, crear ticket con fotografía, comprobar agenda, cerrar/abrir, recuperar red y sincronizar. Comprobar ticket/evidencia en PostgreSQL y los identificadores locales/remotos en el dispositivo. Equipo y teléfono deben compartir LAN; no depende de USB ni adb reverse.
+El APK debug se compiló con API_BASE_URL LAN aprobada y se instaló con adb install -r, sin desinstalar ni borrar datos. Se comprobó migración física a v4 y conservación de tickets, evidencias, cola e identidad. La revisión manual final del flujo está pendiente de confirmación del usuario; Android bloquea INJECT_EVENTS. No se utiliza flutter drive ni emulador.
 
-La prueba automatizada integration_test/agenda_real_test.dart utiliza SQLite nativo separado, token en memoria, desconexión simulada en servicio y fotografía sintética. La persistencia se comprueba cerrando/reabriendo el archivo SQLite, no reiniciando el proceso. Su ejecución crea y conserva el ticket/evidencia adicional expresamente autorizado. Ejecutar flutter drive con --keep-app-running para impedir su desinstalación automática y reinstalar después el APK normal compilado sin DEMO_USERNAME/DEMO_PASSWORD.
-
-BD_COMPLETA_POSTGRESQL.md se conserva intacto y sin versionar por instrucción del usuario: es un consolidado anterior con datos demo, no la fuente oficial actual y no incluye las nuevas columnas ni vista. Los documentos oficiales contienen la estructura actual. Documentación de código relevante revisada en español.
+BD_COMPLETA_POSTGRESQL.md permanece intacto y sin versionar; DATOS_PRUEBA.md conserva su modificación previa fuera de esta etapa. Documentación de código relevante revisada en español.
