@@ -39,12 +39,23 @@ class FormularioLogin extends GetView<ControladorLogin> {
         TextField(
           controller: controller.contrasena,
           enabled: !controller.cargando.value,
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             labelText: TextosApp.contrasena,
+            suffixIcon: IconButton(
+              tooltip: controller.mostrarContrasena.value
+                  ? 'Ocultar contraseña'
+                  : 'Mostrar contraseña',
+              icon: Icon(
+                controller.mostrarContrasena.value
+                    ? Icons.visibility_off
+                    : Icons.visibility,
+              ),
+              onPressed: () => controller.mostrarContrasena.toggle(),
+            ),
             border: OutlineInputBorder(),
           ),
           style: FuentesApp.body,
-          obscureText: true,
+          obscureText: !controller.mostrarContrasena.value,
           autocorrect: false,
           enableSuggestions: false,
           textInputAction: TextInputAction.done,

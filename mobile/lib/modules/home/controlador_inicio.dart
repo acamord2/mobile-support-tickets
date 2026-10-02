@@ -1,6 +1,8 @@
 import 'dart:async';
 import '../../app/database/repositorio_coordinacion.dart';
 import 'filtro_agenda.dart';
+import 'seccion_coordinador.dart';
+import '../../app/database/repositorio_solicitudes.dart';
 import 'package:get/get.dart';
 import '../../app/routes/rutas.dart';
 import '../../models/usuario.dart';
@@ -23,6 +25,8 @@ class ControladorInicio extends GetxController {
   final ServicioConectividad? conectividad;
   final agenda = <TicketLocal>[].obs;
   final tecnicos = <Map<String, Object?>>[].obs;
+  final seccionAbierta = Rxn<SeccionCoordinador>();
+  final solicitudes = <Map<String, Object?>>[].obs;
   final tecnicoSeleccionado = Rxn<int>();
   final sinAsignar = false.obs;
   final todos = false.obs;
@@ -48,6 +52,29 @@ class ControladorInicio extends GetxController {
     return agenda.toList();
   }
 
+  /// Cambia en una sola operación la única sección abierta o cierra la misma al volver a tocarla.
+  void alternarSeccion(SeccionCoordinador seccion) {
+    seccionAbierta.value = seccionAbierta.value == seccion ? null : seccion;
+  }
+
+  /// Resume listas locales sin inventar distribución por zona o sucursal.
+  List<TicketLocal> get misTickets =>
+      agenda.where((t) => t.tecnicoId == usuario?.id).toList();
+  List<TicketLocal> get noAsignados =>
+      agenda.where((t) => t.tecnicoId == null).toList();
+  String resumenLista(List<TicketLocal> lista) =>
+      '${lista.where((t) => t.estado == "Pending").length} pendientes · ${lista.where((t) => t.estado == "InProgress").length} en atención · ${lista.where((t) => t.estado == "Resolved").length} resueltos';
+
+  /// Navega a una lista sencilla y conserva el acordeón al regresar.
+  Future<void> abrirTecnico(int id) async {
+    seleccionarTecnico(id);
+    await Get.toNamed(Rutas.ticketsTecnico);
+    if (!isClosed) {
+      seleccionarTecnico(null);
+      await cargar();
+    }
+  }
+
   /// Selecciona alcance local sin descargar datos ni perder los filtros existentes.
   void seleccionarTecnico(
     int? id, {
@@ -62,7 +89,12 @@ class ControladorInicio extends GetxController {
 
   /// Calcula conteos del alcance elegido; los filtros no cambian los totales.
   void actualizarConteos() {
-    final resumen = {'Pending': 0, 'InProgress': 0, 'Resolved': 0};
+    final resumen = {
+      'Pending': 0,
+      'InProgress': 0,
+      'Resolved': 0,
+      'Cancelled': 0,
+    };
     for (final t in alcance) {
       resumen[t.estado] = resumen[t.estado]! + 1;
     }
@@ -97,6 +129,7 @@ class ControladorInicio extends GetxController {
     'Pending': 0,
     'InProgress': 0,
     'Resolved': 0,
+    'Cancelled': 0,
   }.obs;
   final error = ''.obs;
   Worker? _red;
@@ -173,6 +206,11 @@ class ControladorInicio extends GetxController {
       agenda.assignAll(lista);
       catalogo.assignAll(ramas);
       tecnicos.assignAll(equipo);
+      solicitudes.assignAll(
+        await RepositorioSolicitudes(
+          repositorio!.sql,
+        ).listar(id, pendientes: true),
+      );
       actualizarConteos();
       if (lista.any((ticket) => ticket.syncStatus == 'pending') &&
           sincronizacion?.estado.value ==

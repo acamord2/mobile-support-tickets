@@ -1,3 +1,7 @@
+import '../../modules/solicitudes/main_solicitar_estado.dart';
+import '../../modules/solicitudes/controlador_solicitar_estado.dart';
+import '../../modules/home/main_tickets_tecnico.dart';
+import '../database/repositorio_solicitudes.dart';
 import 'package:get/get.dart';
 import '../../modules/detalle_ticket/main_detalle_ticket.dart';
 import '../../modules/detalle_ticket/controlador_detalle_ticket.dart';
@@ -23,6 +27,22 @@ abstract class PaginasApp {
   static const initial = Rutas.arranque;
 
   static final pages = <GetPage>[
+    GetPage(
+      name: Rutas.ticketsTecnico,
+      page: () => const VistaTicketsTecnico(),
+    ),
+    GetPage(
+      name: Rutas.solicitarEstado,
+      page: () => const VistaSolicitarEstado(),
+      binding: BindingsBuilder(
+        () => Get.lazyPut(
+          () => ControladorSolicitarEstado(
+            RepositorioSolicitudes(Get.find<RepositorioTickets>().sql),
+            Get.find<ServicioSesion>(),
+          ),
+        ),
+      ),
+    ),
     GetPage(name: Rutas.arranque, page: () => const VistaArranque()),
     GetPage(name: Rutas.login, page: () => const VistaLogin()),
     GetPage(name: Rutas.inicio, page: () => const VistaInicio()),

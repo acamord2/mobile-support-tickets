@@ -8,5 +8,6 @@ public enum EstadoTicket
 {
     Pending,
     InProgress,
-    Resolved
+    Resolved,
+    Cancelled
 }

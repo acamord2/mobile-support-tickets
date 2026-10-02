@@ -20,9 +20,10 @@ class InformacionDetalleTicket extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fecha = ticket.programado.toLocal();
-    final dia =
-        '${fecha.day.toString().padLeft(2, '0')}/${fecha.month.toString().padLeft(2, '0')}/${fecha.year}';
+    final fecha = ticket.programado?.toLocal();
+    final dia = fecha == null
+        ? 'Sin programar'
+        : '${fecha.day.toString().padLeft(2, '0')}/${fecha.month.toString().padLeft(2, '0')}/${fecha.year}';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -55,7 +56,9 @@ class InformacionDetalleTicket extends StatelessWidget {
           style: FuentesApp.estadoModulo,
         ),
         Text(
-          '$dia ${TimeOfDay.fromDateTime(fecha).format(context)}',
+          fecha == null
+              ? dia
+              : '$dia ${TimeOfDay.fromDateTime(fecha).format(context)}',
           style: FuentesApp.body,
         ),
         const SizedBox(height: 20),

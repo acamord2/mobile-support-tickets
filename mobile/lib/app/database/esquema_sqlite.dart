@@ -29,6 +29,7 @@ abstract class EsquemaSqlite {
     if (version >= 3) await _crearTickets(db);
     if (version >= 4) await _crearEventos(db);
     if (version >= 5) await _crearRoles(db);
+    if (version >= 6) await _crearSolicitudes(db);
   }
 
   /// Impide una actualización desconocida en vez de borrar la base o sus datos.
@@ -38,7 +39,84 @@ abstract class EsquemaSqlite {
     if (anterior < 3 && nueva >= 3) await _crearTickets(db);
     if (anterior < 4 && nueva >= 4) await _crearEventos(db);
     if (anterior < 5 && nueva >= 5) await _crearRoles(db);
-    if (nueva > 5) throw UnsupportedError('Migración desconocida.');
+    if (anterior < 6 && nueva >= 6) await _crearSolicitudes(db);
+    if (nueva > 6) throw UnsupportedError('Migración desconocida.');
+  }
+
+  /// Amplía programación/estados mediante copia íntegra dentro de la transacción de migración.
+  /// Difiere FK hasta reconstruir el padre con los mismos IDs; comprueba filas y referencias antes del commit.
+  static Future<void> _crearSolicitudes(Database db) async {
+    final anteriores = <String, int>{};
+    for (final tabla in [
+      'tickets',
+      'evidencias',
+      'ticket_eventos',
+      'cola_sincronizacion',
+      'sesion_local',
+    ]) {
+      anteriores[tabla] =
+          (await db.rawQuery('SELECT count(*) n FROM $tabla')).single['n']
+              as int;
+    }
+    final secuencia = (await db.rawQuery(
+      "SELECT seq FROM sqlite_sequence WHERE name='tickets'",
+    ));
+    await db.execute('PRAGMA defer_foreign_keys = ON');
+    await db.execute('''CREATE TABLE tickets_v6 (
+      id_local INTEGER PRIMARY KEY AUTOINCREMENT, id_remoto INTEGER,
+      client_request_id TEXT, usuario_id INTEGER NOT NULL,
+      sucursal_id INTEGER NOT NULL, titulo TEXT NOT NULL, descripcion TEXT NOT NULL,
+      estado TEXT NOT NULL CHECK(estado IN ('Pending','InProgress','Resolved','Cancelled')),
+      created_at TEXT NOT NULL, updated_at TEXT NOT NULL, scheduled_at TEXT,
+      sync_status TEXT NOT NULL CHECK(sync_status IN ('synced','pending')),
+      reportante_id INTEGER, tecnico_id INTEGER, visible INTEGER NOT NULL DEFAULT 1,
+      UNIQUE(usuario_id,id_remoto), UNIQUE(usuario_id,client_request_id))''');
+    await db.execute('INSERT INTO tickets_v6 SELECT * FROM tickets');
+    await db.execute('DROP TABLE tickets');
+    await db.execute('ALTER TABLE tickets_v6 RENAME TO tickets');
+    if (secuencia.isNotEmpty) {
+      await db.rawUpdate(
+        "UPDATE sqlite_sequence SET seq=max(seq,?) WHERE name='tickets'",
+        [secuencia.single['seq']],
+      );
+    }
+    await db.execute(
+      'CREATE INDEX ix_agenda ON tickets(usuario_id,scheduled_at)',
+    );
+    await db.execute('ALTER TABLE ticket_eventos RENAME TO ticket_eventos_v5');
+    await db.execute('DROP INDEX ix_eventos_ticket');
+    await _crearEventos(db, roles: true, solicitudes: true);
+    await db.execute(
+      'INSERT INTO ticket_eventos SELECT * FROM ticket_eventos_v5',
+    );
+    await db.execute('DROP TABLE ticket_eventos_v5');
+    await db.execute('''CREATE TABLE ticket_status_requests (
+      id_local INTEGER PRIMARY KEY AUTOINCREMENT, id_remoto INTEGER,
+      ticket_id_local INTEGER NOT NULL REFERENCES tickets(id_local), usuario_id INTEGER NOT NULL,
+      requester_user_id INTEGER NOT NULL, requester_name TEXT,
+      tipo TEXT NOT NULL CHECK(tipo IN ('SOLICITUD_RESOLUCION','SOLICITUD_CANCELACION')),
+      motivo TEXT, estado TEXT NOT NULL CHECK(estado IN ('PENDIENTE','APROBADA','RECHAZADA')),
+      created_at TEXT NOT NULL, reviewed_by_user_id INTEGER, reviewer_name TEXT, reviewed_at TEXT,
+      client_request_id TEXT NOT NULL, sync_status TEXT NOT NULL CHECK(sync_status IN ('synced','pending')),
+      CHECK(tipo<>'SOLICITUD_CANCELACION' OR (motivo IS NOT NULL AND length(trim(motivo))>0)),
+      CHECK((estado='PENDIENTE' AND reviewed_by_user_id IS NULL AND reviewed_at IS NULL)
+        OR (estado IN ('APROBADA','RECHAZADA') AND reviewed_by_user_id IS NOT NULL AND reviewed_at IS NOT NULL)),
+      UNIQUE(usuario_id,id_remoto), UNIQUE(usuario_id,client_request_id))''');
+    await db.execute(
+      'CREATE INDEX ix_solicitudes ON ticket_status_requests(usuario_id,estado,created_at)',
+    );
+    for (final tabla in anteriores.keys) {
+      if ((await db.rawQuery('SELECT count(*) n FROM $tabla')).single['n'] !=
+          anteriores[tabla]) {
+        throw StateError('Migración incompleta.');
+      }
+    }
+    if ((await db.rawQuery('PRAGMA foreign_key_check')).isNotEmpty) {
+      throw StateError('Referencias locales incompatibles.');
+    }
+    // La copia del padre deja contadores diferidos del DROP; solo se liberan
+    // después de comprobar que todas las referencias finales siguen siendo válidas.
+    await db.execute('PRAGMA defer_foreign_keys = OFF');
   }
 
   /// Añade alcance y equipo; copia íntegramente eventos al ampliar su CHECK dentro de la transacción de migración.
@@ -73,12 +151,16 @@ abstract class EsquemaSqlite {
 
   /// Añade bitácora inmutable sin reconstruir historia desconocida ni borrar datos.
   /// Las referencias remotas se obtienen de ticket/evidencia, evitando duplicarlas.
-  static Future<void> _crearEventos(Database db, {bool roles = false}) async {
+  static Future<void> _crearEventos(
+    Database db, {
+    bool roles = false,
+    bool solicitudes = false,
+  }) async {
     await db.execute('''CREATE TABLE ticket_eventos (
       id_local INTEGER PRIMARY KEY AUTOINCREMENT, id_remoto INTEGER,
       ticket_id_local INTEGER NOT NULL REFERENCES tickets(id_local),
       usuario_id INTEGER NOT NULL, autor_id INTEGER NOT NULL, usuario_nombre TEXT,
-      tipo_evento TEXT NOT NULL CHECK(tipo_evento IN ('CREADO','PROGRAMADO','REPROGRAMADO','EN_ATENCION','SEGUIMIENTO','RESUELTO'${roles ? ",'ASIGNADO','REASIGNADO'" : ''})),
+      tipo_evento TEXT NOT NULL CHECK(tipo_evento IN ('CREADO','PROGRAMADO','REPROGRAMADO','EN_ATENCION','SEGUIMIENTO','RESUELTO'${roles ? ",'ASIGNADO','REASIGNADO'" : ''}${solicitudes ? ",'SOLICITUD_RESOLUCION','SOLICITUD_CANCELACION','RESOLUCION_APROBADA','RESOLUCION_RECHAZADA','CANCELACION_APROBADA','CANCELACION_RECHAZADA','CANCELADO'" : ''})),
       descripcion TEXT NOT NULL, created_at TEXT NOT NULL, client_request_id TEXT NOT NULL,
       previous_scheduled_at TEXT, scheduled_at TEXT,
       evidencia_id_local INTEGER REFERENCES evidencias(id_local),

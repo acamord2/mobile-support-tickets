@@ -149,7 +149,7 @@ void main() {
       expect(colaTickets.single.payload['status'], 'InProgress');
       expect(
         colaTickets.single.payload['scheduledAt'],
-        previo.programado.toUtc().toIso8601String(),
+        previo.programado!.toUtc().toIso8601String(),
       );
       expect(colaTickets.single.estado, EstadoSincronizacion.pendiente);
       expect(colaTickets.single.intentos, 0);
@@ -235,7 +235,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byType(VistaInicio), findsOneWidget);
       expect(sesion.existeSesion, isTrue);
-      expect(home.conteos, {'Pending': 0, 'InProgress': 2, 'Resolved': 1});
+      expect(home.conteos, {'Pending': 0, 'InProgress': 2, 'Resolved': 1, 'Cancelled': 0});
       expect(home.filtrosSeleccionados, {FiltroAgenda.pendiente});
       expect(home.ticketsVisibles, isEmpty);
       expect(find.text(TextosApp.sinTicketsFiltrados), findsOneWidget);

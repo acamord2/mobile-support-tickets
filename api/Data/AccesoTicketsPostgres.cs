@@ -10,8 +10,8 @@ public sealed class AccesoTicketsPostgres(IConexion conexion)
     internal const string Alcance = """
         EXISTS (SELECT 1 FROM public."Users" u WHERE u."Id"=@usuario AND u."IsActive"=1 AND (
           u."RoleId"=1 OR (u."RoleId"=4 AND t."ReporterUserId"=@usuario)
-          OR (u."RoleId"=2 AND t."TechnicianId"=@usuario)
-          OR (u."RoleId"=3 AND (t."TechnicianId" IS NULL OR EXISTS (
+          OR (u."RoleId" IN (2,3) AND t."TechnicianId"=@usuario)
+          OR (u."RoleId"=3 AND (t."TechnicianId" IS NULL OR t."TechnicianId"=@usuario OR EXISTS (
             SELECT 1 FROM public."CoordinatorTechnicians" c JOIN public."Users" tecnico ON tecnico."Id"=c."TechnicianUserId"
             WHERE c."CoordinatorUserId"=@usuario AND c."TechnicianUserId"=t."TechnicianId" AND tecnico."RoleId"=2 AND tecnico."IsActive"=1)))))
         """;
@@ -36,7 +36,7 @@ public sealed class AccesoTicketsPostgres(IConexion conexion)
         await using var cmd = cn.CreateCommand();
         cmd.CommandText = """
           SELECT EXISTS(SELECT 1 FROM public."Tickets" t JOIN public."Users" u ON u."Id"=@usuario
-          WHERE t."Id"=@ticket AND u."IsActive"=1 AND (u."RoleId"=1 OR (u."RoleId"=2 AND t."TechnicianId"=@usuario)))
+          WHERE t."Id"=@ticket AND u."IsActive"=1 AND (u."RoleId"=1 OR (u."RoleId" IN (2,3) AND t."TechnicianId"=@usuario)))
           """;
         Parametro(cmd, "usuario", usuario); Parametro(cmd, "ticket", ticket);
         return (bool)(await cmd.ExecuteScalarAsync(ct))!;
@@ -85,7 +85,7 @@ public sealed class AccesoTicketsPostgres(IConexion conexion)
             """;
         Parametro(cmd, "sucursal", solicitud.BranchId); Parametro(cmd, "usuario", usuario); Parametro(cmd, "rol", rol);
         Parametro(cmd, "titulo", solicitud.Title.Trim()); Parametro(cmd, "descripcion", solicitud.Description.Trim());
-        Parametro(cmd, "fecha", solicitud.ScheduledAt.UtcDateTime); Parametro(cmd, "clave", solicitud.ClientRequestId);
+        Parametro(cmd, "fecha", solicitud.ScheduledAt?.UtcDateTime); Parametro(cmd, "clave", solicitud.ClientRequestId);
         var creado = solicitud.CreatedAt ?? DateTimeOffset.UtcNow;
         Parametro(cmd, "creado", creado.UtcDateTime); Parametro(cmd, "actualizado", (solicitud.UpdatedAt ?? creado).UtcDateTime);
         await cmd.ExecuteNonQueryAsync(ct);
@@ -95,14 +95,15 @@ public sealed class AccesoTicketsPostgres(IConexion conexion)
     /// <summary>Guarda evidencia solo en alcance técnico autorizado y deduplica reintentos bajo bloqueo del ticket.</summary>
     public async Task<int?> Evidencia(int usuario, int ticket, SolicitudEvidencia solicitud, CancellationToken ct)
     {
-        if (!await PuedeOperar(usuario, ticket, ct)) return null;
+        var rol = await Rol(usuario, ct);
+        if (rol == 4 ? !solicitud.IsInitial : !await PuedeOperar(usuario, ticket, ct)) return null;
         await using var cn = await conexion.OpenConnectionAsync(ct);
         await using var tx = await cn.BeginTransactionAsync(ct);
         await using var cmd = cn.CreateCommand(); cmd.Transaction = tx;
         cmd.CommandText = """
           SELECT t."Status" FROM public."Tickets" t WHERE t."Id"=@ticket AND EXISTS(
             SELECT 1 FROM public."Users" u WHERE u."Id"=@usuario AND u."IsActive"=1
-            AND (u."RoleId"=1 OR (u."RoleId"=2 AND t."TechnicianId"=@usuario))) FOR UPDATE
+            AND (u."RoleId"=1 OR (u."RoleId" IN (2,3) AND t."TechnicianId"=@usuario) OR (u."RoleId"=4 AND t."ReporterUserId"=@usuario AND t."Status"='Pending'))) FOR UPDATE
           """;
         Parametro(cmd, "ticket", ticket); Parametro(cmd, "usuario", usuario);
         if (await cmd.ExecuteScalarAsync(ct) is not string estado) return null;
@@ -110,13 +111,13 @@ public sealed class AccesoTicketsPostgres(IConexion conexion)
         cmd.CommandText = "SELECT \"Id\" FROM public.\"Evidences\" WHERE \"TicketId\"=@ticket AND \"Description\"=@descripcion AND \"PhotoBase64\" IS NOT DISTINCT FROM @foto ORDER BY \"Id\" LIMIT 1";
         var previo = await cmd.ExecuteScalarAsync(ct);
         if (previo is not null) { await tx.CommitAsync(ct); return (int)previo; }
-        if (estado == "Resolved") return null;
+        if (estado is "Resolved" or "Cancelled") return null;
         cmd.CommandText = "INSERT INTO public.\"Evidences\" (\"TicketId\",\"Description\",\"PhotoBase64\",\"CreatedAt\") VALUES (@ticket,@descripcion,@foto,now()) RETURNING \"Id\"";
         var id = (int)(await cmd.ExecuteScalarAsync(ct))!;
         await tx.CommitAsync(ct); return id;
     }
 
-    /// <summary>Actualiza sin reabrir resueltos; cambios de estado requieren técnico autorizado y seguimiento manual para resolver.</summary>
+    /// <summary>Actualiza sin reabrir resueltos; la programación pertenece a coordinación y los estados finales únicamente a revisión de solicitudes.</summary>
     public async Task<bool> Actualizar(int usuario, int id, SolicitudActualizarTicket s, CancellationToken ct)
     {
         var rol = await Rol(usuario, ct);
@@ -127,14 +128,13 @@ public sealed class AccesoTicketsPostgres(IConexion conexion)
           UPDATE public."Tickets" t SET "Title"=@titulo,"Description"=@descripcion,"Status"=@estado,"ScheduledAt"=@fecha,"UpdatedAt"=now()
           WHERE t."Id"=@id AND
           """ + " " + Alcance + " " + """
-          AND (t."Status"<>'Resolved' OR (t."Status"=@estado AND t."Title"=@titulo AND t."Description"=@descripcion AND t."ScheduledAt"=@fecha))
-          AND (t."Status"=@estado OR (@rol IN (1,2) AND (@rol=1 OR t."TechnicianId"=@usuario)
-            AND ((t."Status"='Pending' AND @estado IN ('InProgress','Resolved')) OR (t."Status"='InProgress' AND @estado='Resolved'))))
-          AND (@estado<>'Resolved' OR EXISTS(SELECT 1 FROM public."TicketEvents" e WHERE e."TicketId"=t."Id" AND e."EventType"='SEGUIMIENTO'))
+          AND (t."Status" NOT IN ('Resolved','Cancelled') OR (t."Status"=@estado AND t."Title"=@titulo AND t."Description"=@descripcion AND t."ScheduledAt" IS NOT DISTINCT FROM @fecha))
+          AND (t."Status"=@estado OR (t."Status"='Pending' AND @estado='InProgress' AND (@rol=1 OR (@rol IN (2,3) AND t."TechnicianId"=@usuario))))
+          AND (@rol IN (1,3) OR t."ScheduledAt" IS NOT DISTINCT FROM @fecha)
           """;
         Parametro(cmd, "usuario", usuario); Parametro(cmd, "rol", rol); Parametro(cmd, "id", id);
         Parametro(cmd, "titulo", s.Title.Trim()); Parametro(cmd, "descripcion", s.Description.Trim());
-        Parametro(cmd, "estado", s.Status); Parametro(cmd, "fecha", s.ScheduledAt.UtcDateTime);
+        Parametro(cmd, "estado", s.Status); Parametro(cmd, "fecha", s.ScheduledAt?.UtcDateTime);
         return await cmd.ExecuteNonQueryAsync(ct) == 1;
     }
 
@@ -148,7 +148,7 @@ public sealed class AccesoTicketsPostgres(IConexion conexion)
           """ + " " + (creacionPropia ? "t.\"ReporterUserId\"=@usuario" : Alcance) + (clave is null ? "" : " AND t.\"ClientRequestId\"=@clave") + " ORDER BY t.\"ScheduledAt\",t.\"CreatedAt\",t.\"Id\"";
         Parametro(cmd, "usuario", usuario); if (clave is not null) Parametro(cmd, "clave", clave.Value);
         await using var r = await cmd.ExecuteReaderAsync(ct); var lista = new List<RespuestaTicket>();
-        while (await r.ReadAsync(ct)) lista.Add(new(r.GetInt32(0), r.GetInt32(1), r.IsDBNull(2) ? null : r.GetInt32(2), r.GetString(3), r.GetString(4), r.GetString(5), r.GetDateTime(6), r.GetDateTime(7), r.GetDateTime(8), r.IsDBNull(9) ? null : r.GetGuid(9), r.GetString(10), r.GetString(11)) { ReporterUserId = r.IsDBNull(12) ? null : r.GetInt32(12) });
+        while (await r.ReadAsync(ct)) lista.Add(new(r.GetInt32(0), r.GetInt32(1), r.IsDBNull(2) ? null : r.GetInt32(2), r.GetString(3), r.GetString(4), r.GetString(5), r.GetDateTime(6), r.GetDateTime(7), r.IsDBNull(8) ? null : r.GetDateTime(8), r.IsDBNull(9) ? null : r.GetGuid(9), r.GetString(10), r.GetString(11)) { ReporterUserId = r.IsDBNull(12) ? null : r.GetInt32(12) });
         return lista;
     }
 
@@ -156,7 +156,7 @@ public sealed class AccesoTicketsPostgres(IConexion conexion)
     internal static void Parametro(DbCommand cmd, string nombre, object? valor)
     {
         var p = cmd.CreateParameter(); p.ParameterName = nombre; p.Value = valor ?? DBNull.Value;
-        if (valor is null) p.DbType = System.Data.DbType.String;
+        if (valor is null) p.DbType = nombre == "fecha" ? System.Data.DbType.DateTime : System.Data.DbType.String;
         cmd.Parameters.Add(p);
     }
 }

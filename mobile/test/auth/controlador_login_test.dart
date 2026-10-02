@@ -37,6 +37,18 @@ void main() {
       tester.widget<TextField>(find.byType(TextField).last).obscureText,
       isTrue,
     );
+    await tester.tap(find.byTooltip('Mostrar contraseña'));
+    await tester.pump();
+    expect(
+      tester.widget<TextField>(find.byType(TextField).last).obscureText,
+      isFalse,
+    );
+    await tester.tap(find.byTooltip('Ocultar contraseña'));
+    await tester.pump();
+    expect(
+      tester.widget<TextField>(find.byType(TextField).last).obscureText,
+      isTrue,
+    );
     await controlador.iniciarSesion();
     await tester.pump();
     expect(conexion.peticiones, 0);

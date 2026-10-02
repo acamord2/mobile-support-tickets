@@ -8,6 +8,9 @@ import 'controlador_inicio.dart';
 import 'widgets_home/cabecera_inicio.dart';
 import 'widgets_home/filtros_agenda.dart';
 import 'widgets_home/tarjeta_ticket_agenda.dart';
+import 'widgets_home/card_seccion_coordinador.dart';
+import 'seccion_coordinador.dart';
+import '../../models/ticket_local.dart';
 
 /// Compone Home desde estado local del controller y delega todas sus acciones.
 /// Separa cabecera, identidad, filtros y lista sin añadir consultas ni fechas.
@@ -47,111 +50,158 @@ class VistaInicio extends GetView<ControladorInicio> {
                           EstadoSincronizacionActual.sincronizando,
                     ),
                   ),
-                Obx(
-                  () => Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      if (controller.mostrarEquipo) ...[
-                        Text(
-                          controller.rol == 1
-                              ? TextosApp.tecnicos
-                              : TextosApp.tecnicosACargo,
-                          style: FuentesApp.tituloTarjeta,
+                if (controller.esCoordinacion)
+                  Obx(
+                    () => Column(
+                      children: [
+                        CardSeccionCoordinador(
+                          titulo: controller.rol == 1
+                              ? 'Todos los tickets'
+                              : 'Mis tickets',
+                          resumen: controller.resumenLista(
+                            controller.rol == 1
+                                ? controller.agenda
+                                : controller.misTickets,
+                          ),
+                          abierta:
+                              controller.seccionAbierta.value ==
+                              SeccionCoordinador.misTickets,
+                          alAlternar: () => controller.alternarSeccion(
+                            SeccionCoordinador.misTickets,
+                          ),
+                          contenido: _lista(
+                            controller.rol == 1
+                                ? controller.agenda
+                                : controller.misTickets,
+                            'No tienes tickets asignados.',
+                          ),
                         ),
-                        OutlinedButton(
-                          onPressed: () => controller.seleccionarTecnico(
-                            null,
-                            noAsignados: true,
+                        CardSeccionCoordinador(
+                          titulo: controller.rol == 1
+                              ? 'Técnicos'
+                              : 'Técnicos a mi cargo',
+                          resumen: '${controller.tecnicos.length} técnicos',
+                          abierta:
+                              controller.seccionAbierta.value ==
+                              SeccionCoordinador.tecnicos,
+                          alAlternar: () => controller.alternarSeccion(
+                            SeccionCoordinador.tecnicos,
                           ),
-                          child: const Text(TextosApp.ticketsSinAsignar),
+                          contenido: Column(
+                            children: [
+                              for (final t in controller.tecnicos)
+                                ListTile(
+                                  title: Text(t['nombre'] as String),
+                                  subtitle: Text(
+                                    controller.resumenTecnico(t['id'] as int),
+                                  ),
+                                  onTap: () =>
+                                      controller.abrirTecnico(t['id'] as int),
+                                ),
+                            ],
+                          ),
                         ),
-                        if (controller.rol == 1)
-                          OutlinedButton(
-                            onPressed: () => controller.seleccionarTecnico(
-                              null,
-                              global: true,
-                            ),
-                            child: const Text(TextosApp.todosLosTickets),
+                        CardSeccionCoordinador(
+                          titulo: 'Tickets sin asignar',
+                          resumen: '${controller.noAsignados.length} tickets',
+                          abierta:
+                              controller.seccionAbierta.value ==
+                              SeccionCoordinador.sinAsignar,
+                          alAlternar: () => controller.alternarSeccion(
+                            SeccionCoordinador.sinAsignar,
                           ),
-                        for (final tecnico in controller.tecnicos)
-                          Card(
-                            child: ListTile(
-                              title: Text(tecnico['nombre'] as String),
-                              subtitle: Text(
-                                controller.resumenTecnico(tecnico['id'] as int),
-                              ),
-                              onTap: () => controller.seleccionarTecnico(
-                                tecnico['id'] as int,
-                              ),
-                            ),
+                          contenido: _lista(
+                            controller.noAsignados,
+                            'No hay tickets sin asignar.',
                           ),
-                      ] else ...[
-                        if (controller.esCoordinacion)
-                          TextButton.icon(
-                            onPressed: () =>
-                                controller.seleccionarTecnico(null),
-                            icon: const Icon(Icons.arrow_back),
-                            label: const Text(TextosApp.volverAlEquipo),
+                        ),
+                        CardSeccionCoordinador(
+                          titulo: 'Solicitudes',
+                          resumen:
+                              '${controller.solicitudes.length} pendientes',
+                          abierta:
+                              controller.seccionAbierta.value ==
+                              SeccionCoordinador.solicitudes,
+                          alAlternar: () => controller.alternarSeccion(
+                            SeccionCoordinador.solicitudes,
                           ),
-                        if (controller.rol == 4)
-                          const Text(
-                            TextosApp.misReportes,
-                            style: FuentesApp.tituloTarjeta,
+                          contenido: Column(
+                            children: [
+                              if (controller.solicitudes.isEmpty)
+                                const Text('No hay solicitudes pendientes.'),
+                              for (final s in controller.solicitudes)
+                                ListTile(
+                                  title: Text(
+                                    '${s['tipo'] == "SOLICITUD_RESOLUCION" ? "Resolución" : "Cancelación"} · ${s['titulo']}',
+                                  ),
+                                  subtitle: Text(
+                                    '${s['requester_name'] ?? s['requester_user_id']} · ${DateTime.parse(s['created_at'] as String).toLocal()}\n${s['motivo'] ?? "Sin comentario"}',
+                                  ),
+                                  onTap: () => controller.abrirDetalle(
+                                    s['ticket_id_local'] as int,
+                                  ),
+                                ),
+                            ],
                           ),
+                        ),
                       ],
-                    ],
+                    ),
+                  )
+                else ...[
+                  if (controller.rol == 4)
+                    const Text(
+                      TextosApp.misReportes,
+                      style: FuentesApp.tituloTarjeta,
+                    ),
+                  Obx(
+                    () => FiltrosAgenda(
+                      conteos: Map.of(controller.conteos),
+                      seleccionados: controller.filtrosSeleccionados.toSet(),
+                      alSeleccionar: controller.alternarFiltro,
+                    ),
                   ),
-                ),
-                Obx(
-                  () => controller.mostrarEquipo
-                      ? const SizedBox.shrink()
-                      : FiltrosAgenda(
-                          conteos: Map.of(controller.conteos),
-                          seleccionados: controller.filtrosSeleccionados
-                              .toSet(),
-                          alSeleccionar: controller.alternarFiltro,
-                        ),
-                ),
+                ],
                 const SizedBox(height: 12),
                 const Divider(),
                 const SizedBox(height: 12),
-                Obx(() {
-                  if (controller.mostrarEquipo) {
-                    return Text(
-                      controller.estadoTexto,
-                      style: FuentesApp.estadoModulo,
-                    );
-                  }
-                  final visibles = controller.ticketsVisibles;
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Text(
+                if (!controller.esCoordinacion)
+                  Obx(() {
+                    if (controller.mostrarEquipo) {
+                      return Text(
                         controller.estadoTexto,
                         style: FuentesApp.estadoModulo,
-                      ),
-                      const SizedBox(height: 12),
-                      if (controller.error.value.isNotEmpty)
-                        Text(controller.error.value, style: FuentesApp.error),
-                      if (visibles.isEmpty)
+                      );
+                    }
+                    final visibles = controller.ticketsVisibles;
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
                         Text(
-                          controller.filtrosSeleccionados.isEmpty
-                              ? TextosApp.sinTickets
-                              : TextosApp.sinTicketsFiltrados,
-                          style: FuentesApp.body,
+                          controller.estadoTexto,
+                          style: FuentesApp.estadoModulo,
                         ),
-                      ...visibles.map(
-                        (t) => TarjetaTicketAgenda(
-                          alSeleccionar: () =>
-                              controller.abrirDetalle(t.idLocal),
-                          ticket: t,
-                          sucursal: controller.nombreSucursal(t.sucursalId),
+                        const SizedBox(height: 12),
+                        if (controller.error.value.isNotEmpty)
+                          Text(controller.error.value, style: FuentesApp.error),
+                        if (visibles.isEmpty)
+                          Text(
+                            controller.filtrosSeleccionados.isEmpty
+                                ? TextosApp.sinTickets
+                                : TextosApp.sinTicketsFiltrados,
+                            style: FuentesApp.body,
+                          ),
+                        ...visibles.map(
+                          (t) => TarjetaTicketAgenda(
+                            alSeleccionar: () =>
+                                controller.abrirDetalle(t.idLocal),
+                            ticket: t,
+                            sucursal: controller.nombreSucursal(t.sucursalId),
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 72),
-                    ],
-                  );
-                }),
+                        const SizedBox(height: 72),
+                      ],
+                    );
+                  }),
               ],
             ),
           ),
@@ -159,4 +209,17 @@ class VistaInicio extends GetView<ControladorInicio> {
       ),
     );
   }
+
+  Widget _lista(List<TicketLocal> tickets, String vacio) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      if (tickets.isEmpty) Text(vacio),
+      for (final t in tickets)
+        TarjetaTicketAgenda(
+          ticket: t,
+          sucursal: controller.nombreSucursal(t.sucursalId),
+          alSeleccionar: () => controller.abrirDetalle(t.idLocal),
+        ),
+    ],
+  );
 }

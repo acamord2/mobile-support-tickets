@@ -20,6 +20,7 @@ builder.Services.AddScoped<IAccesoUsuarios, AccesoUsuariosPostgres>();
 builder.Services.AddScoped<AccesoTicketsPostgres>();
 builder.Services.AddScoped<AccesoEventosPostgres>();
 builder.Services.AddScoped<AccesoCoordinacionPostgres>();
+builder.Services.AddScoped<AccesoSolicitudesPostgres>();
 builder.Services.AddScoped<IPasswordHasher<Usuario>, PasswordHasher<Usuario>>();
 builder.Services.AddScoped<ServicioAutenticacion>();
 builder.Services.AddScoped<IServicioSaludBaseDatos, ServicioSaludBaseDatos>();

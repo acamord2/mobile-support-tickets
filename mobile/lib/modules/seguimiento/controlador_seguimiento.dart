@@ -71,7 +71,9 @@ class ControladorSeguimiento extends GetxController {
           : await tickets.obtener(idTicket!, usuario);
       if (t == null ||
           !((sesion.usuario?.roleId ?? 2) == 1 ||
-              ((sesion.usuario?.roleId ?? 2) == 2 && t.tecnicoId == usuario)) ||
+              (((sesion.usuario?.roleId ?? 2) == 2 ||
+                      (sesion.usuario?.roleId ?? 2) == 3) &&
+                  t.tecnicoId == usuario)) ||
           t.estado != 'InProgress' ||
           sesion.usuario?.id != usuario) {
         error.value = TextosApp.ticketNoDisponible;

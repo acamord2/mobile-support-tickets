@@ -31,7 +31,7 @@ class ServicioNuevoTicket {
     int sucursal,
     String titulo,
     String descripcion,
-    DateTime programado,
+    DateTime? programado,
     ImagenProcesada? foto, {
     String? autorNombre,
     int rol = 2,

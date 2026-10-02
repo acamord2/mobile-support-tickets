@@ -37,7 +37,12 @@ class RepositorioTickets {
 
   /// Calcula el resumen desde registros locales sin inventar datos cuando no hay descarga.
   Future<Map<String, int>> conteos(int usuario) async {
-    final total = {'Pending': 0, 'InProgress': 0, 'Resolved': 0};
+    final total = {
+      'Pending': 0,
+      'InProgress': 0,
+      'Resolved': 0,
+      'Cancelled': 0,
+    };
     for (final t in await agenda(usuario)) {
       total[t.estado] = total[t.estado]! + 1;
     }
@@ -50,7 +55,7 @@ class RepositorioTickets {
     required int sucursal,
     required String titulo,
     required String descripcion,
-    required DateTime programado,
+    required DateTime? programado,
     Map<String, Object?>? evidencia,
     String? autorNombre,
     int rol = 2,
@@ -69,7 +74,7 @@ class RepositorioTickets {
             'estado': 'Pending',
             'created_at': fecha,
             'updated_at': fecha,
-            'scheduled_at': programado.toUtc().toIso8601String(),
+            'scheduled_at': programado?.toUtc().toIso8601String(),
             'client_request_id': IdentificadorCliente.crear(),
             'sync_status': 'pending',
           }),
@@ -82,6 +87,7 @@ class RepositorioTickets {
             payload: {'id_local': id},
           ),
         );
+        int? fotoInicial;
         if (evidencia != null) {
           final foto = OperacionesSqlite.exigir(
             await tx.insertar('evidencias', {
@@ -92,12 +98,13 @@ class RepositorioTickets {
               'sync_status': 'pending',
             }),
           );
+          fotoInicial = foto;
           OperacionesSqlite.exigir(
             await RepositorioCola(tx).agregarPendiente(
               usuarioId: usuario,
               recurso: 'evidencias',
               operacion: TipoOperacionLocal.crear,
-              payload: {'id_local': foto},
+              payload: {'id_local': foto, 'initial': true},
             ),
           );
         }
@@ -107,18 +114,21 @@ class RepositorioTickets {
           usuario,
           TipoEventoTicket.creado,
           'Ticket registrado',
+          evidencia: fotoInicial,
           autor: autorNombre,
           fecha: fecha,
         );
-        await eventos.agregar(
-          id,
-          usuario,
-          TipoEventoTicket.programado,
-          'Atención programada',
-          autor: autorNombre,
-          fecha: fecha,
-          programado: programado,
-        );
+        if (programado != null) {
+          await eventos.agregar(
+            id,
+            usuario,
+            TipoEventoTicket.programado,
+            'Atención programada',
+            autor: autorNombre,
+            fecha: fecha,
+            programado: programado,
+          );
+        }
         return id;
       }),
     );
@@ -132,7 +142,7 @@ class RepositorioTickets {
     required String titulo,
     required String descripcion,
     required String estado,
-    required DateTime programado,
+    required DateTime? programado,
     String? autorNombre,
   }) async {
     if (!['Pending', 'InProgress', 'Resolved'].contains(estado)) {
@@ -149,19 +159,16 @@ class RepositorioTickets {
         );
         if (previas.isEmpty) throw StateError('Ticket no autorizado.');
         final previo = TicketLocal.desdeFila(previas.single);
-        if (previo.estado == 'Resolved') throw StateError('Ticket resuelto.');
+        if (previo.estado == 'Resolved' || previo.estado == 'Cancelled') {
+          throw StateError('Ticket resuelto.');
+        }
         if (previo.estado != estado &&
             !((previo.estado == 'Pending' && estado == 'InProgress') ||
                 (previo.estado == 'InProgress' && estado == 'Resolved'))) {
           throw StateError('Transición inválida.');
         }
         if (estado == 'Resolved' && previo.estado != estado) {
-          final registros = await RepositorioEventos(tx).listar(id, usuario);
-          if (!registros.any(
-            (e) => e['tipo_evento'] == TipoEventoTicket.seguimiento.clave,
-          )) {
-            throw StateError('Falta seguimiento manual.');
-          }
+          throw StateError('Se requiere aprobación.');
         }
         final n = OperacionesSqlite.exigir(
           await tx.actualizar(
@@ -170,7 +177,7 @@ class RepositorioTickets {
               'titulo': titulo.trim(),
               'descripcion': descripcion.trim(),
               'estado': estado,
-              'scheduled_at': programado.toUtc().toIso8601String(),
+              'scheduled_at': programado?.toUtc().toIso8601String(),
               'updated_at': DateTime.now().toUtc().toIso8601String(),
               'sync_status': 'pending',
             },
@@ -180,11 +187,13 @@ class RepositorioTickets {
         );
         if (n != 1) throw StateError('Ticket no autorizado.');
         final eventos = RepositorioEventos(tx);
-        if (!previo.programado.isAtSameMomentAs(programado)) {
+        if (previo.programado != programado) {
           await eventos.agregar(
             id,
             usuario,
-            TipoEventoTicket.reprogramado,
+            previo.programado == null
+                ? TipoEventoTicket.programado
+                : TipoEventoTicket.reprogramado,
             'Atención reprogramada',
             autor: autorNombre,
             anterior: previo.programado,
@@ -211,7 +220,7 @@ class RepositorioTickets {
               'title': titulo.trim(),
               'description': descripcion.trim(),
               'status': estado,
-              'scheduledAt': programado.toUtc().toIso8601String(),
+              'scheduledAt': programado?.toUtc().toIso8601String(),
             },
           ),
         );
@@ -293,6 +302,7 @@ class RepositorioTickets {
               (rol == 4 && r['reporterUserId'] != usuario) ||
               (rol == 3 &&
                   r['technicianId'] != null &&
+                  r['technicianId'] != usuario &&
                   !tecnicos.contains(r['technicianId']))) {
             throw const FormatException('Autoría inválida.');
           }
@@ -324,9 +334,11 @@ class RepositorioTickets {
             'updated_at': DateTime.parse(
               r['updatedAt'] as String,
             ).toUtc().toIso8601String(),
-            'scheduled_at': DateTime.parse(
-              r['scheduledAt'] as String,
-            ).toUtc().toIso8601String(),
+            'scheduled_at': r['scheduledAt'] == null
+                ? null
+                : DateTime.parse(
+                    r['scheduledAt'] as String,
+                  ).toUtc().toIso8601String(),
             'sync_status': 'synced',
           };
           if (filas.isEmpty) {

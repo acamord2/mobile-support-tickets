@@ -1,3 +1,5 @@
+import 'package:tikets/app/database/repositorio_solicitudes.dart';
+import 'package:tikets/models/tipo_solicitud_estado.dart';
 import 'package:tikets/app/database/repositorio_eventos.dart';
 import 'dart:convert';
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -7,7 +9,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:image/image.dart' as img;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:tikets/app/constants/textos_app.dart';
+
 import 'package:tikets/app/database/conexion_sqlite.dart';
 import 'package:tikets/app/database/operaciones_sqlite.dart';
 import 'package:tikets/app/database/repositorio_tickets.dart';
@@ -54,7 +56,13 @@ void main() {
       SesionUsuario.fromJson({
         'token':
             'prueba.${base64Url.encode(utf8.encode(jsonEncode({'exp': DateTime.now().add(const Duration(hours: 1)).millisecondsSinceEpoch ~/ 1000})))}.firma',
-        'user': {'id': 1, 'username': 'prueba', 'name': 'Prueba'},
+        'user': {
+          'id': 1,
+          'username': 'prueba',
+          'name': 'Prueba',
+          'roleId': 1,
+          'role': 'Administrador',
+        },
       }),
     );
     detalle = ControladorDetalleTicket(tickets, sucursales, sesion, evidencias);
@@ -93,9 +101,8 @@ void main() {
       await detalle.cargar(id);
       expect(detalle.ticket.value!.estado, 'Pending');
       await detalle.comenzarAtencion();
-      await detalle.resolver();
+      expect(detalle.puedeSolicitar, isTrue);
       expect(detalle.ticket.value!.estado, 'InProgress');
-      expect(detalle.error.value, TextosApp.faltaSeguimiento);
       seguir.idTicket = id;
       expect(await seguir.guardar(volver: false), isFalse);
       seguir.descripcion.text =
@@ -110,7 +117,14 @@ void main() {
       ).listar(id, 1)).where((e) => e['tipo_evento'] == 'SEGUIMIENTO').toList();
       expect(registros, hasLength(1));
       expect(registros.single['photo_base64'], isNull);
-      await detalle.resolver();
+      final solicitud = await RepositorioSolicitudes(
+        tickets.sql,
+      ).crear(id, 1, 1, 'Prueba', TipoSolicitudEstado.resolucion, null);
+      expect((await tickets.obtener(id, 1))!.estado, 'InProgress');
+      await RepositorioSolicitudes(
+        tickets.sql,
+      ).revisar(solicitud, 1, 1, 'Prueba', true);
+      await detalle.cargar(id);
       final finalizado = (await tickets.obtener(id, 1))!;
       expect(finalizado.estado, 'Resolved');
       expect(finalizado.syncStatus, 'pending');
@@ -119,7 +133,7 @@ void main() {
       expect(finalizado.idLocal, original.idLocal);
       expect(detalle.puedeEditar, isFalse);
       expect(detalle.puedeSeguir, isFalse);
-      expect(detalle.seguimientos, hasLength(6));
+      expect(detalle.seguimientos, hasLength(8));
       expect(await editar.guardar(volver: false), isFalse);
       expect(await seguir.guardar(volver: false), isFalse);
       await detalle.comenzarAtencion();
@@ -144,7 +158,6 @@ void main() {
         img.encodePng(img.Image(width: 10, height: 10)),
       );
       expect(await seguir.guardar(volver: false), isTrue);
-      await detalle.resolver();
       final red = ServicioConectividad(
         consultar: () async => [ConnectivityResult.none],
         cambios: const Stream.empty(),
@@ -159,6 +172,10 @@ void main() {
           baseUrl: 'http://api.example.test',
           client: MockClient((r) async {
             rutas.add('${r.method} ${r.url.path}');
+            if (r.url.path == '/api/ticket-status-requests' ||
+                r.url.path == '/api/technicians') {
+              return http.Response('[]', 200);
+            }
             if (r.url.path == '/api/health/database') {
               return http.Response(
                 '{"status":"ok","database":"connected"}',
@@ -172,6 +189,7 @@ void main() {
                 'id': 50,
                 'technicianId': 1,
                 'status': 'Pending',
+                'reporterUserId': 1,
               };
               return http.Response('{"id":50}', 200);
             }
@@ -253,7 +271,7 @@ void main() {
         EstadoSincronizacionActual.actualizado,
         reason: rutas.join(', '),
       );
-      expect((await tickets.obtener(id, 1))!.estado, 'Resolved');
+      expect((await tickets.obtener(id, 1))!.estado, 'InProgress');
       expect((await tickets.obtener(id, 1))!.idRemoto, 50);
       expect((await evidencias.listar(id, 1)).single['sync_status'], 'synced');
       expect(
@@ -261,8 +279,8 @@ void main() {
         lessThan(rutas.indexOf('POST /api/tickets/50/evidence')),
       );
       await sync.sincronizar();
-      expect(eventosRemotos, hasLength(5));
-      expect(await RepositorioEventos(tickets.sql).listar(id, 1), hasLength(5));
+      expect(eventosRemotos, hasLength(4));
+      expect(await RepositorioEventos(tickets.sql).listar(id, 1), hasLength(4));
       expect(postTickets, 1);
       expect(postFotos, 2);
       expect(await tickets.agenda(1), hasLength(1));

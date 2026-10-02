@@ -7,7 +7,14 @@ enum TipoEventoTicket {
   seguimiento('SEGUIMIENTO'),
   resuelto('RESUELTO'),
   asignado('ASIGNADO'),
-  reasignado('REASIGNADO');
+  reasignado('REASIGNADO'),
+  solicitudResolucion('SOLICITUD_RESOLUCION'),
+  solicitudCancelacion('SOLICITUD_CANCELACION'),
+  resolucionAprobada('RESOLUCION_APROBADA'),
+  resolucionRechazada('RESOLUCION_RECHAZADA'),
+  cancelacionAprobada('CANCELACION_APROBADA'),
+  cancelacionRechazada('CANCELACION_RECHAZADA'),
+  cancelado('CANCELADO');
 
   final String clave;
   const TipoEventoTicket(this.clave);

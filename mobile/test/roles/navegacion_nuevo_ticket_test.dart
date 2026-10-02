@@ -10,6 +10,7 @@ import 'package:tikets/app/database/repositorio_sucursales.dart';
 import 'package:tikets/app/database/repositorio_tickets.dart';
 import 'package:tikets/app/routes/paginas_app.dart';
 import 'package:tikets/app/routes/rutas.dart';
+import 'package:tikets/app/constants/textos_app.dart';
 import 'package:tikets/app/services/servicio_imagen.dart';
 import 'package:tikets/app/services/servicio_conectividad.dart';
 import 'package:tikets/app/services/servicio_sesion.dart';
@@ -82,6 +83,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
     expect(find.byType(VistaNuevoTicket), findsOneWidget);
+    expect(find.textContaining('Fecha:'), findsNothing);
+    expect(find.textContaining('Hora:'), findsNothing);
+    expect(find.text(TextosApp.camara), findsOneWidget);
     Get.back(result: true);
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);

@@ -14,6 +14,7 @@ class ControladorLogin extends GetxController {
   final usuario = TextEditingController();
   final contrasena = TextEditingController();
   final cargando = false.obs;
+  final mostrarContrasena = false.obs;
   final error = ''.obs;
 
   /// Recibe autenticación y sesión desde GetX sin construir dependencias de transporte.

@@ -16,8 +16,9 @@ public sealed class ControladorCrearTicket(AccesoTicketsPostgres datos) : Contro
         var usuario=IdentidadTecnico.Obtener(User);
         if(usuario==0 || !await datos.Activo(usuario,ct)) return Unauthorized();
         if(await datos.Rol(usuario,ct) is not (1 or 2 or 4)) return Forbid();
-        if(solicitud.ClientRequestId==Guid.Empty || solicitud.ScheduledAt==default || string.IsNullOrWhiteSpace(solicitud.Title) || string.IsNullOrWhiteSpace(solicitud.Description)) return BadRequest();
+        if(solicitud.ClientRequestId==Guid.Empty || string.IsNullOrWhiteSpace(solicitud.Title) || string.IsNullOrWhiteSpace(solicitud.Description)) return BadRequest();
         if(solicitud.CreatedAt is not null && solicitud.UpdatedAt is not null && solicitud.UpdatedAt < solicitud.CreatedAt) return BadRequest();
+        if (await datos.Rol(usuario,ct) is 2 or 4 && solicitud.ScheduledAt is not null) return BadRequest();
         var ticket=await datos.Crear(usuario,solicitud,ct);
         return ticket is null ? BadRequest() : Ok(ticket);
     }

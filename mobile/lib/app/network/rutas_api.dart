@@ -11,4 +11,8 @@ abstract class RutasApi {
   static const sucursales = '/api/branches';
   static String evidencia(int ticket) => '$tickets/$ticket/evidence';
   static String eventos(int ticket) => '$tickets/$ticket/events';
+  static const solicitudes = '/api/ticket-status-requests';
+  static String solicitarEstado(int ticket) =>
+      '/api/tickets/$ticket/status-requests';
+  static String revisarSolicitud(int id) => '$solicitudes/$id/review';
 }

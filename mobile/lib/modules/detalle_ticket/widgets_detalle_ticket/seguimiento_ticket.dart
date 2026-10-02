@@ -28,6 +28,13 @@ class SeguimientoTicket extends StatelessWidget {
       TipoEventoTicket.resuelto.clave: TextosApp.eventoResuelto,
       TipoEventoTicket.asignado.clave: TextosApp.eventoAsignado,
       TipoEventoTicket.reasignado.clave: TextosApp.eventoReasignado,
+      TipoEventoTicket.solicitudResolucion.clave: 'Solicitud de resolución',
+      TipoEventoTicket.solicitudCancelacion.clave: 'Solicitud de cancelación',
+      TipoEventoTicket.resolucionAprobada.clave: 'Resolución aprobada',
+      TipoEventoTicket.resolucionRechazada.clave: 'Resolución rechazada',
+      TipoEventoTicket.cancelacionAprobada.clave: 'Cancelación aprobada',
+      TipoEventoTicket.cancelacionRechazada.clave: 'Cancelación rechazada',
+      TipoEventoTicket.cancelado.clave: 'Ticket cancelado',
     };
     return etiquetas[tipo] ?? tipo;
   }

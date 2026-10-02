@@ -16,9 +16,10 @@ public sealed class AccesoEventosPostgres(IConexion conexion)
         cmd.CommandText = """
             INSERT INTO public."TicketEvents" ("TicketId","EventType","Description","CreatedAt","UserId","ClientRequestId","PreviousScheduledAt","ScheduledAt","EvidenceId")
             SELECT @ticket,@tipo,@descripcion,@fecha,@usuario,@clave,@anterior,@programada,@evidencia
-            WHERE EXISTS(SELECT 1 FROM public."Tickets" t WHERE t."Id"=@ticket AND (t."Status"<>'Resolved' OR @tipo='RESUELTO') AND
+            WHERE EXISTS(SELECT 1 FROM public."Tickets" t WHERE t."Id"=@ticket AND t."Status" NOT IN ('Resolved','Cancelled') AND
             """ + " " + AccesoTicketsPostgres.Alcance + " " + """
             )
+              AND (@tipo<>'CREADO' OR EXISTS(SELECT 1 FROM public."Tickets" WHERE "Id"=@ticket AND "ReporterUserId"=@usuario))
               AND (@evidencia IS NULL OR EXISTS(SELECT 1 FROM public."Evidences" WHERE "Id"=@evidencia AND "TicketId"=@ticket AND "PhotoBase64" IS NOT NULL))
             ON CONFLICT ("UserId","ClientRequestId") DO NOTHING
             """;

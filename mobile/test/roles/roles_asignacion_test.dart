@@ -192,6 +192,9 @@ void main() {
       final api = Conexion(
         ClienteApi(
           client: MockClient((r) async {
+            if (r.url.path == '/api/ticket-status-requests') {
+              return http.Response('[]', 200);
+            }
             if (r.url.path == '/api/health/database') {
               llamadasHealth++;
               await gate.future;
@@ -357,7 +360,7 @@ void main() {
           (await migrada.ejecutar(
             (db) => db.rawQuery('PRAGMA user_version'),
           )).single['user_version'],
-          5,
+          6,
         );
         expect(
           (await migrada.ejecutar(

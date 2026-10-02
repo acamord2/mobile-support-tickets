@@ -12,6 +12,8 @@ import 'package:tikets/modules/home/filtro_agenda.dart';
 import 'package:tikets/modules/home/widgets_home/cabecera_inicio.dart';
 import 'package:tikets/app/theme/colores_app.dart';
 import '../soporte/sesion_simulada.dart';
+import 'package:tikets/app/services/servicio_sesion.dart';
+import 'package:tikets/modules/home/widgets_home/card_seccion_coordinador.dart';
 
 /// Verifica presentación de agenda y adaptación a teléfono sin HTTP; repositorios
 /// y persistencia se prueban separadamente con SQLite real.
@@ -35,6 +37,43 @@ void main() {
     controlador = Get.find<ControladorInicio>();
   });
   tearDown(Get.reset);
+  testWidgets('Coordinador alterna cards reales con una sola sección abierta', (
+    tester,
+  ) async {
+    await Get.find<ServicioSesion>().establecer(
+      SesionUsuario.fromJson({
+        'token': 'simulado',
+        'user': {
+          'id': 1,
+          'username': 'prueba',
+          'name': 'Coordinador',
+          'roleId': 3,
+          'role': 'Coordinador',
+        },
+      }),
+    );
+    await tester.pumpWidget(const GetMaterialApp(home: VistaInicio()));
+    await tester.pumpAndSettle();
+    List<CardSeccionCoordinador> cards() => tester
+        .widgetList<CardSeccionCoordinador>(find.byType(CardSeccionCoordinador))
+        .toList();
+    expect(cards(), hasLength(4));
+    expect(cards().where((c) => c.abierta), isEmpty);
+    for (final titulo in [
+      'Mis tickets',
+      'Técnicos a mi cargo',
+      'Solicitudes',
+    ]) {
+      await tester.ensureVisible(find.text(titulo));
+      await tester.tap(find.text(titulo));
+      await tester.pumpAndSettle();
+      expect(cards().where((c) => c.abierta).map((c) => c.titulo), [titulo]);
+    }
+    await tester.tap(find.text('Solicitudes'));
+    await tester.pumpAndSettle();
+    expect(cards().where((c) => c.abierta), isEmpty);
+    expect(tester.takeException(), isNull);
+  });
   test('Filtros múltiples alternan OR sin cambiar conteos ni orden', () {
     for (final filtro in FiltroAgenda.values) {
       controlador.agenda.add(
@@ -61,11 +100,11 @@ void main() {
     List<int> visibles() =>
         controlador.ticketsVisibles.map((t) => t.idLocal).toList();
     expect(controlador.filtrosSeleccionados, isEmpty);
-    expect(visibles(), [1, 2, 3]);
+    expect(visibles(), [1, 2, 3, 4]);
     controlador.alternarFiltro(FiltroAgenda.pendiente);
     expect(visibles(), [1]);
     controlador.alternarFiltro(FiltroAgenda.pendiente);
-    expect(visibles(), [1, 2, 3]);
+    expect(visibles(), [1, 2, 3, 4]);
     controlador.alternarFiltro(FiltroAgenda.enAtencion);
     expect(visibles(), [2]);
     controlador.alternarFiltro(FiltroAgenda.pendiente);

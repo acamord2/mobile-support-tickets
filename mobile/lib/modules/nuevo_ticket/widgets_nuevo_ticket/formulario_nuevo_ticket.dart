@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../../app/constants/textos_app.dart';
 import '../../../app/theme/fuentes_app.dart';
 import '../controlador_nuevo_ticket.dart';
+import '../../../widgets/foto_procesada.dart';
 
 /// Representa el formulario y remite sus eventos al controller; no consulta API,
 /// SQLite ni comprime imágenes. Una sola composición visual por archivo.
@@ -37,38 +38,53 @@ class FormularioNuevoTicket extends GetView<ControladorNuevoTicket> {
           maxLines: 3,
           decoration: const InputDecoration(labelText: TextosApp.descripcion),
         ),
-        OutlinedButton(
-          onPressed: () => controller.fecha(context),
-          child: Text(
-            '${TextosApp.fecha}: ${controller.programado.value.toLocal().toString().split(' ').first}',
+        if (controller.sesion.usuario?.roleId == 1) ...[
+          OutlinedButton(
+            onPressed: () => controller.fecha(context),
+            child: Text(
+              '${TextosApp.fecha}: ${controller.programado.value.toLocal().toString().split(' ').first}',
+            ),
           ),
+          OutlinedButton(
+            onPressed: () => controller.hora(context),
+            child: Text(
+              '${TextosApp.hora}: ${TimeOfDay.fromDateTime(controller.programado.value).format(context)}',
+            ),
+          ),
+        ],
+        Wrap(
+          spacing: 8,
+          children: [
+            OutlinedButton(
+              onPressed: controller.ocupado.value
+                  ? null
+                  : () => controller.seleccionar(ImageSource.camera),
+              child: const Text(TextosApp.camara),
+            ),
+            OutlinedButton(
+              onPressed: controller.ocupado.value
+                  ? null
+                  : () => controller.seleccionar(ImageSource.gallery),
+              child: const Text(TextosApp.galeria),
+            ),
+          ],
         ),
-        OutlinedButton(
-          onPressed: () => controller.hora(context),
-          child: Text(
-            '${TextosApp.hora}: ${TimeOfDay.fromDateTime(controller.programado.value).format(context)}',
+        if (controller.foto.value != null) ...[
+          const Text(TextosApp.previewFoto, style: FuentesApp.body),
+          FotoProcesada(base64: controller.foto.value!.base64),
+          OutlinedButton(
+            onPressed: controller.ocupado.value
+                ? null
+                : () => controller.seleccionar(ImageSource.gallery),
+            child: const Text('Cambiar foto'),
           ),
-        ),
-        if (controller.sesion.usuario?.roleId != 4)
-          Wrap(
-            spacing: 8,
-            children: [
-              OutlinedButton(
-                onPressed: controller.ocupado.value
-                    ? null
-                    : () => controller.seleccionar(ImageSource.camera),
-                child: const Text(TextosApp.camara),
-              ),
-              OutlinedButton(
-                onPressed: controller.ocupado.value
-                    ? null
-                    : () => controller.seleccionar(ImageSource.gallery),
-                child: const Text(TextosApp.galeria),
-              ),
-            ],
+          OutlinedButton(
+            onPressed: controller.ocupado.value
+                ? null
+                : () => controller.foto.value = null,
+            child: const Text(TextosApp.quitarFoto),
           ),
-        if (controller.foto.value != null)
-          const Text(TextosApp.fotoPreparada, style: FuentesApp.body),
+        ],
         if (controller.error.value.isNotEmpty)
           Text(controller.error.value, style: FuentesApp.error),
         const SizedBox(height: 16),

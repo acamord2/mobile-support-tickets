@@ -58,8 +58,16 @@ class RepositorioCoordinacion {
     OperacionesSqlite.exigir(
       await sql.transaccion((tx) async {
         final actual = await RepositorioTickets(tx).obtener(ticket, usuario);
-        final equipo = await RepositorioCoordinacion(tx).listar(usuario);
-        if (actual == null || actual.estado == 'Resolved') {
+        final equipo = (await RepositorioCoordinacion(tx).listar(usuario)).toList();
+        if (rol == 3) {
+          equipo.add({
+            'id': usuario,
+            'nombre': autor,
+            'coordinador_id': usuario,
+          });
+        }
+        if (actual == null ||
+            (actual.estado == 'Resolved' || actual.estado == 'Cancelled')) {
           throw StateError('Ticket no asignable.');
         }
         final destinos = equipo.where((t) => t['id'] == tecnico).toList();

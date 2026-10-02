@@ -6,5 +6,5 @@ public sealed class SolicitudActualizarTicket
     [Required,StringLength(200)] public string Title { get; set; }="";
     [Required,StringLength(10000)] public string Description { get; set; }="";
     [Required] public string Status { get; set; }="Pending";
-    public DateTimeOffset ScheduledAt { get; set; }
+    public DateTimeOffset? ScheduledAt { get; set; }
 }

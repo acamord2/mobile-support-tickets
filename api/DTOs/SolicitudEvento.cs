@@ -16,7 +16,7 @@ public sealed class SolicitudEvento
     /// <summary>Valida tipo, programación y contenido mínimo; el acceso comprueba fotografía real y pertenencia.</summary>
     public bool EsValida() => EventType is not null && Enum.IsDefined(EventType.Value)
         && CreatedAt is not null && ClientRequestId != Guid.Empty && Description is not null
-        && (EvidenceId is null || EventType == TipoEventoTicket.SEGUIMIENTO)
+        && (EvidenceId is null || EventType is TipoEventoTicket.SEGUIMIENTO or TipoEventoTicket.CREADO)
         && (!string.IsNullOrWhiteSpace(Description) || (EventType == TipoEventoTicket.SEGUIMIENTO && EvidenceId is not null))
         && (EventType switch
         {

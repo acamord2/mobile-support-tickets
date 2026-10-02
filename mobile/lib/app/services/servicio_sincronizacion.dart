@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:get/get.dart';
 import '../database/repositorio_coordinacion.dart';
+import '../database/repositorio_solicitudes.dart';
 import '../database/repositorio_cola.dart';
 import '../database/repositorio_tickets.dart';
 import '../database/repositorio_sucursales.dart';
@@ -129,7 +130,8 @@ class ServicioSincronizacion extends GetxService {
         if (p.recurso != 'tickets' &&
             p.recurso != 'evidencias' &&
             p.recurso != 'eventos' &&
-            p.recurso != 'asignaciones') {
+            p.recurso != 'asignaciones' &&
+            p.recurso != 'solicitudes') {
           estado.value = EstadoSincronizacionActual.pendientes;
           continue;
         }
@@ -137,7 +139,46 @@ class ServicioSincronizacion extends GetxService {
         try {
           RespuestaApi r;
           final local = p.payload['id_local'] as int;
-          if (p.recurso == 'asignaciones') {
+          if (p.recurso == 'solicitudes') {
+            final repo = RepositorioSolicitudes(tickets!.sql);
+            final s = await repo.obtener(local, usuario);
+            if (s == null) throw StateError('Solicitud ausente.');
+            final t = await tickets!.obtener(
+              s['ticket_id_local'] as int,
+              usuario,
+            );
+            if (t?.idRemoto == null ||
+                (p.operacion == TipoOperacionLocal.actualizar &&
+                    s['id_remoto'] == null)) {
+              OperacionesSqlite.exigir(await _cola.devolverPendiente(p.id));
+              continue;
+            }
+            if (p.operacion == TipoOperacionLocal.crear) {
+              r = await _api.post(
+                RutasApi.solicitarEstado(t!.idRemoto!),
+                token: token,
+                payload: {
+                  'type': s['tipo'],
+                  'reason': s['motivo'],
+                  'clientRequestId': s['client_request_id'],
+                  'createdAt': s['created_at'],
+                  'eventClientRequestId': p.payload['eventClientRequestId'],
+                },
+              );
+            } else {
+              r = await _api.put(
+                RutasApi.revisarSolicitud(s['id_remoto'] as int),
+                token: token,
+                payload: {
+                  'status': p.payload['status'],
+                  'reviewedAt': p.payload['reviewedAt'],
+                  'decisionClientRequestId':
+                      p.payload['decisionClientRequestId'],
+                  'finalClientRequestId': p.payload['finalClientRequestId'],
+                },
+              );
+            }
+          } else if (p.recurso == 'asignaciones') {
             final t = await tickets!.obtener(local, usuario);
             if (t?.idRemoto == null) {
               OperacionesSqlite.exigir(await _cola.devolverPendiente(p.id));
@@ -160,9 +201,9 @@ class ServicioSincronizacion extends GetxService {
                   'title': p.payload['title'] ?? t.titulo,
                   'description': p.payload['description'] ?? t.descripcion,
                   'status': p.payload['status'] ?? t.estado,
-                  'scheduledAt':
-                      p.payload['scheduledAt'] ??
-                      t.programado.toUtc().toIso8601String(),
+                  'scheduledAt': p.payload.containsKey('scheduledAt')
+                      ? p.payload['scheduledAt']
+                      : t.programado?.toUtc().toIso8601String(),
                 },
               );
             } else {
@@ -190,6 +231,7 @@ class ServicioSincronizacion extends GetxService {
                 'description': e['descripcion'],
                 'photoBase64': e['photo_base64'],
                 'mime': e['mime'],
+                'isInitial': p.payload['initial'] == true,
               },
             );
           } else {
@@ -246,7 +288,11 @@ class ServicioSincronizacion extends GetxService {
             return;
           }
           final remoto = (r.data as Map)['id'] as int;
-          if (p.recurso == 'tickets' || p.recurso == 'asignaciones') {
+          if (p.recurso == 'solicitudes') {
+            await RepositorioSolicitudes(
+              tickets!.sql,
+            ).confirmar(local, remoto, usuario, p.id, p.payload);
+          } else if (p.recurso == 'tickets' || p.recurso == 'asignaciones') {
             await tickets!.confirmar(local, remoto, usuario, p.id);
           } else if (p.recurso == 'evidencias') {
             await evidencias!.confirmar(local, remoto, usuario, p.id);
@@ -309,6 +355,14 @@ class ServicioSincronizacion extends GetxService {
           ).descargar(local.idLocal, usuario, eventosRemotos.data as List);
         }
       }
+      final solicitudes = await _api.get(
+        '${RutasApi.solicitudes}?pendingOnly=false',
+        token: token,
+      );
+      if (!await _validarDescarga(solicitudes) || !vigente()) return;
+      await RepositorioSolicitudes(
+        tickets!.sql,
+      ).descargar(usuario, solicitudes.data as List);
       final restantes = OperacionesSqlite.exigir(
         await _cola.obtenerPendientes(usuarioId: usuario),
       );

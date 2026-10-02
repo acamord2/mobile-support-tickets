@@ -5,7 +5,8 @@ import '../../app/constants/textos_app.dart';
 enum FiltroAgenda {
   pendiente('Pending', TextosApp.pendientes),
   enAtencion('InProgress', TextosApp.enAtencion),
-  resuelto('Resolved', TextosApp.resueltos);
+  resuelto('Resolved', TextosApp.resueltos),
+  cancelado('Cancelled', 'Cancelados');
 
   final String estado;
   final String texto;

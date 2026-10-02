@@ -8,7 +8,8 @@ import '../../app/database/repositorio_sucursales.dart';
 import '../../app/database/repositorio_evidencias.dart';
 import '../../app/routes/rutas.dart';
 import '../../app/database/repositorio_eventos.dart';
-import '../../models/tipo_evento_ticket.dart';
+import '../../models/tipo_solicitud_estado.dart';
+import '../../app/database/repositorio_solicitudes.dart';
 import '../../app/services/servicio_sesion.dart';
 import '../../models/ticket_local.dart';
 import '../../models/sucursal_local.dart';
@@ -28,11 +29,14 @@ class ControladorDetalleTicket extends GetxController {
   Worker? _estadoSync;
   int get rol => _sesion.usuario?.roleId ?? 2;
   bool get tecnicoAutorizado =>
-      rol == 1 || (rol == 2 && ticket.value?.tecnicoId == _sesion.usuario?.id);
+      rol == 1 ||
+      ((rol == 2 || rol == 3) &&
+          ticket.value?.tecnicoId == _sesion.usuario?.id);
   bool get puedeAsignar =>
       (rol == 1 || rol == 3) &&
       ticket.value != null &&
-      ticket.value!.estado != 'Resolved';
+      ticket.value!.estado != 'Resolved' &&
+      ticket.value!.estado != 'Cancelled';
 
   /// Persiste asignación y evento antes de pedir sincronización oportunista, sin esperar API.
   Future<void> asignar() async {
@@ -65,6 +69,7 @@ class ControladorDetalleTicket extends GetxController {
     }
   }
 
+  final solicitudes = <Map<String, Object?>>[].obs;
   final sucursal = Rxn<SucursalLocal>();
   final cargando = false.obs;
   final guardando = false.obs;
@@ -120,11 +125,21 @@ class ControladorDetalleTicket extends GetxController {
         tecnicos.assignAll(
           await RepositorioCoordinacion(_tickets.sql).listar(usuario),
         );
+        if (rol == 3) {
+          tecnicos.add({
+            'id': usuario,
+            'nombre': '${_sesion.usuario!.name} (yo)',
+            'coordinador_id': usuario,
+          });
+        }
         tecnicoSeleccionado.value =
             tecnicos.any((t) => t['id'] == local.tecnicoId)
             ? local.tecnicoId
             : null;
       }
+      solicitudes.assignAll(
+        await RepositorioSolicitudes(_tickets.sql).listar(usuario, ticket: id),
+      );
       seguimientos.assignAll(registros);
       evidenciasDisponibles.assignAll(
         fotos.where(
@@ -153,7 +168,10 @@ class ControladorDetalleTicket extends GetxController {
   bool get puedeComenzar =>
       tecnicoAutorizado && ticket.value?.estado == 'Pending';
   bool get puedeEditar =>
-      rol != 4 && ticket.value != null && ticket.value!.estado != 'Resolved';
+      (rol == 1 || rol == 3) &&
+      ticket.value != null &&
+      ticket.value!.estado != 'Resolved' &&
+      ticket.value!.estado != 'Cancelled';
   bool get puedeSeguir =>
       tecnicoAutorizado && ticket.value?.estado == 'InProgress';
 
@@ -171,47 +189,41 @@ class ControladorDetalleTicket extends GetxController {
     if (!isClosed && _id != null) await cargar(_id!);
   }
 
-  /// Exige seguimiento manual existente y persiste Resolved con la cola actual.
-  /// No exige fotografía ni admite reabrir o retroceder estados.
-  Future<void> resolver() async {
-    if (guardando.value || !puedeSeguir) return;
-    final id = _id, usuario = _sesion.usuario?.id;
-    if (id == null || usuario == null) return;
+  /// Solo solicita una decisión; el ticket permanece en su estado hasta revisión de coordinación.
+  bool get puedeSolicitar =>
+      ticket.value != null &&
+      ticket.value!.estado != 'Resolved' &&
+      ticket.value!.estado != 'Cancelled' &&
+      (rol == 1 ||
+          tecnicoAutorizado ||
+          (rol == 4 && ticket.value!.reportanteId == _sesion.usuario?.id));
+  bool get puedeRevisar => rol == 1 || rol == 3;
+  Future<void> solicitar(TipoSolicitudEstado tipo) async {
+    if (!puedeSolicitar || guardando.value) return;
+    await Get.toNamed(
+      Rutas.solicitarEstado,
+      arguments: {'ticket': _id, 'tipo': tipo},
+    );
+    if (!isClosed && _id != null) await cargar(_id!);
+  }
+
+  /// Guarda decisión local y refresca UI antes del intento remoto; API volverá a validar alcance.
+  Future<void> revisar(int id, bool aprobar) async {
+    if (!puedeRevisar || guardando.value) return;
     guardando.value = true;
     error.value = '';
     try {
-      final actual = await _tickets.obtener(id, usuario);
-      if (actual == null ||
-          actual.estado != 'InProgress' ||
-          _sesion.usuario?.id != usuario) {
-        throw StateError('Ticket no autorizado.');
-      }
-      final registros = await RepositorioEventos(
+      await RepositorioSolicitudes(
         _tickets.sql,
-      ).listar(id, usuario);
-      if (!registros.any(
-        (e) => e['tipo_evento'] == TipoEventoTicket.seguimiento.clave,
-      )) {
-        error.value = TextosApp.faltaSeguimiento;
-        return;
-      }
-      await _tickets.actualizar(
-        id,
-        usuario,
-        titulo: actual.titulo,
-        descripcion: actual.descripcion,
-        estado: 'Resolved',
-        programado: actual.programado,
-        autorNombre: _sesion.usuario!.name,
-      );
-      await cargar(id);
+      ).revisar(id, _sesion.usuario!.id, rol, _sesion.usuario!.name, aprobar);
+      await cargar(_id!);
       if (Get.isRegistered<ServicioSincronizacion>()) {
         Get.find<ServicioSincronizacion>().solicitarAutomatica();
       }
     } catch (_) {
-      if (!isClosed) error.value = TextosApp.errorResolver;
+      error.value = 'No se pudo guardar la revisión.';
     } finally {
-      if (!isClosed) guardando.value = false;
+      guardando.value = false;
     }
   }
 
@@ -225,6 +237,7 @@ class ControladorDetalleTicket extends GetxController {
     'Pending' => TextosApp.ticketPendiente,
     'InProgress' => TextosApp.enAtencion,
     'Resolved' => TextosApp.ticketResuelto,
+    'Cancelled' => 'Cancelado',
     _ => '',
   };
 

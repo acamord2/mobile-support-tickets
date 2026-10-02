@@ -24,17 +24,24 @@ class TarjetaTicketAgenda extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              TimeOfDay.fromDateTime(
-                ticket.programado.toLocal(),
-              ).format(context),
+              ticket.programado == null
+                  ? 'Sin programar'
+                  : TimeOfDay.fromDateTime(
+                      ticket.programado!.toLocal(),
+                    ).format(context),
               style: FuentesApp.body,
             ),
             Text(ticket.titulo, style: FuentesApp.tituloTarjeta),
             Text(sucursal, style: FuentesApp.body),
+            Text(
+              'Registro: ${ticket.creado.toLocal().toString().split(".").first}',
+              style: FuentesApp.estadoModulo,
+            ),
             Text(switch (ticket.estado) {
               'Pending' => TextosApp.pendientes,
               'InProgress' => TextosApp.enAtencion,
-              _ => TextosApp.resueltos,
+              'Resolved' => TextosApp.resueltos,
+              _ => 'Cancelados',
             }, style: FuentesApp.estadoModulo),
             if (ticket.syncStatus == 'pending')
               const Text(

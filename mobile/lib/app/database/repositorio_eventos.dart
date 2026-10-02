@@ -69,6 +69,8 @@ class RepositorioEventos {
     DateTime? anterior,
     DateTime? programado,
     int? evidencia,
+    String? clave,
+    bool encolar = true,
   }) async {
     final id = OperacionesSqlite.exigir(
       await sql.insertar('ticket_eventos', {
@@ -79,21 +81,23 @@ class RepositorioEventos {
         'tipo_evento': tipo.clave,
         'descripcion': descripcion,
         'created_at': fecha ?? DateTime.now().toUtc().toIso8601String(),
-        'client_request_id': IdentificadorCliente.crear(),
+        'client_request_id': clave ?? IdentificadorCliente.crear(),
         'previous_scheduled_at': anterior?.toUtc().toIso8601String(),
         'scheduled_at': programado?.toUtc().toIso8601String(),
         'evidencia_id_local': evidencia,
         'sync_status': 'pending',
       }),
     );
-    OperacionesSqlite.exigir(
-      await RepositorioCola(sql).agregarPendiente(
-        usuarioId: usuario,
-        recurso: 'eventos',
-        operacion: TipoOperacionLocal.crear,
-        payload: {'id_local': id},
-      ),
-    );
+    if (encolar) {
+      OperacionesSqlite.exigir(
+        await RepositorioCola(sql).agregarPendiente(
+          usuarioId: usuario,
+          recurso: 'eventos',
+          operacion: TipoOperacionLocal.crear,
+          payload: {'id_local': id},
+        ),
+      );
+    }
     return id;
   }
 
@@ -156,7 +160,19 @@ class RepositorioEventos {
               argumentos: [usuario, e['id'], e['clientRequestId']],
             ),
           );
-          if (filas.isNotEmpty) continue;
+          if (filas.isNotEmpty) {
+            if (filas.single['sync_status'] == 'synced') {
+              OperacionesSqlite.exigir(
+                await tx.actualizar(
+                  'ticket_eventos',
+                  {'id_remoto': e['id'], 'descripcion': e['description']},
+                  donde: 'id_local = ?',
+                  argumentos: [filas.single['id_local']],
+                ),
+              );
+            }
+            continue;
+          }
           int? evidencia;
           if (e['evidenceId'] != null) {
             final fotos = OperacionesSqlite.exigir(

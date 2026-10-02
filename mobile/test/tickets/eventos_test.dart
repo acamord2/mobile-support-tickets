@@ -189,7 +189,7 @@ void main() {
           (await migrada.ejecutar(
             (d) => d.rawQuery('PRAGMA user_version'),
           )).single['user_version'],
-          5,
+          6,
         );
       } finally {
         await migrada.cerrar();

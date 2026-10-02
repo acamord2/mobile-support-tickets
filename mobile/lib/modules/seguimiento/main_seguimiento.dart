@@ -50,6 +50,12 @@ class VistaSeguimiento extends GetView<ControladorSeguimiento> {
                 OutlinedButton(
                   onPressed: controller.ocupado.value
                       ? null
+                      : () => controller.seleccionar(ImageSource.gallery),
+                  child: const Text('Cambiar foto'),
+                ),
+                OutlinedButton(
+                  onPressed: controller.ocupado.value
+                      ? null
                       : controller.quitarFoto,
                   child: const Text(TextosApp.quitarFoto),
                 ),

@@ -111,7 +111,7 @@ class ControladorNuevoTicket extends GetxController {
         sucursal.value!,
         titulo.text,
         descripcion.text,
-        programado.value,
+        sesion.usuario!.roleId == 1 ? programado.value : null,
         foto.value,
         autorNombre: sesion.usuario!.name,
         rol: sesion.usuario!.roleId ?? 2,

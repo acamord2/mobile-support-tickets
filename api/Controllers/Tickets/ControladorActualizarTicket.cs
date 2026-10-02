@@ -16,7 +16,7 @@ public sealed class ControladorActualizarTicket(AccesoTicketsPostgres datos) : C
         var usuario = IdentidadTecnico.Obtener(User);
         if (usuario == 0 || !await datos.Activo(usuario, ct)) return Unauthorized();
         if (await datos.Rol(usuario, ct) is not (1 or 2 or 3)) return Forbid();
-        if (solicitud.Status is not ("Pending" or "InProgress" or "Resolved") || solicitud.ScheduledAt == default || string.IsNullOrWhiteSpace(solicitud.Title) || string.IsNullOrWhiteSpace(solicitud.Description)) return BadRequest();
+        if (solicitud.Status is not ("Pending" or "InProgress" or "Resolved" or "Cancelled") || string.IsNullOrWhiteSpace(solicitud.Title) || string.IsNullOrWhiteSpace(solicitud.Description)) return BadRequest();
         return await datos.Actualizar(usuario, id, solicitud, ct) ? Ok(new { id }) : NotFound();
     }
 }

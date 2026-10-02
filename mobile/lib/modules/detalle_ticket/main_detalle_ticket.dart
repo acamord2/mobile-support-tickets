@@ -4,6 +4,7 @@ import '../../app/constants/textos_app.dart';
 import '../../app/theme/colores_app.dart';
 import '../../app/theme/fuentes_app.dart';
 import 'controlador_detalle_ticket.dart';
+import '../../models/tipo_solicitud_estado.dart';
 import 'widgets_detalle_ticket/informacion_detalle_ticket.dart';
 import 'widgets_detalle_ticket/accion_detalle_ticket.dart';
 import 'widgets_detalle_ticket/seguimiento_ticket.dart';
@@ -78,7 +79,11 @@ class VistaDetalleTicket extends GetView<ControladorDetalleTicket> {
                     onPressed: controller.guardando.value
                         ? null
                         : controller.editar,
-                    child: const Text(TextosApp.editarTicket),
+                    child: Text(
+                      ticket.programado == null
+                          ? 'Programar atención'
+                          : 'Reprogramar atención',
+                    ),
                   ),
                 AccionDetalleTicket(
                   puedeComenzar: controller.puedeComenzar,
@@ -93,17 +98,77 @@ class VistaDetalleTicket extends GetView<ControladorDetalleTicket> {
                         : controller.agregarSeguimiento,
                     child: const Text(TextosApp.agregarSeguimiento),
                   ),
-                  FilledButton(
+                ],
+                if (controller.puedeSolicitar) ...[
+                  OutlinedButton(
                     onPressed: controller.guardando.value
                         ? null
-                        : controller.resolver,
-                    child: Text(
-                      controller.guardando.value
-                          ? TextosApp.guardando
-                          : TextosApp.resolverTicket,
-                    ),
+                        : () => controller.solicitar(
+                            TipoSolicitudEstado.resolucion,
+                          ),
+                    child: const Text('Solicitar resolución'),
+                  ),
+                  OutlinedButton(
+                    onPressed: controller.guardando.value
+                        ? null
+                        : () => controller.solicitar(
+                            TipoSolicitudEstado.cancelacion,
+                          ),
+                    child: const Text('Solicitar cancelación'),
                   ),
                 ],
+                for (final s in controller.solicitudes)
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${s['tipo'] == TipoSolicitudEstado.resolucion.clave ? "Resolución" : "Cancelación"} · ${s['estado']}',
+                          ),
+                          Text(
+                            'Solicitante: ${s['requester_name'] ?? s['requester_user_id']}',
+                          ),
+                          Text(
+                            'Fecha: ${DateTime.parse(s['created_at'] as String).toLocal()}',
+                          ),
+                          Text(s['motivo'] as String? ?? 'Sin comentario'),
+                          if (s['reviewed_by_user_id'] != null)
+                            Text(
+                              'Revisor: ${s['reviewer_name'] ?? s['reviewed_by_user_id']} · ${s['reviewed_at']}',
+                            ),
+                          if (s['sync_status'] == 'pending')
+                            const Text('Pendiente de sincronizar'),
+                          if (controller.puedeRevisar &&
+                              s['estado'] == EstadoSolicitud.pendiente.clave)
+                            Wrap(
+                              spacing: 8,
+                              children: [
+                                FilledButton(
+                                  onPressed: controller.guardando.value
+                                      ? null
+                                      : () => controller.revisar(
+                                          s['id_local'] as int,
+                                          true,
+                                        ),
+                                  child: const Text('Aprobar'),
+                                ),
+                                OutlinedButton(
+                                  onPressed: controller.guardando.value
+                                      ? null
+                                      : () => controller.revisar(
+                                          s['id_local'] as int,
+                                          false,
+                                        ),
+                                  child: const Text('Rechazar'),
+                                ),
+                              ],
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
                 const SizedBox(height: 24),
                 SeguimientoTicket(
                   registros: controller.seguimientos.toList(),

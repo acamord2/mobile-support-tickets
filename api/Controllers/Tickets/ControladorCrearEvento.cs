@@ -19,10 +19,14 @@ public sealed class ControladorCrearEvento(AccesoEventosPostgres eventos, Acceso
         if (usuario == 0 || !await tickets.Activo(usuario, ct)) return Unauthorized();
         if (!solicitud.EsValida()) return BadRequest();
         var rol = await tickets.Rol(usuario, ct);
-        if (rol == 4 && solicitud.EventType is not (TipoEventoTicket.CREADO or TipoEventoTicket.PROGRAMADO)) return Forbid();
-        if (rol == 3 && solicitud.EventType is not (TipoEventoTicket.ASIGNADO or TipoEventoTicket.REASIGNADO or TipoEventoTicket.REPROGRAMADO)) return Forbid();
-        if (rol == 2 && solicitud.EventType is TipoEventoTicket.ASIGNADO or TipoEventoTicket.REASIGNADO) return Forbid();
-        if (solicitud.EventType is TipoEventoTicket.SEGUIMIENTO or TipoEventoTicket.EN_ATENCION or TipoEventoTicket.RESUELTO)
+        // Solicitudes y decisiones se registran únicamente en su transacción de negocio.
+        if (solicitud.EventType is TipoEventoTicket.SOLICITUD_RESOLUCION or TipoEventoTicket.SOLICITUD_CANCELACION
+            or TipoEventoTicket.RESOLUCION_APROBADA or TipoEventoTicket.RESOLUCION_RECHAZADA
+            or TipoEventoTicket.CANCELACION_APROBADA or TipoEventoTicket.CANCELACION_RECHAZADA
+            or TipoEventoTicket.RESUELTO or TipoEventoTicket.CANCELADO) return Forbid();
+        if (rol == 4 && solicitud.EventType != TipoEventoTicket.CREADO) return Forbid();
+        if (rol == 2 && solicitud.EventType is TipoEventoTicket.ASIGNADO or TipoEventoTicket.REASIGNADO or TipoEventoTicket.PROGRAMADO or TipoEventoTicket.REPROGRAMADO) return Forbid();
+        if (solicitud.EventType is TipoEventoTicket.SEGUIMIENTO or TipoEventoTicket.EN_ATENCION)
             if (!await tickets.PuedeOperar(usuario, id, ct)) return Forbid();
         var evento = await eventos.Guardar(usuario, id, solicitud, ct);
         return evento is null ? NotFound() : Ok(new { id = evento.Value });

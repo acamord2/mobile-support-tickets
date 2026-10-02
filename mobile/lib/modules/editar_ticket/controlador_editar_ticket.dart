@@ -30,13 +30,15 @@ class ControladorEditarTicket extends GetxController {
     try {
       final usuario = sesion.usuario?.id;
       final t = usuario == null ? null : await tickets.obtener(id, usuario);
-      if (t == null || sesion.usuario?.roleId == 4 || t.estado == 'Resolved') {
+      if (t == null ||
+          !(sesion.usuario?.roleId == 1 || sesion.usuario?.roleId == 3) ||
+          (t.estado == 'Resolved' || t.estado == 'Cancelled')) {
         error.value = TextosApp.ticketNoDisponible;
         return;
       }
       titulo.text = t.titulo;
       descripcion.text = t.descripcion;
-      programado.value = t.programado.toLocal();
+      programado.value = t.programado?.toLocal() ?? DateTime.now();
       disponible.value = true;
     } catch (_) {
       error.value = TextosApp.errorSqlite;
@@ -97,8 +99,8 @@ class ControladorEditarTicket extends GetxController {
       final usuario = sesion.usuario?.id;
       final t = usuario == null ? null : await tickets.obtener(_id!, usuario);
       if (t == null ||
-          sesion.usuario?.roleId == 4 ||
-          t.estado == 'Resolved' ||
+          !(sesion.usuario?.roleId == 1 || sesion.usuario?.roleId == 3) ||
+          (t.estado == 'Resolved' || t.estado == 'Cancelled') ||
           sesion.usuario?.id != usuario) {
         error.value = TextosApp.ticketNoDisponible;
         return false;

@@ -72,6 +72,7 @@ void main() {
     api = Conexion(
       ClienteApi(
         client: MockClient((req) async {
+          if(req.url.path=='/api/ticket-status-requests') return http.Response('[]',200);
           rutas.add(req.url.path);
           if (req.url.path == '/api/health/database') {
             return http.Response(disponible ? '"invalid"' : '{}', 503);
@@ -90,6 +91,7 @@ void main() {
     api = Conexion(
       ClienteApi(
         client: MockClient((req) async {
+          if(req.url.path=='/api/ticket-status-requests') return http.Response('[]',200);
           rutas.add(req.url.path);
           if (req.url.path == '/api/health/database') {
             return http.Response(
