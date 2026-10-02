@@ -82,7 +82,7 @@ adb install -r build/app/outputs/flutter-apk/app-debug.apk
 
 Sustituir `IP_LAN` e `ID_DISPOSITIVO`. La URL debe ser alcanzable desde el teléfono; no utilizar `localhost`, `127.0.0.1` ni `10.0.2.2` en el dispositivo físico. Permitir el puerto 5263 en el firewall de la red de desarrollo y mantener la API ejecutándose. `API_BASE_URL` se fija al compilar; cambiarla requiere recompilar. En Linux/macOS usar `--dart-define=API_BASE_URL="$API_BASE_URL"`.
 
-Instalar por reemplazo con una firma compatible conserva los datos: no desinstalar ni borrar almacenamiento. No se usan emuladores ni `flutter drive`. Para instalación detallada y APK de 32 bits, 64 bits y universal consultar la guía local docs/instalacion.md (pendiente de versionar).
+Instalar por reemplazo con una firma compatible conserva los datos: no desinstalar ni borrar almacenamiento. No se usan emuladores ni `flutter drive`. Para instalación detallada y APK de 32 bits, 64 bits y universal consultar la guía local docs/instalacion.md
 
 ## Despliegue propuesto en Linux
 
@@ -197,7 +197,7 @@ Durante el desarrollo se utilizó IA como herramienta de apoyo para acelerar tar
 - análisis de problemas de sincronización, navegación y configuración;
 - revisión de estructura del proyecto y consistencia entre Flutter, API y base de datos.
 
-La IA no tomó de forma autónoma las decisiones finales del proyecto. Las decisiones sobre arquitectura, alcance, tecnologías, flujo por roles, funcionamiento offline, sincronización, permisos y experiencia de usuario no fueron revisadas y seleccionadas por la IA.
+La IA no tomó de forma autónoma las decisiones finales del proyecto. Las decisiones sobre arquitectura, alcance, tecnologías, flujo por roles, funcionamiento offline, sincronización, permisos y experiencia de usuario fueron revisadas y seleccionadas por el desarrollador.
 
 Las propuestas generadas por IA se validaron antes de incorporarse al proyecto y, cuando implicaban cambios estructurales en la base de datos o en la arquitectura, se revisaron antes de ejecutarse.
 
@@ -214,4 +214,4 @@ flutter analyze
 flutter test
 ```
 
-Resultados previamente registrados, sin repetirlos para este cambio documental: API build correcto, Flutter analyze sin incidencias y última suite completa con 96 pruebas aprobadas y dos integraciones optativas omitidas por configuración externa. PostgreSQL v1 se instaló desde cero y su catálogo se comparó con el vigente; SQL Server tiene revisión estática. El usuario confirmó la validación funcional física. Las pruebas automatizadas cubren roles, sesión, migraciones, offline, sincronización, evidencias, timeline, solicitudes y Home.
+Resultados previamente registrados, sin repetirlos para este cambio documental: API build correcto, Flutter analyze sin incidencias y última suite completa con 96 pruebas aprobadas y dos integraciones optativas omitidas por configuración externa. PostgreSQL se instaló desde cero y su catálogo se comparó con el vigente; SQL Server tiene revisión estática. El usuario confirmó la validación funcional física. Las pruebas automatizadas cubren roles, sesión, migraciones, offline, sincronización, evidencias, timeline, solicitudes y Home.
