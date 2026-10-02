@@ -20,9 +20,9 @@ mobile/       Aplicación Flutter, pruebas y proyectos nativos
 api/          API REST: Controllers, DTOs, Models, Data y Services
 tests/api/    Comprobaciones de API; modo real optativo
 database/
-  PostgreSQL/v1/    Motor probado
-  SQLServer/v1/    Equivalencia documental
-docs/         Agenda, evidencias, decisiones y guion del video
+  PostgreSQL/    Motor probado
+  SQLServer/     Equivalencia documental
+docs/         Instalacion, Arquitectura Local
 ```
 
 ## Instalación desde cero
@@ -34,14 +34,14 @@ Se utilizaron Flutter 3.41.9 / Dart 3.11.5, SDK Android, .NET SDK 10 y PostgreSQ
 **PostgreSQL probado:** crear una base vacía `tickets_db` y conectar pgAdmin Query Tool a ella. Copiar y ejecutar [database/PostgreSQL/v1/BD_COMPLETA.sql](database/PostgreSQL/v1/BD_COMPLETA.sql). Alternativamente:
 
 ```sh
-psql -v ON_ERROR_STOP=1 -d tickets_db -f database/PostgreSQL/v1/BD_COMPLETA.sql
+psql -v ON_ERROR_STOP=1 -d tickets_db -f database/PostgreSQL/BD_COMPLETA.sql
 ```
 
 Proporcionar la conexión de psql mediante la configuración local. El instalador es autocontenido; no requiere migraciones anteriores y no debe ejecutarse para actualizar una base existente. Se verificó desde cero en una base temporal independiente, luego eliminada, conservando la base de trabajo.
 
-**SQL Server equivalente documental:** crear y seleccionar una base vacía en SSMS y ejecutar [database/SQLServer/v1/BD_COMPLETA.sql](database/SQLServer/v1/BD_COMPLETA.sql). No se ejecutó contra una instancia real; la API actual utiliza PostgreSQL.
+**SQL Server equivalente documental:** crear y seleccionar una base vacía en SSMS y ejecutar [database/SQLServer/BD_COMPLETA.sql](database/SQLServer/BD_COMPLETA.sql). No se ejecutó contra una instancia real; la API actual utiliza PostgreSQL.
 
-Cada motor tiene `DATABASE.sql`, `DATOS_PRUEBA.sql`, `STORED_PROCEDURES.sql`, `VISTAS.sql`, `TRIGGERS.sql` y `BD_COMPLETA.sql`. El completo concatena las otras cinco fuentes en orden de dependencias. Incluye ocho tablas, función/SP de usuario activo, vista `agenda_tickets` y datos demo; no requiere extensiones ni triggers.
+Cada motor tiene `DATABASE.sql`, `DATOS_PRUEBA.sql`, `STORED_PROCEDURES.sql`, `VISTAS.sql` y `BD_COMPLETA.sql`. El completo concatena las otras cinco fuentes en orden de dependencias. Incluye ocho tablas, función/SP de usuario activo, vista `agenda_tickets` y datos demo; no requiere extensiones ni triggers.
 
 ### B) API
 
@@ -73,14 +73,14 @@ En otra terminal PowerShell, desde la raíz:
 
 ```powershell
 cd mobile
-$env:API_BASE_URL = "http://IP_LAN_DE_TU_PC:5263"
+$env:API_BASE_URL = "http://IP_LAN:5263"
 flutter pub get
 flutter run -d ID_DISPOSITIVO "--dart-define=API_BASE_URL=$env:API_BASE_URL"
 flutter build apk --debug "--dart-define=API_BASE_URL=$env:API_BASE_URL"
 adb install -r build/app/outputs/flutter-apk/app-debug.apk
 ```
 
-Sustituir `IP_LAN_DE_TU_PC` e `ID_DISPOSITIVO`. La URL debe ser alcanzable desde el teléfono; no utilizar `localhost`, `127.0.0.1` ni `10.0.2.2` en el dispositivo físico. Permitir el puerto 5263 en el firewall de la red de desarrollo y mantener la API ejecutándose. `API_BASE_URL` se fija al compilar; cambiarla requiere recompilar. En Linux/macOS usar `--dart-define=API_BASE_URL="$API_BASE_URL"`.
+Sustituir `IP_LAN` e `ID_DISPOSITIVO`. La URL debe ser alcanzable desde el teléfono; no utilizar `localhost`, `127.0.0.1` ni `10.0.2.2` en el dispositivo físico. Permitir el puerto 5263 en el firewall de la red de desarrollo y mantener la API ejecutándose. `API_BASE_URL` se fija al compilar; cambiarla requiere recompilar. En Linux/macOS usar `--dart-define=API_BASE_URL="$API_BASE_URL"`.
 
 Instalar por reemplazo con una firma compatible conserva los datos: no desinstalar ni borrar almacenamiento. No se usan emuladores ni `flutter drive`. Para instalación detallada y APK de 32 bits, 64 bits y universal consultar la guía local docs/instalacion.md (pendiente de versionar).
 
@@ -177,18 +177,33 @@ Límites reales: no hay resolución automática de conflictos ni sincronización
 
 ## Con una semana adicional
 
-1. Mejorar diagnóstico de errores de sincronización y recuperación guiada.
-2. Ejecutar pruebas prolongadas de desconexión/reconexión.
-3. Optimizar descarga y caché de imágenes.
-4. Realizar el despliegue HTTPS/Linux propuesto.
-5. Preparar CI/CD básico para validaciones y compilación.
-6. Ampliar pruebas de concurrencia y reintentos simultáneos.
+1. Incorporar cifrado de la base local con SQLCipher para proteger la información almacenada en el dispositivo.
+2. Fortalecer el manejo de sesiones JWT identificando el dispositivo y permitiendo controlar o invalidar sesiones activas, evitando múltiples sesiones simultáneas del mismo usuario cuando la política de seguridad lo requiera.
+3. Mejorar el diagnóstico de errores de sincronización y la recuperación guiada de operaciones pendientes.
+4. Ejecutar pruebas prolongadas de desconexión, reconexión y concurrencia.
+5. Optimizar la descarga, almacenamiento y caché de imágenes.
+6. Realizar el despliegue HTTPS/Linux propuesto y preparar CI/CD básico para validaciones y compilación.
 
-Son prioridades propuestas, no funcionalidades implementadas.
+Son mejoras propuestas para una siguiente iteración.
 
 ## Uso de IA
 
-La IA apoyó implementación, revisión, SQL, pruebas, documentación y análisis de errores. Las decisiones técnicas fueron revisadas/autorizadas por el desarrollador y el flujo físico se probó manualmente. El desarrollador debe poder explicar y modificar el código entregado; esa comprensión no sustituye las validaciones realizadas.
+Durante el desarrollo se utilizó IA como herramienta de apoyo para acelerar tareas de análisis, revisión, investigación e implementación, principalmente en:
+
+- revisión de código y detección de errores;
+- generación y ajuste de consultas y scripts SQL;
+- propuesta de casos de prueba y validaciones;
+- apoyo en documentación técnica;
+- análisis de problemas de sincronización, navegación y configuración;
+- revisión de estructura del proyecto y consistencia entre Flutter, API y base de datos.
+
+La IA no tomó de forma autónoma las decisiones finales del proyecto. Las decisiones sobre arquitectura, alcance, tecnologías, flujo por roles, funcionamiento offline, sincronización, permisos y experiencia de usuario no fueron revisadas y seleccionadas por la IA.
+
+Las propuestas generadas por IA se validaron antes de incorporarse al proyecto y, cuando implicaban cambios estructurales en la base de datos o en la arquitectura, se revisaron antes de ejecutarse.
+
+El flujo funcional completo también se probó manualmente en un dispositivo Android físico, incluyendo creación de tickets, asignación, atención, seguimiento, evidencias, solicitudes de resolución y aprobación.
+
+El objetivo del uso de IA fue reducir tiempo en tareas repetitivas y apoyar el análisis técnico, manteniendo la comprensión y el control del código.
 
 ## Validación y demostración
 
@@ -200,13 +215,3 @@ flutter test
 ```
 
 Resultados previamente registrados, sin repetirlos para este cambio documental: API build correcto, Flutter analyze sin incidencias y última suite completa con 96 pruebas aprobadas y dos integraciones optativas omitidas por configuración externa. PostgreSQL v1 se instaló desde cero y su catálogo se comparó con el vigente; SQL Server tiene revisión estática. El usuario confirmó la validación funcional física. Las pruebas automatizadas cubren roles, sesión, migraciones, offline, sincronización, evidencias, timeline, solicitudes y Home.
-
-### Diagrama y video
-
-El diagrama está al inicio de este README en Mermaid. Archivo externo previsto: `diagrama.png` en raíz, pendiente de agregar; no se enlaza mientras no exista.
-
-Guion de video: `docs/guion-video.md` (duración prevista 2:55). Está eliminado localmente y debe recuperarse antes de la entrega; el enlace se habilitará cuando exista.
-
-Video de demostración: enlace pendiente de agregar antes del envío.
-
-Pruebas aisladas de selección/validación de configuración: `dotnet run --project tests/api/PruebasApi.csproj -- --configuracion`. No abren PostgreSQL ni consultan User Secrets.
