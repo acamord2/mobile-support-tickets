@@ -91,12 +91,12 @@ BEGIN TRY
             [Status] nvarchar(20) COLLATE Latin1_General_100_BIN2 NOT NULL,
             [CreatedAt] datetimeoffset(7) NOT NULL,
             [UpdatedAt] datetimeoffset(7) NOT NULL,
-            [ScheduledAt] datetimeoffset(7) NOT NULL,
+            [ScheduledAt] datetimeoffset(7) NULL,
             [ClientRequestId] uniqueidentifier NULL,
             CONSTRAINT [FK_Tickets_Branches] FOREIGN KEY ([BranchId]) REFERENCES dbo.[Branches] ([Id]) ON DELETE NO ACTION,
             CONSTRAINT [FK_Tickets_ReporterUserId] FOREIGN KEY ([ReporterUserId]) REFERENCES dbo.[Users] ([Id]) ON DELETE NO ACTION,
             CONSTRAINT [FK_Tickets_Users] FOREIGN KEY ([TechnicianId]) REFERENCES dbo.[Users] ([Id]) ON DELETE NO ACTION,
-            CONSTRAINT [CK_Tickets_Status] CHECK ([Status] IN (N'Pending', N'InProgress', N'Resolved')),
+            CONSTRAINT [CK_Tickets_Status] CHECK ([Status] IN (N'Pending', N'InProgress', N'Resolved', N'Cancelled')),
             CONSTRAINT [CK_Tickets_Dates] CHECK ([UpdatedAt] >= [CreatedAt])
         );
     END;
@@ -134,7 +134,7 @@ BEGIN TRY
         CREATE TABLE dbo.[TicketEvents] (
             [Id] int IDENTITY(1,1) NOT NULL CONSTRAINT [PK_TicketEvents] PRIMARY KEY,
             [TicketId] int NOT NULL,
-            [EventType] nvarchar(20) COLLATE Latin1_General_100_BIN2 NOT NULL,
+            [EventType] nvarchar(32) COLLATE Latin1_General_100_BIN2 NOT NULL,
             [Description] nvarchar(max) NOT NULL,
             [CreatedAt] datetimeoffset(7) NOT NULL,
             [UserId] int NOT NULL,
@@ -148,10 +148,10 @@ BEGIN TRY
             CONSTRAINT [FK_TicketEvents_Evidences] FOREIGN KEY ([TicketId], [EvidenceId])
                 REFERENCES dbo.[Evidences] ([TicketId], [Id]) ON DELETE NO ACTION,
             CONSTRAINT [CK_TicketEvents_EventType] CHECK (
-                [EventType] IN (N'CREADO', N'PROGRAMADO', N'REPROGRAMADO', N'EN_ATENCION', N'SEGUIMIENTO', N'RESUELTO', N'ASIGNADO', N'REASIGNADO')),
+                [EventType] IN (N'CREADO', N'PROGRAMADO', N'REPROGRAMADO', N'EN_ATENCION', N'SEGUIMIENTO', N'RESUELTO', N'ASIGNADO', N'REASIGNADO', N'SOLICITUD_RESOLUCION', N'SOLICITUD_CANCELACION', N'RESOLUCION_APROBADA', N'RESOLUCION_RECHAZADA', N'CANCELACION_APROBADA', N'CANCELACION_RECHAZADA', N'CANCELADO')),
             CONSTRAINT [CK_TicketEvents_Description] CHECK (
                 LEN(LTRIM(RTRIM([Description]))) > 0 OR ([EventType] = N'SEGUIMIENTO' AND [EvidenceId] IS NOT NULL)),
-            CONSTRAINT [CK_TicketEvents_Evidence] CHECK ([EvidenceId] IS NULL OR [EventType] = N'SEGUIMIENTO'),
+            CONSTRAINT [CK_TicketEvents_Evidence] CHECK ([EvidenceId] IS NULL OR [EventType] IN (N'CREADO',N'SEGUIMIENTO')),
             CONSTRAINT [CK_TicketEvents_Schedule] CHECK (
                 ([EventType] = N'PROGRAMADO' AND [PreviousScheduledAt] IS NULL AND [ScheduledAt] IS NOT NULL)
                 OR ([EventType] = N'REPROGRAMADO' AND [PreviousScheduledAt] IS NOT NULL
@@ -163,6 +163,30 @@ BEGIN TRY
     IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'dbo.TicketEvents') AND name = N'IX_TicketEvents_TicketId_CreatedAt_Id')
         CREATE INDEX [IX_TicketEvents_TicketId_CreatedAt_Id] ON dbo.[TicketEvents] ([TicketId], [CreatedAt], [Id]);
 
+    IF OBJECT_ID(N'dbo.TicketStatusRequests', N'U') IS NULL
+    BEGIN
+CREATE TABLE dbo.TicketStatusRequests (
+    Id int IDENTITY(1,1) PRIMARY KEY,
+    TicketId int NOT NULL REFERENCES dbo.Tickets(Id) ON DELETE NO ACTION,
+    RequesterUserId int NOT NULL REFERENCES dbo.Users(Id) ON DELETE NO ACTION,
+    Type nvarchar(32) COLLATE Latin1_General_100_BIN2 NOT NULL,
+    Reason nvarchar(max) NULL,
+    Status nvarchar(20) COLLATE Latin1_General_100_BIN2 NOT NULL DEFAULT 'PENDIENTE',
+    CreatedAt datetimeoffset(7) NOT NULL,
+    ReviewedByUserId int NULL REFERENCES dbo.Users(Id) ON DELETE NO ACTION,
+    ReviewedAt datetimeoffset(7) NULL,
+    ClientRequestId uniqueidentifier NOT NULL,
+    CONSTRAINT UQ_TicketStatusRequests_ClientRequestId UNIQUE (ClientRequestId),
+    CONSTRAINT CK_TicketStatusRequests_Type CHECK (Type IN ('SOLICITUD_RESOLUCION','SOLICITUD_CANCELACION')),
+    CONSTRAINT CK_TicketStatusRequests_Status CHECK (Status IN ('PENDIENTE','APROBADA','RECHAZADA')),
+    CONSTRAINT CK_TicketStatusRequests_Reason CHECK (Type <> 'SOLICITUD_CANCELACION' OR (Reason IS NOT NULL AND LEN(LTRIM(RTRIM(Reason))) > 0)),
+    CONSTRAINT CK_TicketStatusRequests_Review CHECK (
+        (Status='PENDIENTE' AND ReviewedByUserId IS NULL AND ReviewedAt IS NULL)
+        OR (Status IN ('APROBADA','RECHAZADA') AND ReviewedByUserId IS NOT NULL AND ReviewedAt IS NOT NULL))
+);
+CREATE INDEX IX_TicketStatusRequests_TicketId ON dbo.TicketStatusRequests(TicketId);
+CREATE INDEX IX_TicketStatusRequests_Status_CreatedAt ON dbo.TicketStatusRequests(Status,CreatedAt,Id);
+    END;
     COMMIT TRANSACTION;
 END TRY
 BEGIN CATCH
@@ -219,3 +243,7 @@ El diseño de autoría, previsualización, SQLite y reutilización de cola se de
 ## Portabilidad de roles y asignación
 
 IDs: 1 Administrador, 2 Técnico, 3 Coordinador, 4 Usuario. ReporterUserId y TechnicianId nullable, identidad global ClientRequestId mediante índice único filtrado, relación CoordinatorTechnicians y ocho tipos de evento. ACTUALIZACION_ROLES_ASIGNACION_SQLSERVER.md migra una instalación compatible; no fue ejecutada. Las reglas y límites del alcance se describen en DATABASE.md de PostgreSQL.
+
+## Solicitudes
+
+ScheduledAt nullable, Cancelled y TicketStatusRequests corresponden a ACTUALIZACION_SOLICITUDES_SQLSERVER.md. Equivalente documental, sin ejecución SQL Server.
