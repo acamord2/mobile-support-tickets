@@ -1,6 +1,4 @@
 /// Centraliza los textos utilizados por Login, Home y su infraestructura HTTP.
-/// Permite reutilizar mensajes sin duplicarlos ni anticipar textos de pantallas
-/// futuras; los errores técnicos no se muestran mediante excepciones sin procesar.
 abstract class TextosApp {
   static const tecnicos = 'Técnicos';
   static const tecnicosACargo = 'Técnicos a mi cargo';

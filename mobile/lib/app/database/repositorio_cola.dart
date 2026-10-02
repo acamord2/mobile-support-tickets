@@ -5,20 +5,15 @@ import 'operaciones_sqlite.dart';
 import 'operacion_pendiente.dart';
 import 'resultado_sqlite.dart';
 
-/// Clasifica errores persistibles sin guardar cuerpos API, exceptions o headers.
 /// La cola conserva solo el nombre controlado para diagnosticar sin filtrar secretos.
 enum ErrorSincronizacion { red, servidor, respuesta }
 
 /// Administra la cola transversal usando únicamente la abstracción SQLite común.
-/// Conoce campos y mapeo técnico; no conoce Tickets, endpoints ni widgets.
 class RepositorioCola {
   final OperacionesSqlite _operaciones;
 
-  /// Recibe operaciones normales o transaccionales para permitir cambios atómicos.
-  /// Un repositorio futuro podrá guardar negocio y pendiente en la misma transacción.
   RepositorioCola(this._operaciones);
 
-  /// Valida y serializa el payload como JSON y registra un pendiente con fecha UTC.
   /// Rechaza campos sensibles incluso anidados y valores Bearer/JWT antes de escribir.
   Future<ResultadoSqlite<int>> agregarPendiente({
     required String recurso,
@@ -44,7 +39,6 @@ class RepositorioCola {
   });
 
   /// Lee pendientes y errores reintentables por id para preservar el orden local.
-  /// No devuelve operaciones procesando ni sincronizadas como trabajo por enviar.
   Future<ResultadoSqlite<List<OperacionPendiente>>> obtenerPendientes({
     int? usuarioId,
   }) => OperacionesSqlite.controlar(() async {
@@ -65,7 +59,6 @@ class RepositorioCola {
   });
 
   /// Reclama un pendiente/error e incrementa intentos atómicamente antes del envío.
-  /// Una transición inválida falla sin modificar una operación ya completada.
   Future<ResultadoSqlite<int>> marcarProcesando(int id) =>
       _operaciones.transaccion((operaciones) async {
         final filas = OperacionesSqlite.exigir(
@@ -94,7 +87,6 @@ class RepositorioCola {
         );
       });
 
-  /// Recupera operaciones interrumpidas del propietario al iniciar un ciclo exclusivo.
   /// Conserva claves y payload para reintentar después de cerrar la aplicación.
   Future<ResultadoSqlite<int>> recuperar(int usuario) =>
       _operaciones.actualizar(
@@ -105,7 +97,6 @@ class RepositorioCola {
       );
 
   /// Confirma solo una operación procesando y conserva su fila como sincronizada.
-  /// No elimina historial técnico ni presupone que un envío sin respuesta fue exitoso.
   Future<ResultadoSqlite<int>> marcarSincronizado(int id) =>
       _terminar(id, EstadoSincronizacion.sincronizado);
 
@@ -113,7 +104,6 @@ class RepositorioCola {
   Future<ResultadoSqlite<int>> marcarError(int id, ErrorSincronizacion error) =>
       _terminar(id, EstadoSincronizacion.error, error: error);
 
-  /// Devuelve a pendiente cuando falla la red sin perder el trabajo o sus intentos.
   /// No implementa reintentos automáticos ni decide conflictos de negocio.
   Future<ResultadoSqlite<int>> devolverPendiente(int id) => _terminar(
     id,
@@ -140,7 +130,6 @@ class RepositorioCola {
   });
 
   /// Inspecciona mapas/listas y strings antes de serializar para excluir credenciales.
-  /// Es una defensa adicional; los repositorios futuros deben enviar solo campos de negocio.
   static void _validarSinSecretos(Object? valor) {
     const prohibidos = {
       'password',

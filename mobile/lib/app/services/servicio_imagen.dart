@@ -22,15 +22,13 @@ class ImagenProcesada {
   );
 }
 
-/// Redimensiona, comprime y valida fuera del hilo de interfaz para mantener captura
-/// independiente de widgets, SQLite y transporte. Nunca recorta cadenas Base64.
+/// Redimensiona, comprime y valida fuera del hilo de interfaz para mantener captura independiente de widgets, SQLite y transporte.
 class ServicioImagen {
   Future<ImagenProcesada> procesar(Uint8List bytes) =>
       compute(comprimirImagen, bytes);
 }
 
 /// Ejecuta compresión JPEG progresiva en isolate y mide bytes antes de codificar.
-/// Rechaza imágenes inválidas o imposibles de ajustar; conserva una imagen decodificable.
 ImagenProcesada comprimirImagen(Uint8List bytes) {
   img.Image? decodificada;
   try {

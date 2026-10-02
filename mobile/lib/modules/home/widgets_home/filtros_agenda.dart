@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import '../../../app/theme/colores_app.dart';
 import '../filtro_agenda.dart';
 
-/// Representa conteos totales y selección recibidos, sin consultar servicios.
-/// Combina borde, fondo y semántica para distinguir filtros incluso sin color.
 class FiltrosAgenda extends StatelessWidget {
   final Map<String, int> conteos;
   final Set<FiltroAgenda> seleccionados;

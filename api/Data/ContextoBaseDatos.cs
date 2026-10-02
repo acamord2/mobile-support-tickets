@@ -3,11 +3,7 @@ using Tickets.Api.Models;
 
 namespace Tickets.Api.Data;
 
-/// <summary>
-/// Conserva el mapeo EF Core previo de la estructura PostgreSQL externa.
-/// No se registra ni utiliza actualmente: las lecturas usan IConexion.
-/// Se retiene junto con la dependencia hasta decidir su eliminación; no crea esquema.
-/// </summary>
+/// <summary>Conserva el mapeo EF Core previo de la estructura PostgreSQL externa.</summary>
 /// <param name="options">Opciones con el proveedor y la conexión configurados en DI.</param>
 public class ContextoBaseDatos(DbContextOptions<ContextoBaseDatos> options) : DbContext(options)
 {
@@ -16,12 +12,7 @@ public class ContextoBaseDatos(DbContextOptions<ContextoBaseDatos> options) : Db
     public DbSet<Ticket> Tickets => Set<Ticket>();
     public DbSet<Evidencia> Evidences => Set<Evidencia>();
 
-    /// <summary>
-    /// Relaciona los modelos con las tablas, tipos, claves y relaciones existentes.
-    /// Usa la configuración explícita de EF Core para interpretar correctamente
-    /// los resultados SQL sin delegarle la creación de la base de datos.
-    /// Los CHECK de la estructura oficial se definen en DATABASE.md.
-    /// </summary>
+    /// <summary>Relaciona los modelos con las tablas, tipos, claves y relaciones existentes.</summary>
     /// <param name="modelBuilder">Constructor del modelo de persistencia de EF Core.</param>
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -25,7 +25,7 @@ if(await autenticacion.LoginAsync(new SolicitudLogin { Username="prueba",Passwor
 Console.WriteLine("Usuario inactivo con contraseña correcta: autenticación rechazada sin modificar datos.");
 if(!args.Contains("--real")) return;
 var raiz=Path.GetFullPath(Path.Combine(AppContext.BaseDirectory,"../../../../../"));
-var demo=File.ReadAllText(Path.Combine(raiz,"database/DATOS_PRUEBA.md"));
+var demo=File.ReadAllText(Path.Combine(raiz,"database/PostgreSQL/v1/DATOS_PRUEBA.sql"));
 var match=System.Text.RegularExpressions.Regex.Match(demo,@"\*\*([^ /]+) / ([^*]+\*)\*\*");
 if(!match.Success) throw new Exception("Credencial demo no localizada en documento autorizado.");
 using var http=new HttpClient { BaseAddress=new Uri(Environment.GetEnvironmentVariable("API_TEST_URL")??"http://localhost:5263") };

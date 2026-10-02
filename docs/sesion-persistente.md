@@ -1,5 +1,7 @@
 # Sesión persistente y dispositivo físico en LAN
 
+> Registro histórico: la instalación vigente está en [README](../README.md) y en `database/PostgreSQL/v1/BD_COMPLETA.sql`. Los instaladores y migraciones anteriores se conservan en Git; no seguir sus instrucciones como instalación actual.
+
 ## Problemas y diagnóstico previo
 
 El APK de la validación anterior utilizaba `API_BASE_URL=http://127.0.0.1:5263` y un puente `adb reverse tcp:5263 tcp:5263`. Esa dirección apunta al teléfono; el puente ADB la llevaba al equipo únicamente mientras existía conexión USB. La API escuchaba en loopback (`127.0.0.1`/`::1`) mediante el perfil `http`, por lo que tampoco era accesible directamente desde la LAN. Al comenzar esta etapa no quedaban redirecciones ADB activas.

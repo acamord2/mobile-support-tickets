@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'colores_app.dart';
 
 /// Centraliza la tipografía utilizada por Login, Home, tarjetas y mensajes de error.
-/// Emplea la fuente predeterminada de Flutter, con tamaño y peso compartidos,
-/// para reutilizar el estilo sin agregar una dependencia o fuente externa.
 abstract class FuentesApp {
   static const title = TextStyle(
     fontSize: 24,

@@ -3,7 +3,6 @@ import 'package:get/get.dart';
 import '../../models/tipo_solicitud_estado.dart';
 import 'controlador_solicitar_estado.dart';
 
-/// Presenta el motivo y delega eventos; explica que la decisión pendiente no finaliza el ticket.
 class VistaSolicitarEstado extends GetView<ControladorSolicitarEstado> {
   const VistaSolicitarEstado({super.key});
   @override

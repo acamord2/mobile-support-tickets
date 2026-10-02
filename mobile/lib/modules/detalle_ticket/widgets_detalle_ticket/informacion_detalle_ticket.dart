@@ -5,8 +5,6 @@ import '../../../app/theme/fuentes_app.dart';
 import '../../../models/ticket_local.dart';
 import '../../../models/sucursal_local.dart';
 
-/// Presenta campos locales recibidos y fechas en horario del teléfono.
-/// Omite sucursal no descargada y no crea información o historial ficticios.
 class InformacionDetalleTicket extends StatelessWidget {
   final TicketLocal ticket;
   final SucursalLocal? sucursal;

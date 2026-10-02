@@ -9,8 +9,6 @@ import 'widgets_detalle_ticket/informacion_detalle_ticket.dart';
 import 'widgets_detalle_ticket/accion_detalle_ticket.dart';
 import 'widgets_detalle_ticket/seguimiento_ticket.dart';
 
-/// Compone detalle local y acciones recibidas del controller; no consulta servicios.
-/// Volver retira solo esta ruta y conserva la sesión y el Home existente.
 class VistaDetalleTicket extends GetView<ControladorDetalleTicket> {
   const VistaDetalleTicket({super.key});
   @override

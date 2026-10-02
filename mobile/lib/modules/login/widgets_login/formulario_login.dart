@@ -4,14 +4,9 @@ import '../../../app/constants/textos_app.dart';
 import '../../../app/theme/fuentes_app.dart';
 import '../controlador_login.dart';
 
-/// Presenta campos, carga y errores del controller sin HTTP ni reglas de negocio.
-/// Obx actualiza el formulario y los eventos se delegan a ControladorLogin.
 class FormularioLogin extends GetView<ControladorLogin> {
-  /// Crea el formulario con el controller resuelto por las dependencias GetX.
   const FormularioLogin({super.key});
 
-  /// Compone los campos y botón según el estado ya calculado por el controller.
-  /// Oculta contraseña y bloquea interacción durante la carga para mejorar UX.
   @override
   Widget build(BuildContext context) => Obx(
     () => Column(

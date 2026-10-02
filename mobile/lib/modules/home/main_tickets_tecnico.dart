@@ -4,7 +4,6 @@ import 'controlador_inicio.dart';
 import 'widgets_home/tarjeta_ticket_agenda.dart';
 import 'widgets_home/filtros_agenda.dart';
 
-/// Compone una lista local del técnico seleccionado sin introducir un segundo acordeón ni consultas remotas.
 class VistaTicketsTecnico extends GetView<ControladorInicio> {
   const VistaTicketsTecnico({super.key});
   @override

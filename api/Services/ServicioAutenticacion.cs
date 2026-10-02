@@ -11,11 +11,7 @@ using Tickets.Api.Models;
 
 namespace Tickets.Api.Services;
 
-/// <summary>
-/// Conserva la infraestructura de verificación de credenciales y emisión JWT.
-/// Consume IAccesoUsuarios y PasswordHasher para mantener el proveedor SQL y la
-/// criptografía fuera del Controller; no crea usuarios ni datos de prueba.
-/// </summary>
+/// <summary>Conserva la infraestructura de verificación de credenciales y emisión JWT.</summary>
 /// <param name="users">Contrato independiente del motor para localizar usuarios.</param>
 /// <param name="passwordHasher">Implementación estándar que verifica el hash almacenado.</param>
 /// <param name="jwtOptions">Opciones de firma, destinatario y vigencia tomadas de configuración.</param>
@@ -24,12 +20,7 @@ public class ServicioAutenticacion(
     IPasswordHasher<Usuario> passwordHasher,
     IOptions<OpcionesJwt> jwtOptions)
 {
-    /// <summary>
-    /// Verifica credenciales de un usuario existente y devuelve un JWT cuando son válidas.
-    /// Consulta mediante la abstracción de datos, verifica el hash estándar y firma
-    /// claims públicos con HS256. Evita exponer el hash y no introduce dependencias
-    /// directas de PostgreSQL en la lógica de autenticación.
-    /// </summary>
+    /// <summary>Verifica credenciales de un usuario existente y devuelve un JWT cuando son válidas.</summary>
     /// <param name="request">Credenciales recibidas mediante un DTO, no una entidad de BD.</param>
     /// <param name="cancellationToken">Cancela el acceso a datos al finalizar la solicitud.</param>
     /// <returns>Token y usuario público, o null si las credenciales son incorrectas.</returns>

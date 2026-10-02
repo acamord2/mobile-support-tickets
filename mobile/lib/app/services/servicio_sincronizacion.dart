@@ -28,8 +28,7 @@ enum EstadoSincronizacionActual {
   reautenticacion,
 }
 
-/// Sube únicamente operaciones propias y descarga a SQLite; nunca entrega objetos
-/// HTTP a Home. Serializa ciclos sin polling y conserva reintentos tras interrupciones.
+/// Serializa ciclos sin polling y conserva reintentos tras interrupciones.
 class ServicioSincronizacion extends GetxService {
   final ServicioConectividad _conectividad;
   final IConexionApi _api;

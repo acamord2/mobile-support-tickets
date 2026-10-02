@@ -2,7 +2,6 @@ import 'operaciones_sqlite.dart';
 import 'repositorio_cola.dart';
 import 'operacion_pendiente.dart';
 
-/// Relaciona evidencia por Id local incluso antes de crear el ticket remoto.
 /// Guarda evidencia y cola juntas sin bloquear captura offline ni perder autoría.
 class RepositorioEvidencias {
   final OperacionesSqlite sql;
@@ -20,7 +19,6 @@ class RepositorioEvidencias {
       );
 
   /// Descarga evidencias remotas sin duplicar las ya confirmadas ni tocar pendientes.
-  /// Conserva las fechas originales de registros capturados en este dispositivo.
   Future<void> descargar(int ticket, int usuario, List datos) async {
     OperacionesSqlite.exigir(
       await sql.transaccion((tx) async {

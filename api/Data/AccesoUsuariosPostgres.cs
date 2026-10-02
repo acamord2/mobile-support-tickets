@@ -3,19 +3,11 @@ using Tickets.Api.Models;
 
 namespace Tickets.Api.Data;
 
-/// <summary>
-/// Implementa la lectura PostgreSQL solicitando una conexión por contrato.
-/// Mantiene SQL y materialización aquí, sin conocer configuración o tipos Npgsql,
-/// para que servicios y controllers sigan dependiendo del acceso abstracto.
-/// </summary>
+/// <summary>Implementa la lectura PostgreSQL solicitando una conexión por contrato.</summary>
 /// <param name="databaseConnection">Proveedor inyectado de conexiones abiertas.</param>
 public class AccesoUsuariosPostgres(IConexion databaseConnection) : IAccesoUsuarios
 {
-    /// <summary>
-    /// Invoca get_user_by_username con un parámetro DbCommand y materializa Usuario.
-    /// Dispone conexión, comando y lector al finalizar, incluso ante fallos;
-    /// preserva la consulta existente sin interpolar texto recibido del request.
-    /// </summary>
+    /// <summary>Invoca get_user_by_username con un parámetro DbCommand y materializa Usuario.</summary>
     /// <param name="username">Nombre exacto recibido por el contrato de acceso.</param>
     /// <param name="cancellationToken">Cancela la consulta si termina la solicitud.</param>
     /// <returns>Usuario encontrado o null cuando no existe ese nombre.</returns>

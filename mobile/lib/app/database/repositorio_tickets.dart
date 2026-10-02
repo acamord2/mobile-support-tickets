@@ -7,7 +7,6 @@ import 'repositorio_eventos.dart';
 import '../../models/tipo_evento_ticket.dart';
 
 /// Persiste tickets y operaciones atómicamente usando la conexión SQLite común.
-/// La agenda siempre procede de aquí; descargas respetan cambios locales pendientes.
 class RepositorioTickets {
   final OperacionesSqlite sql;
   RepositorioTickets(this.sql);
@@ -135,7 +134,6 @@ class RepositorioTickets {
   }
 
   /// Actualiza negocio y cola sin tocar clave, Id local ni fecha de creación.
-  /// Siempre encola el cambio para conservar ediciones hechas durante otro envío.
   Future<void> actualizar(
     int id,
     int usuario, {
@@ -229,7 +227,6 @@ class RepositorioTickets {
   }
 
   /// Completa únicamente Id remoto y estado local junto a confirmación de cola.
-  /// Mantiene Id local y UUID originales; una interrupción revierte ambos cambios.
   Future<void> confirmar(
     int local,
     int remoto,

@@ -5,8 +5,6 @@ import '../../../app/theme/fuentes_app.dart';
 import '../../../models/tipo_evento_ticket.dart';
 import '../../../widgets/foto_procesada.dart';
 
-/// Representa cronología local de más antiguo a reciente con autor persistido.
-/// La foto se obtiene del enlace a Evidence, sin Base64 dentro del evento.
 class SeguimientoTicket extends StatelessWidget {
   final List<Map<String, Object?>> registros;
   final List<Map<String, Object?>> evidencias;

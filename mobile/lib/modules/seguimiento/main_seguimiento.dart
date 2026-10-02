@@ -6,7 +6,6 @@ import '../../app/theme/fuentes_app.dart';
 import 'controlador_seguimiento.dart';
 import '../../widgets/foto_procesada.dart';
 
-/// Presenta trabajo realizado y selección de fotografía opcional con guardado local.
 class VistaSeguimiento extends GetView<ControladorSeguimiento> {
   const VistaSeguimiento({super.key});
   @override

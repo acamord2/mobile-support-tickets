@@ -1,6 +1,5 @@
 import 'dart:math';
 
-/// Genera UUID v4 una sola vez al insertar localmente usando aleatoriedad del sistema.
 /// No se invoca durante sincronización para conservar la identidad entre reintentos.
 abstract class IdentificadorCliente {
   static String crear() {

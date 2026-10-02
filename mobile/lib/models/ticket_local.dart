@@ -1,5 +1,4 @@
-/// Reconstruye un ticket exclusivamente desde SQLite manteniendo identidad local,
-/// remota, clave de reintento y programación independientes para agenda offline.
+/// Reconstruye un ticket exclusivamente desde SQLite manteniendo identidad local, remota, clave de reintento y programación independientes para agenda offline.
 class TicketLocal {
   final int idLocal;
   final int? idRemoto;

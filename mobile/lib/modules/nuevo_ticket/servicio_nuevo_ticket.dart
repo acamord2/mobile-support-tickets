@@ -3,8 +3,7 @@ import '../../app/database/repositorio_tickets.dart';
 import '../../app/database/repositorio_evidencias.dart';
 import '../../app/services/servicio_imagen.dart';
 
-/// Coordina captura y creación local sin consultar API. La fotografía se prepara
-/// antes de guardar; los repositorios mantienen negocio y operaciones en SQLite.
+/// Coordina captura y creación local sin consultar API.
 class ServicioNuevoTicket {
   final RepositorioTickets tickets;
   final RepositorioEvidencias evidencias;

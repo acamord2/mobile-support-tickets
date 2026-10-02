@@ -2,11 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Tickets.Api.Services;
 
-/// <summary>
-/// Agrupa las opciones JWT enlazadas desde configuración y validadas al iniciar.
-/// Mantiene clave, emisor, audiencia y duración fuera del código de autenticación
-/// para poder cambiarlos mediante configuración sin recompilar la lógica.
-/// </summary>
+/// <summary>Agrupa las opciones JWT enlazadas desde configuración y validadas al iniciar.</summary>
 public class OpcionesJwt
 {
     [Required, MinLength(32)]

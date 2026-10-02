@@ -4,13 +4,10 @@ import 'conexion_sqlite.dart';
 import 'resultado_sqlite.dart';
 
 /// Reutiliza SELECT/INSERT/UPDATE/DELETE parametrizados y transacciones locales.
-/// Los repositorios eligen tabla/campos/mapeo; esta clase solo ejecuta y controla
-/// fallos sin construir un ORM ni introducir SQL en controllers o widgets.
 class OperacionesSqlite {
   final ConexionSqlite? _conexion;
   final DatabaseExecutor? _ejecutor;
 
-  /// Recibe la conexión central como punto único de apertura y ciclo de vida.
   OperacionesSqlite(ConexionSqlite conexion)
     : _conexion = conexion,
       _ejecutor = null;
@@ -71,7 +68,6 @@ class OperacionesSqlite {
   );
 
   /// Agrupa operaciones del repositorio usando una instancia ligada a Transaction.
-  /// Dentro del callback se deben exigir éxitos; un fallo lanza y revierte todo.
   Future<ResultadoSqlite<T>> transaccion<T>(
     Future<T> Function(OperacionesSqlite) accion,
   ) => controlar(
@@ -83,7 +79,6 @@ class OperacionesSqlite {
   );
 
   /// Convierte errores de ejecución/serialización a un resultado público genérico.
-  /// No registra el error original porque puede contener datos de una operación.
   static Future<ResultadoSqlite<T>> controlar<T>(
     Future<T> Function() accion,
   ) async {
@@ -94,7 +89,6 @@ class OperacionesSqlite {
     }
   }
 
-  /// Obtiene el dato o propaga un fallo controlado para provocar rollback.
   /// Los repositorios lo utilizan dentro de transacciones y al componer resultados.
   static T exigir<T>(ResultadoSqlite<T> resultado) {
     if (!resultado.exitoso) throw StateError(TextosApp.errorSqlite);

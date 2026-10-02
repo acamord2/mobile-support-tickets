@@ -14,7 +14,6 @@ import '../../app/services/servicio_sesion.dart';
 import '../../models/ticket_local.dart';
 import '../../models/sucursal_local.dart';
 
-/// Recupera detalle del propietario exclusivamente de SQLite y coordina atención local.
 /// Reutiliza actualización/cola existentes sin HTTP ni nuevas transiciones.
 class ControladorDetalleTicket extends GetxController {
   final RepositorioTickets _tickets;
@@ -242,7 +241,6 @@ class ControladorDetalleTicket extends GetxController {
   };
 
   /// Relee el estado y guarda negocio+cola atómicamente antes de refrescar UI.
-  /// Bloquea doble pulsación; no inicia sincronización ni espera respuesta remota.
   Future<void> comenzarAtencion() async {
     if (guardando.value || !puedeComenzar) return;
     final id = _id, usuario = _sesion.usuario?.id;

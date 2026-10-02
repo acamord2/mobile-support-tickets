@@ -1,7 +1,6 @@
 import 'usuario.dart';
 
 /// Agrupa identidad autenticada previamente y fechas públicas para restaurar offline.
-/// El token opcional proviene del almacén seguro, nunca de SQLite.
 class SesionLocal {
   final Usuario usuario;
   final String? token;

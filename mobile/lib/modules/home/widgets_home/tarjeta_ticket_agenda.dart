@@ -3,7 +3,6 @@ import '../../../models/ticket_local.dart';
 import '../../../app/constants/textos_app.dart';
 import '../../../app/theme/fuentes_app.dart';
 
-/// Muestra programación local, problema, sucursal y estado sin consultar servicios.
 class TarjetaTicketAgenda extends StatelessWidget {
   final TicketLocal ticket;
   final String sucursal;

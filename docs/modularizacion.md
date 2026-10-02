@@ -1,5 +1,7 @@
 # Modularización de PostgreSQL y nomenclatura
 
+> Registro histórico: la instalación vigente está en [README](../README.md) y en `database/PostgreSQL/v1/BD_COMPLETA.sql`. Los instaladores y migraciones anteriores se conservan en Git; no seguir sus instrucciones como instalación actual.
+
 ## Estructura documental
 
 ```text

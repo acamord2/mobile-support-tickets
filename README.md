@@ -38,11 +38,8 @@ api/
   appsettings.json
   appsettings.Development.json
 database/
-  DATABASE.md
-  DATOS_PRUEBA.md
-  FUNCIONES_SP.md
-  VISTAS.md
-  TRIGGERS.md
+  PostgreSQL/v1/       # seis scripts SQL autocontenidos
+  SQLServer/v1/        # equivalencia documental
 docs/
   linea-base.md
 ```
@@ -58,17 +55,15 @@ Las vistas principales de cada módulo componen sus widgets internos. Ningún m�
 
 ## Crear manualmente la BD
 
-La instalación se realiza manualmente mediante pgAdmin Query Tool. La API no instala ni ejecuta automáticamente ninguno de estos documentos:
+Crear una base vacía llamada `tickets_db` con pgAdmin (o ejecutar `CREATE DATABASE tickets_db;` fuera de una transacción). Conectar Query Tool a esa base y ejecutar el contenido completo de [database/PostgreSQL/v1/BD_COMPLETA.sql](database/PostgreSQL/v1/BD_COMPLETA.sql). También puede ejecutarse con `psql -v ON_ERROR_STOP=1 -d tickets_db -f database/PostgreSQL/v1/BD_COMPLETA.sql`, proporcionando la conexión fuera del repositorio.
 
-1. [DATABASE.md](database/DATABASE.md): instalación PostgreSQL nueva completa con Roles, Users.RoleId/IsActive y Tickets.ScheduledAt/ClientRequestId y Evidences.PhotoBase64. Para una base ya existente usar [ACTUALIZACION_POSTGRESQL.md](database/ACTUALIZACION_POSTGRESQL.md) y su orden transaccional, sin repetir el instalador.
-2. [FUNCIONES_SP.md](database/FUNCIONES_SP.md): instalar get_user_by_username.
-3. [VISTAS.md](database/VISTAS.md): actualmente no hay SQL que ejecutar.
-4. [TRIGGERS.md](database/TRIGGERS.md): actualmente no hay SQL que ejecutar.
-5. [DATOS_PRUEBA.md](database/DATOS_PRUEBA.md): carga opcional solo para desarrollo/demo.
+PostgreSQL está probado desde cero en una base temporal independiente. El instalador representa el esquema final; no requiere migraciones anteriores y no debe ejecutarse para actualizar una base existente. La API no instala esquema ni datos.
 
-Para una BD funcional limpia, realizar los pasos 1–4, sin datos demo; Roles contiene las dos referencias funcionales necesarias. Las migraciones de estructura fueron aplicadas manualmente y confirmadas por el usuario. No repetirlas; la vista de agenda se instaló con autorización explícita. Para desarrollar con una muestra, ejecutar además el paso 5. Cada tipo de objeto tiene una sola fuente SQL documental.
+SQL Server es un equivalente documental, sin prueba en instancia real: [database/SQLServer/v1/BD_COMPLETA.sql](database/SQLServer/v1/BD_COMPLETA.sql). Crear una base vacía, seleccionarla en SSMS y ejecutar el archivo; `GO` separa sus lotes.
 
-La muestra contiene un técnico, dos sucursales, dos tickets y una evidencia descriptiva. La cuenta pública demo está documentada en DATOS_PRUEBA.md. La tabla almacena únicamente el hash verificado por PasswordHasher<Usuario>. La carga se realiza manualmente; la API nunca instala ni inserta estos datos.
+Cada motor tiene seis scripts: `DATABASE.sql`, `DATOS_PRUEBA.sql`, `STORED_PROCEDURES.sql`, `VISTAS.sql`, `TRIGGERS.sql` y `BD_COMPLETA.sql`. El archivo completo concatena estructura, función/SP, vista, triggers y datos demo, en ese orden. No se utilizan extensiones ni triggers.
+
+Los datos demo incluyen cuatro usuarios activos, una sucursal, tres tickets, la relación Coordinador–Técnico, una evidencia descriptiva y siete eventos. Las credenciales exclusivamente DEMO aparecen en `DATOS_PRUEBA.sql`; solo se almacenan hashes de PasswordHasher. El Usuario ve sus reportes, el Técnico sus dos tickets asignados, el Coordinador su equipo y el ticket sin asignar, y el Administrador el conjunto completo.
 
 ## Configurar y ejecutar la API
 
@@ -163,7 +158,7 @@ Usuario contiene id, username, name y rol público (roleId/role), opcional para 
 
 La vista valida campos vacíos y oculta contraseña; durante la petición deshabilita campos/botón y muestra progreso. EstadoApi controla 200/400/401/500/503 y ausencia de respuesta. JSON inesperado y fallos de red producen mensajes públicos, sin cuerpos ni excepciones técnicas.
 
-Prueba manual: cargar DATOS_PRUEBA.md, iniciar API y Flutter, introducir su cuenta demo, comprobar bienvenida y cerrar sesión. Las pruebas aisladas usan IConexionApi simulado. Las pruebas reales reciben credenciales externamente: en PowerShell, asignar DEMO_USERNAME y DEMO_PASSWORD desde DATOS_PRUEBA.md sin incorporarlas al código.
+Prueba manual: cargar DATOS_PRUEBA.sql, iniciar API y Flutter, introducir su cuenta demo, comprobar bienvenida y cerrar sesión. Las pruebas aisladas usan IConexionApi simulado. Las pruebas reales reciben credenciales externamente: en PowerShell, asignar DEMO_USERNAME y DEMO_PASSWORD desde DATOS_PRUEBA.sql sin incorporarlas al código.
 
 ```powershell
 flutter test test/auth/autenticacion_real_test.dart --dart-define=RUN_AUTH_TEST=true --dart-define=API_BASE_URL=http://localhost:5263 "--dart-define=DEMO_USERNAME=$env:DEMO_USERNAME" "--dart-define=DEMO_PASSWORD=$env:DEMO_PASSWORD"
@@ -231,13 +226,9 @@ El arranque restaura Home sin API. JWT expirado o 401 conserva identidad y pendi
 
 ## Bases de datos soportadas/documentadas
 
-**Actual: PostgreSQL**, motor conectado y probado de la API. La actualización estructural preparada en ACTUALIZACION_POSTGRESQL.md se aplica manualmente por el usuario y todavía no se ha ejecutado. DATABASE.md representa una instalación nueva completa; no requiere ejecutar después la migración.
+PostgreSQL es el motor runtime probado. Su instalación completa está en [database/PostgreSQL/v1/BD_COMPLETA.sql](database/PostgreSQL/v1/BD_COMPLETA.sql).
 
-**Documentada para portabilidad: SQL Server**, motor principal de la empresa. Los cinco documentos equivalentes de [database/sqlserver](database/sqlserver/DATABASE_SQLSERVER.md) permiten preparar una instalación nueva, la función equivalente mediante SP y datos demo separados. **SQL Server documentado/no validado contra instancia real**; no está conectado a la API ni se añadieron dependencias SqlClient/EF SQL Server.
-
-Roles tiene IDs funcionales 1 Administrador / 2 Técnico. Users añade RoleId e IsActive (0/1) y Tickets añade ScheduledAt independiente de creación/modificación. La función actualizada de PostgreSQL excluye cuentas inactivas una vez instalada, conservando el contrato de Login. El runtime utiliza el esquema confirmado. Login y /me devuelven rol público sin hashes; SQLite persiste solo esa identidad. La agenda usa ScheduledAt; Tickets.ClientRequestId garantiza idempotencia y Evidences.PhotoBase64 conserva la fotografía comprimida completa.
-
-Orden para la base existente: revisar estructura → BEGIN/ALTER de ACTUALIZACION_POSTGRESQL.md → SQL canónico de FUNCIONES_SP.md en la misma conexión/transacción → verificaciones → COMMIT o ROLLBACK → DATOS_PRUEBA.md opcional. No ejecutar SQL Server en esta etapa. Equivalencias, límites de JWT/usuario inactivo y estrategia futura de SQLite: [portabilidad-base-datos.md](docs/portabilidad-base-datos.md).
+SQL Server conserva únicamente la equivalencia documental en [database/SQLServer/v1/BD_COMPLETA.sql](database/SQLServer/v1/BD_COMPLETA.sql); no se ejecutó en instancia real ni existe proveedor runtime conectado. Las decisiones de portabilidad se explican en [docs/portabilidad-base-datos.md](docs/portabilidad-base-datos.md).
 
 ## Agenda y tickets implementados
 
@@ -251,6 +242,6 @@ La configuración normal de conexión permanece estable. Compilar el APK físico
 
 Dependencias adicionales: image 4.10.1 e image_picker 1.2.1 (versiones resueltas en pubspec.lock). No se añadió provider SQL Server, arquitectura nueva ni almacenamiento externo.
 
-API nueva: GET/POST /api/tickets, PUT /api/tickets/{id}, GET /api/branches y POST /api/tickets/{id}/evidence. Todos requieren JWT y cuenta activa. Swagger presenta los endpoints aunque comparten ruta cuando el verbo cambia. La vista se instala manualmente desde database/VISTAS.md; OBJETOS_TICKETS_POSTGRESQL.md referencia esa única fuente. No hay funciones ni triggers nuevos.
+API nueva: GET/POST /api/tickets, PUT /api/tickets/{id}, GET /api/branches y POST /api/tickets/{id}/evidence. Todos requieren JWT y cuenta activa. Swagger presenta los endpoints aunque comparten ruta cuando el verbo cambia. La vista se instala manualmente desde database/PostgreSQL/v1/VISTAS.sql; OBJETOS_TICKETS_POSTGRESQL.md referencia esa única fuente. No hay funciones ni triggers nuevos.
 
 Validación del MVP: dotnet build sin errores/advertencias y flutter analyze sin incidencias. La suite final tuvo 81 pruebas aprobadas, 2 opt-in omitidas y un test antiguo de logout desactualizado; se corrigió y su repetición específica junto con el flujo MVP aprobó 6 pruebas. APK final debug compilado para LAN e instalado por reemplazo; SQLite y almacén seguro conservaron sus hashes. Swagger incluye evidencias y GET tickets anónimo devuelve 401. El resultado físico del flujo completo se registra en [tickets-agenda.md](docs/tickets-agenda.md). No se usaron emuladores ni flutter drive en esta entrega. BD_COMPLETA_POSTGRESQL.md se conserva local, sin versionar ni actualizar automáticamente.

@@ -2,13 +2,11 @@ import 'package:sqflite/sqflite.dart';
 import 'estado_sincronizacion.dart';
 
 /// Define cola técnica, identidad pública y tablas locales de tickets/evidencias.
-/// Es la fuente de creación de SQLite para mantener SQL fuera de la presentación.
 abstract class EsquemaSqlite {
   static const cola = 'cola_sincronizacion';
   static const sesion = 'sesion_local';
 
   /// Crea cola e identidad pública dentro de la transacción onCreate de sqflite.
-  /// Restringe estados e intentos para persistir operaciones pendientes coherentes.
   static Future<void> crear(Database db, int version) async {
     final estados = EstadoSincronizacion.values
         .map((e) => "'${e.name}'")
@@ -32,7 +30,6 @@ abstract class EsquemaSqlite {
     if (version >= 6) await _crearSolicitudes(db);
   }
 
-  /// Impide una actualización desconocida en vez de borrar la base o sus datos.
   /// Añade identidad en v2 conservando la cola y sus registros anteriores.
   static Future<void> actualizar(Database db, int anterior, int nueva) async {
     if (anterior < 2 && nueva >= 2) await _crearSesion(db);
@@ -44,7 +41,6 @@ abstract class EsquemaSqlite {
   }
 
   /// Amplía programación/estados mediante copia íntegra dentro de la transacción de migración.
-  /// Difiere FK hasta reconstruir el padre con los mismos IDs; comprueba filas y referencias antes del commit.
   static Future<void> _crearSolicitudes(Database db) async {
     final anteriores = <String, int>{};
     for (final tabla in [
@@ -120,7 +116,6 @@ abstract class EsquemaSqlite {
   }
 
   /// Añade alcance y equipo; copia íntegramente eventos al ampliar su CHECK dentro de la transacción de migración.
-  /// Conserva claves, filas, evidencias, sesión y cola; no atribuye reportantes históricos desconocidos.
   static Future<void> _crearRoles(Database db) async {
     await db.execute('ALTER TABLE tickets ADD COLUMN reportante_id INTEGER');
     await db.execute('ALTER TABLE tickets ADD COLUMN tecnico_id INTEGER');
@@ -150,7 +145,6 @@ abstract class EsquemaSqlite {
   }
 
   /// Añade bitácora inmutable sin reconstruir historia desconocida ni borrar datos.
-  /// Las referencias remotas se obtienen de ticket/evidencia, evitando duplicarlas.
   static Future<void> _crearEventos(
     Database db, {
     bool roles = false,
@@ -172,8 +166,6 @@ abstract class EsquemaSqlite {
   }
 
   /// Añade negocio y autoría en una sola migración conservando sesión y cola.
-  /// Pendientes antiguos se asignan solo si existe identidad; los huérfanos siguen
-  /// sin propietario y no se enviarán automáticamente bajo otra cuenta.
   static Future<void> _crearTickets(Database db) async {
     await db.execute('ALTER TABLE $sesion ADD COLUMN role_id INTEGER');
     await db.execute('ALTER TABLE $sesion ADD COLUMN rol TEXT');
@@ -207,7 +199,6 @@ abstract class EsquemaSqlite {
   }
 
   /// Crea una identidad única y fechas públicas para restaurar Home sin red.
-  /// No incluye secretos: el JWT se mantiene en almacenamiento seguro.
   static Future<void> _crearSesion(Database db) => db.execute('''
     CREATE TABLE $sesion (
       id INTEGER PRIMARY KEY CHECK (id = 1),

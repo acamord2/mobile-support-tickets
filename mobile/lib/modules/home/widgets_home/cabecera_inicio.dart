@@ -3,7 +3,6 @@ import '../../../app/constants/textos_app.dart';
 import '../../../app/theme/fuentes_app.dart';
 import '../../../widgets/apartada/indicador_desconexion.dart';
 
-/// Separa acciones superiores de bienvenida e identidad en una única columna.
 /// Recibe callbacks existentes; no cambia sincronización ni cierre de sesión.
 class CabeceraInicio extends StatelessWidget {
   final String nombreTecnico;

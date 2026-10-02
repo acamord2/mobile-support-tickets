@@ -6,8 +6,6 @@ import '../../../app/theme/fuentes_app.dart';
 import '../controlador_nuevo_ticket.dart';
 import '../../../widgets/foto_procesada.dart';
 
-/// Representa el formulario y remite sus eventos al controller; no consulta API,
-/// SQLite ni comprime imágenes. Una sola composición visual por archivo.
 class FormularioNuevoTicket extends GetView<ControladorNuevoTicket> {
   const FormularioNuevoTicket({super.key});
   @override

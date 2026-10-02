@@ -6,16 +6,13 @@ import 'operaciones_sqlite.dart';
 import 'estado_sincronizacion.dart';
 
 /// Persiste identidad en SQLite y JWT protegido sin modificar la cola.
-/// Reutiliza el ejecutor común para mantener almacenamiento fuera de la presentación.
 class RepositorioSesionLocal {
   final OperacionesSqlite _sql;
   final AlmacenamientoToken _tokens;
 
-  /// Recibe infraestructura sustituible para probar sin plugins ni secretos reales.
   RepositorioSesionLocal(this._sql, this._tokens);
 
   /// Publica identidad después del token y elimina previamente la identidad anterior.
-  /// Impide asociar un JWT nuevo al usuario anterior ante escrituras interrumpidas.
   Future<void> guardar(SesionLocal sesion) async {
     await _eliminarIdentidad();
     await _tokens.guardar(sesion.token!);
@@ -39,7 +36,6 @@ class RepositorioSesionLocal {
   }
 
   /// Restaura identidad sin API y admite JWT ausente para conservar trabajo offline.
-  /// Limpia tokens huérfanos y valida los campos públicos sin inventar un usuario.
   Future<SesionLocal?> restaurar() async {
     final filas = OperacionesSqlite.exigir(
       await _sql.seleccionar(EsquemaSqlite.sesion),
@@ -76,7 +72,6 @@ class RepositorioSesionLocal {
   Future<void> invalidarToken() => _tokens.eliminar();
 
   /// Comprueba toda operación no sincronizada, incluyendo procesando y error.
-  /// Permite preservar pendientes al salir sin resolver todavía su futura autoría.
   Future<bool> hayPendientes() async => OperacionesSqlite.exigir(
     await _sql.seleccionar(
       EsquemaSqlite.cola,

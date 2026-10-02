@@ -10,7 +10,6 @@ import '../../models/sucursal_local.dart';
 import 'servicio_nuevo_ticket.dart';
 
 /// Mantiene formulario y eventos; obtiene catálogo desde SQLite y guarda sin API.
-/// Controla navegación y errores públicos sin introducir SQL ni procesamiento de fotos.
 class ControladorNuevoTicket extends GetxController {
   final ServicioNuevoTicket servicio;
   final RepositorioSucursales repositorio;

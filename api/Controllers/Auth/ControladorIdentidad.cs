@@ -8,21 +8,12 @@ using Tickets.Api.Data;
 
 namespace Tickets.Api.Controllers.Auth;
 
-/// <summary>
-/// Expone identidad pública del técnico autenticado y comprueba actividad actual.
-/// Delega lectura al contrato de usuarios para mantener SQL fuera de este
-/// endpoint sin duplicar autenticación o realizar consultas innecesarias.
-/// </summary>
+/// <summary>Expone identidad pública del técnico autenticado y comprueba actividad actual.</summary>
 [ApiController]
 [Route("api/auth/me")]
 public class ControladorIdentidad(IAccesoUsuarios usuarios) : ControllerBase
 {
-    /// <summary>
-    /// Devuelve la identidad contenida en el JWT validado por el middleware.
-    /// Lee y comprueba sub, username y name; consulta actividad por contrato y rechaza claims
-    /// incompletos para no presentar una identidad inválida como autenticada.
-    /// Los datos públicos y el rol corresponden al estado actual del usuario.
-    /// </summary>
+    /// <summary>Devuelve la identidad contenida en el JWT validado por el middleware.</summary>
     /// <returns>Id, username y name, o 401 cuando falta una identidad válida.</returns>
     [Authorize]
     [HttpGet]

@@ -1,0 +1,1 @@
+-- Esta versión no requiere triggers.

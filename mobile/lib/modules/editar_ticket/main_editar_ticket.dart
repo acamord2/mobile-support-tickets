@@ -4,7 +4,6 @@ import '../../app/constants/textos_app.dart';
 import '../../app/theme/fuentes_app.dart';
 import 'controlador_editar_ticket.dart';
 
-/// Compone edición sencilla y remite eventos al controller sin lógica de negocio.
 class VistaEditarTicket extends GetView<ControladorEditarTicket> {
   const VistaEditarTicket({super.key});
   @override

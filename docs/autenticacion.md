@@ -1,5 +1,7 @@
 # Login móvil y autenticación end-to-end
 
+> Registro histórico: la instalación vigente está en [README](../README.md) y en `database/PostgreSQL/v1/BD_COMPLETA.sql`. Los instaladores y migraciones anteriores se conservan en Git; no seguir sus instrucciones como instalación actual.
+
 ## Alcance y flujo
 
 Se implementó login Flutter mediante la API existente. Antes de modificar Flutter se ejecutaron desde Swagger las pruebas correctas: login 200, contraseña incorrecta 401, campos vacíos 400 y /me con JWT 200. No hubo errores que justificaran modificar API o base de datos.

@@ -5,7 +5,6 @@ import '../../models/sesion_local.dart';
 import '../../models/sesion_usuario.dart';
 import '../../models/usuario.dart';
 
-/// Fachada única de identidad local y acceso remoto con persistencia separada.
 /// Mantiene Home offline aunque expire JWT y no expone errores técnicos ni secretos.
 class ServicioSesion extends GetxService {
   final RepositorioSesionLocal _repositorio;
@@ -13,7 +12,6 @@ class ServicioSesion extends GetxService {
   bool _invalidado = false;
   bool pendientesAlCerrar = false;
 
-  /// Recibe persistencia independiente para evitar SQL y plugins en los consumidores.
   ServicioSesion(this._repositorio);
 
   /// Expone únicamente identidad pública para representar Home sin API.
@@ -25,8 +23,7 @@ class ServicioSesion extends GetxService {
   /// Expone el rol público persistido sin replicar el catálogo de permisos.
   int? get roleId => usuario?.roleId;
 
-  /// Distingue identidad local de autorización sin expulsar al usuario offline.
-  /// exp solo orienta al cliente; la firma y autorización las valida la API.
+  /// Distingue identidad local de autorización sin expulsar al usuario offline. exp solo orienta al cliente; la firma y autorización las valida la API.
   bool get requiereReautenticacion =>
       existeSesion &&
       (_invalidado ||
@@ -38,7 +35,6 @@ class ServicioSesion extends GetxService {
   String? get token => requiereReautenticacion ? null : _sesion?.token;
 
   /// Persiste antes de publicar identidad para impedir login exitoso solo en memoria.
-  /// Lee únicamente exp y nunca guarda contraseña ni usa claims como identidad.
   Future<bool> establecer(SesionUsuario sesion) async {
     final local = SesionLocal(
       usuario: sesion.usuario,
@@ -57,7 +53,6 @@ class ServicioSesion extends GetxService {
   }
 
   /// Restaura almacenamiento local antes de elegir ruta, sin requerir Internet.
-  /// Un fallo controlado permite reintentar sin inventar identidad ni borrar datos.
   Future<bool> restaurar() async {
     try {
       _sesion = await _repositorio.restaurar();
@@ -69,7 +64,6 @@ class ServicioSesion extends GetxService {
   }
 
   /// Comprueba pendientes y elimina identidad/token preservando SQLite y la cola.
-  /// Limpia memoria después de persistencia; si falla permite reintentar la salida.
   Future<bool> limpiar() async {
     try {
       pendientesAlCerrar = await _repositorio.hayPendientes();
@@ -83,7 +77,6 @@ class ServicioSesion extends GetxService {
   }
 
   /// Prepara 401 retirando JWT sin cerrar Home ni borrar operaciones offline.
-  /// Bloquea acceso remoto en memoria incluso si falla el borrado protegido.
   Future<bool> marcarReautenticacion() async {
     _invalidado = true;
     try {
@@ -95,7 +88,6 @@ class ServicioSesion extends GetxService {
   }
 
   /// Interpreta solo caducidad sin validar firma local ni confiar en otros claims.
-  /// Formatos desconocidos requieren acceso remoto nuevo pero conservan Home local.
   static DateTime? _expiracion(String token) {
     try {
       final partes = token.split('.');

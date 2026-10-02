@@ -1,23 +1,4 @@
-# Estructura equivalente SQL Server
-
-**Propuesta pendiente:** el bloque TicketEvents y la clave compuesta de Evidences no están instalados. No ejecutar esta definición hasta aprobarla; para una base existente compatible se prepara ACTUALIZACION_SEGUIMIENTO_SQLSERVER.md.
-
-SQL Server está **documentado/no validado contra instancia real**. PostgreSQL sigue siendo el motor runtime actual. No hay proveedor SQL Server ni instancia configurada en esta prueba; este documento no se ejecutó. Requiere SQL Server 2016 SP1 o posterior para CREATE OR ALTER PROCEDURE, SSMS o herramienta compatible con separadores GO.
-
-Este instalador crea una base nueva equivalente a DATABASE.md PostgreSQL. No sirve para migrar una base SQL Server preexistente incompatible. Las comprobaciones OBJECT_ID permiten repetir solo una instalación con el mismo esquema; no alteran tablas antiguas. Los roles 1/2 son referencias funcionales, no cuentas demo.
-
-## Crear base y estructura
-
-CREATE DATABASE y USE se ejecutan fuera de la transacción de tablas; GO separa lotes del cliente y no es una instrucción SQL enviada por la futura API.
-
-```sql
-USE [master];
-GO
-IF DB_ID(N'tickets_db') IS NULL
-    CREATE DATABASE [tickets_db];
-GO
-USE [tickets_db];
-GO
+-- Equivalente documental; ejecutar en una base vacía de SQL Server.
 SET XACT_ABORT ON;
 BEGIN TRY
     BEGIN TRANSACTION;
@@ -31,20 +12,8 @@ BEGIN TRY
         );
     END;
 
-    IF EXISTS (SELECT 1 FROM dbo.[Roles]
-        WHERE ([Id] = 1 AND [Name] <> N'Administrador')
-           OR ([Id] = 2 AND [Name] <> N'Técnico')
-           OR ([Name] = N'Administrador' AND [Id] <> 1)
-           OR ([Name] = N'Técnico' AND [Id] <> 2))
-        THROW 50001, N'El catálogo Roles no coincide con los IDs funcionales 1/2.', 1;
 
-    INSERT INTO dbo.[Roles] ([Id], [Name])
-    SELECT 1, N'Administrador' WHERE NOT EXISTS (SELECT 1 FROM dbo.[Roles] WHERE [Id] = 1);
-    INSERT INTO dbo.[Roles] ([Id], [Name])
-    SELECT 2, N'Técnico' WHERE NOT EXISTS (SELECT 1 FROM dbo.[Roles] WHERE [Id] = 2);
 
-    INSERT INTO dbo.[Roles] ([Id],[Name]) SELECT 3,N'Coordinador' WHERE NOT EXISTS (SELECT 1 FROM dbo.[Roles] WHERE [Id]=3);
-    INSERT INTO dbo.[Roles] ([Id],[Name]) SELECT 4,N'Usuario' WHERE NOT EXISTS (SELECT 1 FROM dbo.[Roles] WHERE [Id]=4);
 
     IF OBJECT_ID(N'dbo.Users', N'U') IS NULL
     BEGIN
@@ -194,56 +163,3 @@ BEGIN CATCH
     THROW;
 END CATCH;
 GO
-```
-
-## Equivalencia funcional
-
-Roles usa Id int explícito para referencias estables 1 Administrador / 2 Técnico. Las tablas de negocio y usuarios usan int identity, como PostgreSQL. Los UUID de tickets y eventos sirven para reintentos; no se añaden objetos de agenda ni auditoría avanzada.
-
-RoleId es FK con default 2. IsActive BIT almacena 0/1 y default 1; SQL Server convierte entradas numéricas a BIT, por lo que la futura API deberá validar entrada lógica y no utilizar el tipo como validador de formularios. Username y Status usan collation binaria para conservar distinción de mayúsculas del contrato actual. Los textos Unicode utilizan NVARCHAR y literales N'...'.
-
-CreatedAt/UpdatedAt/ScheduledAt usan DATETIMEOFFSET(7); la aplicación seguirá escribiendo UTC. PostgreSQL timestamptz conserva el instante normalizado, no el identificador de zona original; SQL Server puede conservar un offset. ScheduledAt es independiente de creación/modificación, sin default que sustituya la cita por la fecha actual.
-
-Evidences mantiene Description, PhotoPath nullable y CreatedAt; PhotoBase64 nullable prepara el almacenamiento Base64 autorizado; todavía no se implementa procesamiento runtime. NVARCHAR(MAX) es la equivalencia de texto largo y podría soportar el campo Base64 futuro, y se usa directamente para PhotoBase64, conservando PhotoPath. Las FK NO ACTION equivalen al comportamiento restrictivo solicitado, sin cascadas de borrado.
-
-## Verificación de una instalación nueva
-
-```sql
-USE [tickets_db];
-GO
-SELECT TABLE_NAME, COLUMN_NAME, DATA_TYPE, IS_NULLABLE
-FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = 'dbo'
-ORDER BY TABLE_NAME, ORDINAL_POSITION;
-
-SELECT N'Roles' AS tabla, COUNT_BIG(*) AS filas FROM dbo.[Roles]
-UNION ALL SELECT N'Users', COUNT_BIG(*) FROM dbo.[Users]
-UNION ALL SELECT N'Branches', COUNT_BIG(*) FROM dbo.[Branches]
-UNION ALL SELECT N'Tickets', COUNT_BIG(*) FROM dbo.[Tickets]
-UNION ALL SELECT N'Evidences', COUNT_BIG(*) FROM dbo.[Evidences]
-UNION ALL SELECT N'TicketEvents', COUNT_BIG(*) FROM dbo.[TicketEvents];
-```
-
-Resultado previsto: Roles 2, restantes tablas 0. Después ejecutar FUNCIONES_SP_SQLSERVER.md; revisar VISTAS_SQLSERVER.md y TRIGGERS_SQLSERVER.md (sin objetos). DATOS_PRUEBA_SQLSERVER.md se ejecuta opcionalmente solo para desarrollo. Para una instalación existente compatible, la propuesta de seguimiento se prepara en ACTUALIZACION_SEGUIMIENTO_SQLSERVER.md, sin ejecución.
-
-## Idempotencia y fotografía equivalentes
-
-ClientRequestId UNIQUEIDENTIFIER NULL es una clave móvil persistente independiente del Id int. El índice UNIQUE filtrado por ClientRequestId IS NOT NULL garantiza unicidad por técnico para claves presentes y permite múltiples tickets sin clave, como PostgreSQL. No usar un UNIQUE compuesto sin filtro: SQL Server trata NULL de forma distinta. El filtro evita restringir los tickets antiguos sin identificador.
-
-PhotoBase64 NVARCHAR(MAX) NULL almacena el contenido íntegro sin prefijo, conservando PhotoPath. El límite futuro de 1 MB se aplica sobre los bytes de imagen comprimidos/decodificados, no sobre longitud textual. No hay datos demo ni claves generadas nuevas en este ajuste.
-
-SQL Server documentado/no validado contra instancia real. La actualización de seguimiento es únicamente documental; no existe provider runtime SQL Server. Referencia: [CREATE INDEX y filtro](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-index-transact-sql).
-
-
-## TicketEvents — propuesta no instalada
-
-Equivale a TicketEvents de PostgreSQL: mismos diez campos, seis tipos, autor FK, UUID obligatorio por usuario, programación anterior/nueva y enlace opcional a Evidence del mismo Ticket mediante FK compuesta. Se añaden UQ_Evidences_TicketId_Id e índice cronológico TicketId/CreatedAt/Id. No hay Base64 en eventos, datos demo, backfill, nuevos triggers o SP. Las fechas se escribirán UTC conservando el instante del evento offline.
-
-El diseño de autoría, previsualización, SQLite y reutilización de cola se detalla en DATABASE.md de PostgreSQL. Esta definición de instalación nueva anticipa la propuesta; debe aprobarse antes de ejecutarla. SQL Server permanece documental/no validado contra instancia real.
-
-## Portabilidad de roles y asignación
-
-IDs: 1 Administrador, 2 Técnico, 3 Coordinador, 4 Usuario. ReporterUserId y TechnicianId nullable, identidad global ClientRequestId mediante índice único filtrado, relación CoordinatorTechnicians y ocho tipos de evento. ACTUALIZACION_ROLES_ASIGNACION_SQLSERVER.md migra una instalación compatible; no fue ejecutada. Las reglas y límites del alcance se describen en DATABASE.md de PostgreSQL.
-
-## Solicitudes
-
-ScheduledAt nullable, Cancelled y TicketStatusRequests corresponden a ACTUALIZACION_SOLICITUDES_SQLSERVER.md. Equivalente documental, sin ejecución SQL Server.

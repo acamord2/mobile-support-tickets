@@ -1,8 +1,7 @@
 import '../../models/sucursal_local.dart';
 import 'operaciones_sqlite.dart';
 
-/// Mantiene catálogo local por usuario mediante OperacionesSqlite; permite formularios
-/// sin conexión y evita que el widget dependa de información HTTP descargada.
+/// Mantiene catálogo local por usuario mediante OperacionesSqlite; permite formularios sin conexión y evita que el widget dependa de información HTTP descargada.
 class RepositorioSucursales {
   final OperacionesSqlite sql;
   RepositorioSucursales(this.sql);

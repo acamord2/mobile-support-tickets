@@ -2,9 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Tickets.Api.DTOs;
 
-/// <summary>
-/// Limita las credenciales de entrada sin permitir modificar el hash almacenado.
-/// </summary>
+/// <summary>Limita las credenciales de entrada sin permitir modificar el hash almacenado.</summary>
 public class SolicitudLogin
 {
     [Required, StringLength(100)]

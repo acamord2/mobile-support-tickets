@@ -8,13 +8,10 @@ using Tickets.Api.Data.Connections;
 using Tickets.Api.Models;
 using Tickets.Api.Services;
 
-// El arranque solo configura HTTP y servicios. PostgreSQL debe existir previamente;
-// no se ejecutan scripts, migraciones, seeds ni comprobaciones que modifiquen la BD.
+// La API no instala ni migra la base externa.
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
-// DI selecciona PostgreSQL una sola vez mediante el contrato común de conexión.
-// EF Core permanece disponible, pero sin registro activo ni conexiones paralelas:
-// las lecturas y health actuales utilizan exclusivamente IConexion.
+// Todo acceso activo utiliza IConexion; EF Core permanece sin registrar.
 builder.Services.AddScoped<IConexion, Conexion>();
 builder.Services.AddScoped<IAccesoUsuarios, AccesoUsuariosPostgres>();
 builder.Services.AddScoped<AccesoTicketsPostgres>();
@@ -25,8 +22,7 @@ builder.Services.AddScoped<IPasswordHasher<Usuario>, PasswordHasher<Usuario>>();
 builder.Services.AddScoped<ServicioAutenticacion>();
 builder.Services.AddScoped<IServicioSaludBaseDatos, ServicioSaludBaseDatos>();
 
-// Las opciones se validan al iniciar para detectar configuración JWT incompleta
-// antes de atender solicitudes; no contienen credenciales PostgreSQL hardcodeadas.
+// Impide iniciar con una configuración JWT incompleta.
 builder.Services.AddOptions<OpcionesJwt>()
     .Bind(builder.Configuration.GetSection("Jwt"))
     .ValidateDataAnnotations()
@@ -38,8 +34,7 @@ builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationSc
     .Configure<Microsoft.Extensions.Options.IOptions<OpcionesJwt>>((options, settings) =>
     {
         var jwt = settings.Value;
-        // Se conservan los nombres originales de claims para que /me lea sub,
-        // username y name sin depender de conversiones implícitas del middleware.
+        // /me requiere los nombres originales de los claims.
         options.MapInboundClaims = false;
         options.TokenValidationParameters = new TokenValidationParameters
         {
@@ -55,8 +50,7 @@ builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationSc
         };
     });
 builder.Services.AddAuthorization();
-// La descripción OpenAPI reutiliza los atributos de autorización de endpoints
-// para ofrecer Bearer en Swagger sin duplicar decisiones de seguridad.
+// Swagger refleja los atributos de autorización de cada endpoint.
 builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new OpenApiInfo { Title = "Tickets API", Version = "v1" });
@@ -71,8 +65,7 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 var app = builder.Build();
-// Swagger y HTTP local sirven para revisar la infraestructura en desarrollo.
-// Fuera de ese entorno se conserva la redirección HTTPS y no se publica Swagger.
+// Swagger y HTTP local se habilitan únicamente en Development.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();

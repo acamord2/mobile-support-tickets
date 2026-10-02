@@ -1,7 +1,6 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 /// Aísla las operaciones del JWT para probar sesión sin secretos reales.
-/// La implementación protege el token con el sistema y mantiene plugins fuera de la UI.
 abstract class AlmacenamientoToken {
   /// Recupera exclusivamente el JWT dentro del servicio para restaurar acceso remoto.
   Future<String?> leer();
@@ -14,12 +13,10 @@ abstract class AlmacenamientoToken {
 }
 
 /// Usa flutter_secure_storage para evitar JWT en SQLite normal.
-/// Delega protección criptográfica al sistema, sin implementar cifrado propio.
 class AlmacenamientoTokenSeguro implements AlmacenamientoToken {
   final FlutterSecureStorage _almacen;
   static const _clave = 'token_sesion';
 
-  /// Recibe opcionalmente el adaptador para poder sustituirlo en pruebas.
   AlmacenamientoTokenSeguro({FlutterSecureStorage? almacen})
     : _almacen = almacen ?? const FlutterSecureStorage();
 

@@ -4,8 +4,6 @@ import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 
 /// Expone conectividad del dispositivo, no disponibilidad de Internet o API.
-/// Escucha cambios del sistema y refresca al reanudar; admite fuentes simuladas
-/// para verificar estados sin depender de red ni consultar health continuamente.
 class ServicioConectividad extends GetxService with WidgetsBindingObserver {
   final Future<List<ConnectivityResult>> Function() _consultar;
   final Stream<List<ConnectivityResult>> _cambios;
@@ -14,8 +12,6 @@ class ServicioConectividad extends GetxService with WidgetsBindingObserver {
   int _revision = 0;
   bool _cerrado = false;
 
-  /// Recibe consulta y eventos opcionales para sustituir el plugin en tests.
-  /// En la app utiliza connectivity_plus y mantiene null hasta conocer el estado.
   ServicioConectividad({
     Future<List<ConnectivityResult>> Function()? consultar,
     Stream<List<ConnectivityResult>>? cambios,
@@ -23,11 +19,9 @@ class ServicioConectividad extends GetxService with WidgetsBindingObserver {
        _cambios = cambios ?? Connectivity().onConnectivityChanged;
 
   /// Solo considera offline una ausencia de red confirmada por el sistema.
-  /// El estado desconocido no se presenta como una desconexión demostrada.
   bool get sinRed => redDisponible.value == false;
 
   /// Suscribe eventos e inicia una consulta sin bloquear la presentación.
-  /// Los errores del plugin dejan estado desconocido y no filtran excepciones.
   @override
   void onInit() {
     super.onInit();
@@ -46,7 +40,6 @@ class ServicioConectividad extends GetxService with WidgetsBindingObserver {
   }
 
   /// Consulta el estado actual sin sobrescribir un evento más reciente.
-  /// No consulta API; mantiene la distinción entre interfaz de red y servidor.
   Future<void> refrescar() async {
     final revision = ++_revision;
     try {

@@ -21,15 +21,9 @@ import '../services/almacenamiento_token.dart';
 import '../database/repositorio_sesion_local.dart';
 import '../../modules/arranque/controlador_arranque.dart';
 
-/// Centraliza la selección e inyección del canal API mediante GetX.
-/// Conserva el transporte global mientras la aplicación está abierta para que
-/// retirar Login no cierre el cliente que todavía utiliza sincronización.
+/// Conserva el transporte global mientras la aplicación está abierta para que retirar Login no cierre el cliente que todavía utiliza sincronización.
 class DependenciasApp extends Bindings {
   /// Registra IConexionApi como Conexion permanente con un cliente propio.
-  /// No abre sockets hasta una petición; conserva el canal entre rutas y permite
-  /// sustituirlo previamente en pruebas. onClose lo libera al finalizar la app.
-  /// Conserva una fachada de sesión persistente y recrea servicios/controllers por ruta
-  /// para liberar campos al navegar y obtener un formulario vacío al cerrar sesión.
   @override
   void dependencies() {
     if (!Get.isRegistered<IConexionApi>()) {

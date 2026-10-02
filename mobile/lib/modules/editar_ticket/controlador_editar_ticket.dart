@@ -6,7 +6,6 @@ import '../../app/database/repositorio_tickets.dart';
 import '../../app/services/servicio_sesion.dart';
 
 /// Edita únicamente título, descripción y programación propios desde SQLite.
-/// Relee estado al guardar para conservar identidad y bloquear tickets resueltos.
 class ControladorEditarTicket extends GetxController {
   final RepositorioTickets tickets;
   final ServicioSesion sesion;

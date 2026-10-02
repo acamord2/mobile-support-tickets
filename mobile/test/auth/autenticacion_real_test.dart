@@ -15,7 +15,7 @@ void main() {
   const password = String.fromEnvironment('DEMO_PASSWORD');
   test('Autenticación real y /me con JWT en memoria', () async {
     if (usuario.isEmpty || password.isEmpty) {
-      fail('Proporciona la credencial demo externa desde DATOS_PRUEBA.md.');
+      fail('Proporciona la credencial demo externa desde database/PostgreSQL/v1/DATOS_PRUEBA.sql.');
     }
     final conexion = Conexion(ClienteApi());
     addTearDown(conexion.close);

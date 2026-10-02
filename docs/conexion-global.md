@@ -1,5 +1,7 @@
 Nota: documento histórico. La nomenclatura y separación SQL actuales están en modularizacion.md.
 
+> Registro histórico: la instalación vigente está en [README](../README.md) y en `database/PostgreSQL/v1/BD_COMPLETA.sql`. Los instaladores y migraciones anteriores se conservan en Git; no seguir sus instrucciones como instalación actual.
+
 # Conexión global, configuración local y versionado
 
 ## Puntos centrales

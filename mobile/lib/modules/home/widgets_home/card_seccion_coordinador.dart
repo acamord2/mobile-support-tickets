@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-/// Presenta expansión controlada externamente; no almacena estado individual que permita dos listas abiertas.
 class CardSeccionCoordinador extends StatelessWidget {
   final String titulo, resumen;
   final bool abierta;

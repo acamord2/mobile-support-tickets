@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 
 /// Centraliza los colores utilizados por Login, Home, tarjetas y mensajes de error.
-/// Comparte constantes de Color para mantener una presentación consistente
-/// sin repetir valores en las vistas ni agregar un sistema de diseño complejo.
 abstract class ColoresApp {
   static const background = Color(0xFFFAFAFA);
   static const text = Color(0xFF212121);

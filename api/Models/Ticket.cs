@@ -1,10 +1,6 @@
 namespace Tickets.Api.Models;
 
-/// <summary>
-/// Mapea una incidencia de Tickets con su sucursal, técnico asignado y estado.
-/// Conserva los campos aprobados para preparar persistencia sin implementar
-/// todavía endpoints de atención, historial ni sincronización.
-/// </summary>
+/// <summary>Conserva los campos aprobados para preparar persistencia sin implementar todavía endpoints de atención, historial ni sincronización.</summary>
 public class Ticket
 {
     public int Id { get; set; }

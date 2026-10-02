@@ -2,11 +2,9 @@ import 'dart:convert';
 import 'estado_sincronizacion.dart';
 
 /// Identifica las modificaciones locales que podrán enviarse en etapas posteriores.
-/// Se serializa por nombre sin incluir rutas HTTP ni verbos dentro de la UI.
 enum TipoOperacionLocal { crear, actualizar, eliminar }
 
 /// Representa una fila técnica de cola con payload JSON y metadatos de reintento.
-/// No incluye sesión, token ni credenciales; el repositorio valida su persistencia.
 class OperacionPendiente {
   final int id;
   final int? usuarioId;
@@ -19,7 +17,6 @@ class OperacionPendiente {
   final String? ultimoError;
 
   /// Reconstruye una fila SQLite mediante enum, fecha UTC y JSON controlado.
-  /// El mapeo vive junto al modelo técnico, fuera de módulos y presentación.
   OperacionPendiente.desdeFila(Map<String, Object?> fila)
     : id = fila['id'] as int,
       usuarioId = fila['usuario_id'] as int?,

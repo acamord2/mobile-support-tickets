@@ -1,5 +1,4 @@
 /// Entrega datos o un mensaje público sin propagar SQL, payload ni excepciones.
-/// Conserva un resultado común para operaciones locales de distintos módulos.
 class ResultadoSqlite<T> {
   final T? datos;
   final String? mensaje;

@@ -3,8 +3,6 @@ import '../../../app/constants/textos_app.dart';
 import '../../../app/theme/colores_app.dart';
 import '../../../app/theme/fuentes_app.dart';
 
-/// Representa atención disponible o estado de consulta sin decidir transiciones.
-/// Mantiene la acción grande y bloqueada durante persistencia local.
 class AccionDetalleTicket extends StatelessWidget {
   final bool puedeComenzar, guardando;
   final String estado;

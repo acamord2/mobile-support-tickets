@@ -12,8 +12,6 @@ import 'widgets_home/card_seccion_coordinador.dart';
 import 'seccion_coordinador.dart';
 import '../../models/ticket_local.dart';
 
-/// Compone Home desde estado local del controller y delega todas sus acciones.
-/// Separa cabecera, identidad, filtros y lista sin añadir consultas ni fechas.
 class VistaInicio extends GetView<ControladorInicio> {
   const VistaInicio({super.key});
   @override

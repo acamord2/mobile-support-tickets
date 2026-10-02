@@ -15,8 +15,7 @@ import '../../app/database/repositorio_tickets.dart';
 import '../../app/database/repositorio_sucursales.dart';
 import '../../app/constants/textos_app.dart';
 
-/// Coordina agenda exclusivamente local y eventos de sincronización; el servicio
-/// escribe SQLite y después se refresca el repositorio, nunca API hacia widgets.
+/// Coordina agenda exclusivamente local y eventos de sincronización; el servicio escribe SQLite y después se refresca el repositorio, nunca API hacia widgets.
 class ControladorInicio extends GetxController {
   final ServicioSesion _sesion;
   final RepositorioTickets? repositorio;
@@ -109,7 +108,6 @@ class ControladorInicio extends GetxController {
   final filtrosSeleccionados = <FiltroAgenda>{}.obs;
 
   /// Filtra por unión de estados sin alterar agenda, orden ni conteos totales.
-  /// Una selección vacía representa todos los tickets previamente cargados.
   List<TicketLocal> get ticketsVisibles {
     final seleccion = filtrosSeleccionados.toSet();
     return seleccion.isEmpty
@@ -229,7 +227,6 @@ class ControladorInicio extends GetxController {
   }
 
   /// Abre el formulario con el tipo de ruta de GetX y recarga SQLite al regresar.
-  /// No requiere convertir el resultado a bool porque siempre refresca la lista.
   Future<void> nuevo() async {
     await Get.toNamed(Rutas.nuevoTicket);
     if (!isClosed) await cargar();

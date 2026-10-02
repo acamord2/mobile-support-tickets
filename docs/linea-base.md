@@ -1,5 +1,7 @@
 Nota: documento histórico. La nomenclatura y separación SQL actuales están en modularizacion.md.
 
+> Registro histórico: la instalación vigente está en [README](../README.md) y en `database/PostgreSQL/v1/BD_COMPLETA.sql`. Los instaladores y migraciones anteriores se conservan en Git; no seguir sus instrucciones como instalación actual.
+
 # Línea base definitiva
 
 Este reporte corresponde a la reorganización anterior. Los Controllers fueron
@@ -34,7 +36,7 @@ infraestructura.md y README para la ubicación y validaciones actuales.
     appsettings.json
     appsettings.Development.json
     Tickets.Api.csproj
-  database/DATABASE.md
+  database/PostgreSQL/v1/DATABASE.sql
   docs/linea-base.md
   README.md
   .gitignore
@@ -53,7 +55,7 @@ No se eliminó ninguna entidad ni la abstracción de acceso a usuarios. TicketHi
 
 ## Archivos creados
 
-- `database/DATABASE.md`.
+- `database/PostgreSQL/v1/DATABASE.sql`.
 - `mobile/lib/app/routes/app_routes.dart`.
 - `mobile/lib/app/routes/app_pages.dart`.
 - `mobile/lib/views/initial_view.dart`.

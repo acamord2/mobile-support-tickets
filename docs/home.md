@@ -1,5 +1,7 @@
 # Home principal de la aplicación
 
+> Registro histórico: la instalación vigente está en [README](../README.md) y en `database/PostgreSQL/v1/BD_COMPLETA.sql`. Los instaladores y migraciones anteriores se conservan en Git; no seguir sus instrucciones como instalación actual.
+
 Este documento conserva la etapa anterior de Home. La implementación vigente de Mi Agenda, SQLite v3 y sincronización se describe en [tickets-agenda.md](tickets-agenda.md).
 
 ## Responsabilidad y estructura

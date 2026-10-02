@@ -1,6 +1,4 @@
 /// Centraliza los paths HTTP de endpoints existentes, separados de las rutas GetX.
-/// Evita strings repetidos en consumidores y permite cambiar los contratos desde
-/// un único archivo; no anticipa endpoints de funcionalidades todavía inexistentes.
 abstract class RutasApi {
   static const tecnicos = '/api/technicians';
   static String asignacion(int ticket) => '/api/tickets/$ticket/assignment';

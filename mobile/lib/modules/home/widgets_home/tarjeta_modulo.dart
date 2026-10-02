@@ -3,9 +3,6 @@ import '../../../app/constants/textos_app.dart';
 import '../../../app/theme/colores_app.dart';
 import '../../../app/theme/fuentes_app.dart';
 
-/// Representa un acceso con icono, título, descripción, acción y disponibilidad.
-/// Reutiliza estilo y semántica; deshabilitado no responde y muestra texto explícito
-/// para que su estado no dependa únicamente del color.
 class TarjetaModulo extends StatelessWidget {
   final IconData icono;
   final String titulo;
@@ -13,7 +10,6 @@ class TarjetaModulo extends StatelessWidget {
   final VoidCallback? accion;
   final bool habilitado;
 
-  /// Recibe contenido y evento desde composición sin decidir reglas de negocio.
   const TarjetaModulo({
     super.key,
     required this.icono,
@@ -23,8 +19,6 @@ class TarjetaModulo extends StatelessWidget {
     this.habilitado = true,
   });
 
-  /// Hace interactiva toda la superficie solo cuando hay una acción habilitada.
-  /// Los textos crecen sin altura fija y la semántica comunica disponibilidad.
   @override
   Widget build(BuildContext context) {
     final disponible = habilitado && accion != null;

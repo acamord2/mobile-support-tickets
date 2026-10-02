@@ -1,6 +1,4 @@
-/// Centraliza URL y timeout sin introducir un sistema de environments.
-/// API_BASE_URL se establece con --dart-define; el valor predeterminado permite
-/// que Android Emulator alcance la API del equipo mediante su dirección especial.
+/// API_BASE_URL se establece con --dart-define; el valor predeterminado permite que Android Emulator alcance la API del equipo mediante su dirección especial.
 abstract class ConfiguracionApi {
   static const baseUrl = String.fromEnvironment(
     'API_BASE_URL',

@@ -7,20 +7,14 @@ import '../../models/sesion_usuario.dart';
 import '../../app/services/servicio_conectividad.dart';
 
 /// Autentica mediante el contrato de conexión y convierte JSON a modelos simples.
-/// Concentra payload y status del login para que controllers y vistas no conozcan
-/// HTTP, URLs, JSON o excepciones técnicas; no guarda credenciales ni sesiones.
 class ServicioAutenticacion {
   final IConexionApi _conexion;
   final ServicioConectividad? _conectividad;
 
-  /// Recibe el canal desde DI para reutilizar infraestructura y probarlo sin red.
-  /// No crea transportes dentro del servicio ni acopla autenticación a http.
   ServicioAutenticacion(this._conexion, {ServicioConectividad? conectividad})
     : _conectividad = conectividad;
 
-  /// Envía el contrato username/password a la ruta central y valida la respuesta.
-  /// Solo 200 con sesión válida resulta exitoso; los demás estados se traducen
-  /// a mensajes en español sin mostrar cuerpos, JWT o excepciones al consumidor.
+  /// Solo 200 con sesión válida resulta exitoso; los demás estados se traducen a mensajes en español sin mostrar cuerpos, JWT o excepciones al consumidor.
   Future<ResultadoAutenticacion> iniciarSesion(
     String usuario,
     String password,

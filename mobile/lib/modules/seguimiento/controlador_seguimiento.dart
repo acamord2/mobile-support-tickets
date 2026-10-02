@@ -10,7 +10,6 @@ import '../../app/services/servicio_imagen.dart';
 import '../../app/database/repositorio_eventos.dart';
 
 /// Registra trabajo descriptivo con foto opcional usando evidencia y cola existentes.
-/// La compresión pertenece a ServicioImagen; ninguna acción depende de conectividad.
 class ControladorSeguimiento extends GetxController {
   final RepositorioTickets tickets;
   final RepositorioEvidencias evidencias;

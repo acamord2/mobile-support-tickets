@@ -6,7 +6,6 @@ import 'identificador_cliente.dart';
 import 'repositorio_evidencias.dart';
 
 /// Persiste instantáneas cronológicas con UUID estable y la cola técnica existente.
-/// No contiene Base64: las imágenes se enlazan con evidencias del mismo ticket.
 class RepositorioEventos {
   final OperacionesSqlite sql;
   RepositorioEventos(this.sql);

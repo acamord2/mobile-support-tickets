@@ -1,5 +1,7 @@
 # Arquitectura local-first, módulos y reglas de UI
 
+> Registro histórico: la instalación vigente está en [README](../README.md) y en `database/PostgreSQL/v1/BD_COMPLETA.sql`. Los instaladores y migraciones anteriores se conservan en Git; no seguir sus instrucciones como instalación actual.
+
 ## Decisión y alcance actual
 
 SQLite será la fuente inmediata de información persistente de negocio para Flutter. La API mantiene la copia local sincronizada con PostgreSQL; una respuesta remota no alimenta directamente una vista de negocio. La autenticación es la excepción autorizada: el login existente requiere validación online y conserva sesión/JWT únicamente en memoria.
