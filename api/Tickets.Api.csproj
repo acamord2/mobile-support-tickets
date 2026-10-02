@@ -4,7 +4,11 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <UserSecretsId>ce8894f4-5c74-441b-a964-b601e9520a3c</UserSecretsId>
+    <!-- Ajustar IdentificadorAlmacenSecrets para seleccionar otro almacén local.
+         ASP.NET Core lo carga en Development; las claves internas se seleccionan
+         mediante SecretsApi en appsettings.json, sin cambiar código. -->
+    <IdentificadorAlmacenSecrets>ce8894f4-5c74-441b-a964-b601e9520a3c</IdentificadorAlmacenSecrets>
+    <UserSecretsId>$(IdentificadorAlmacenSecrets)</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>

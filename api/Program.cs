@@ -22,12 +22,7 @@ builder.Services.AddScoped<IPasswordHasher<Usuario>, PasswordHasher<Usuario>>();
 builder.Services.AddScoped<ServicioAutenticacion>();
 builder.Services.AddScoped<IServicioSaludBaseDatos, ServicioSaludBaseDatos>();
 
-// Impide iniciar con una configuración JWT incompleta.
-builder.Services.AddOptions<OpcionesJwt>()
-    .Bind(builder.Configuration.GetSection("Jwt"))
-    .ValidateDataAnnotations()
-    .Validate(options => Encoding.UTF8.GetByteCount(options.Key) >= 32, "Jwt:Key debe tener al menos 32 bytes.")
-    .ValidateOnStart();
+ConfiguracionSecretsApi.Registrar(builder.Services, builder.Configuration);
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer();
 builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)

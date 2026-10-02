@@ -52,6 +52,26 @@ dotnet restore api/Tickets.Api.csproj
 dotnet run --project api/Tickets.Api.csproj --launch-profile lan
 ```
 
+`ConfiguracionSecretsApi` contiene únicamente los nombres `ClaveConexionBaseDatos` y `ClaveJwt`; nunca contiene sus valores. Se enlaza y valida con Options Pattern al arrancar. La selección no sensible está en `appsettings.json`:
+
+```json
+"SecretsApi": {
+  "ClaveConexionBaseDatos": "ConnectionStrings:DefaultConnection",
+  "ClaveJwt": "Jwt:Key"
+}
+```
+
+Para usar varias conexiones/claves, guardar cada valor en User Secrets, por ejemplo `ConnectionStrings:ApiPrincipal`, `ConnectionStrings:ApiPruebas`, `Jwt:ApiPrincipal` y `Jwt:ApiPruebas`. Elegir únicamente los nombres en `SecretsApi:ClaveConexionBaseDatos` y `SecretsApi:ClaveJwt`, sin cambiar código. Una selección alternativa sería:
+
+```json
+"SecretsApi": {
+  "ClaveConexionBaseDatos": "ConnectionStrings:ApiPrincipal",
+  "ClaveJwt": "Jwt:ApiPrincipal"
+}
+```
+
+Los valores se suministran externamente con `dotnet user-secrets set "ConnectionStrings:DefaultConnection" "<cadena>" --project api` y `dotnet user-secrets set "Jwt:Key" "<clave>" --project api`, o usando los nombres alternativos elegidos. `IdentificadorAlmacenSecrets` en `Tickets.Api.csproj` identifica el almacén de desarrollo; cambiar claves dentro del mismo almacén solo requiere ajustar `SecretsApi`. La API rechaza nombres/valores vacíos y JWT inferior a los mínimos existentes: 32 caracteres y 32 bytes UTF-8, sin mostrar valores.
+
 El perfil `lan` escucha HTTP en el puerto 5263 para desarrollo. Abrir [Swagger local](http://localhost:5263/swagger). Login y `GET /api/health/database` son anónimos; las operaciones de negocio y `/api/auth/me` requieren JWT. La clave, conexión y JWT completos no se publican en el repositorio ni en respuestas de diagnóstico.
 
 ### Ejecución en Linux
@@ -59,6 +79,8 @@ El perfil `lan` escucha HTTP en el puerto 5263 para desarrollo. Abrir [Swagger l
 Con PostgreSQL y .NET 10 instalados, crear la base con el mismo script. Para una ejecución local de desarrollo, configurar variables fuera del repositorio y publicar:
 
 ```sh
+export SecretsApi__ClaveConexionBaseDatos='ConnectionStrings:DefaultConnection'
+export SecretsApi__ClaveJwt='Jwt:Key'
 export ConnectionStrings__DefaultConnection='Host=localhost;Port=5432;Database=tickets_db;Username=TU_USUARIO;Password=TU_PASSWORD'
 export Jwt__Key='TU_CLAVE_ALEATORIA_DE_AL_MENOS_32_BYTES'
 export ASPNETCORE_ENVIRONMENT=Development
@@ -66,6 +88,8 @@ export ASPNETCORE_URLS='http://0.0.0.0:5263'
 dotnet publish api/Tickets.Api.csproj -c Release -o /tmp/tickets-api
 dotnet /tmp/tickets-api/Tickets.Api.dll
 ```
+
+Las variables `SecretsApi__ClaveConexionBaseDatos` y `SecretsApi__ClaveJwt` también pueden seleccionar otras claves; proporcionar sus valores equivalentes, por ejemplo `ConnectionStrings__ApiPrincipal` y `Jwt__ApiPrincipal`.
 
 Este modo habilita Swagger/HTTP para demostración. Un despliegue público requiere configurar HTTPS y operación del servicio; esos elementos no están implementados. No se realizó una prueba de despliegue Linux.
 
@@ -143,3 +167,5 @@ flutter test
 La última suite completa aprobó 96 pruebas y omitió dos integraciones optativas que requieren configuración externa. PostgreSQL v1 se instaló desde cero y su catálogo se comparó con el vigente; SQL Server tiene revisión estática. El usuario confirmó la validación funcional física. Las pruebas automatizadas cubren roles, sesión, migraciones, offline, sincronización, evidencias, timeline, solicitudes y Home.
 
 [Guion de video, 2:55](docs/guion-video.md).
+
+Pruebas aisladas de selección/validación de configuración: `dotnet run --project tests/api/PruebasApi.csproj -- --configuracion`. No abren PostgreSQL ni consultan User Secrets.

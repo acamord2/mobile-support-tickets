@@ -1,5 +1,7 @@
 using System.Data.Common;
 using Npgsql;
+using Microsoft.Extensions.Options;
+using Tickets.Api.Services;
 
 namespace Tickets.Api.Data.Connections;
 
@@ -8,12 +10,15 @@ public sealed class Conexion : IConexion
 {
     private readonly string _connectionString;
 
-    /// <summary>Lee DefaultConnection desde configuración y desactiva PersistSecurityInfo.</summary>
+    /// <summary>Lee la conexión seleccionada y desactiva PersistSecurityInfo.</summary>
     /// <param name="configuration">Configuración central del host ASP.NET Core.</param>
-    public Conexion(IConfiguration configuration)
+    /// <param name="seleccion">Nombres de claves validados al iniciar; no contiene credenciales.</param>
+    public Conexion(IConfiguration configuration, IOptions<ConfiguracionSecretsApi> seleccion)
     {
-        var configured = configuration.GetConnectionString("DefaultConnection")
-            ?? throw new InvalidOperationException("Falta configurar DefaultConnection.");
+        var clave = seleccion.Value.ClaveConexionBaseDatos;
+        var configured = configuration[clave];
+        if (string.IsNullOrWhiteSpace(configured))
+            throw new InvalidOperationException("No se encontró la configuración de conexión indicada por SecretsApi.");
         var settings = new NpgsqlConnectionStringBuilder(configured)
         {
             PersistSecurityInfo = false

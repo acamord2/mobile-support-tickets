@@ -8,6 +8,12 @@ using System.Text.Json;
 using Tickets.Api.DTOs;
 using Tickets.Api.Services;
 
+if (args.Contains("--configuracion"))
+{
+    PruebasConfiguracionSecrets.Ejecutar();
+    return;
+}
+
 // Comprueba reglas sin dependencias de pruebas adicionales. El modo real requiere
 // autorización y conserva exactamente un ticket y una evidencia de validación.
 if(ValidacionEvidencia.Valida(new(){Description="Prueba",PhotoBase64="data:image/jpeg;base64,AA==",Mime="image/jpeg"})) throw new Exception("Prefijo aceptado.");
