@@ -1,55 +1,47 @@
-# Tickets y agenda local-first
+# Agenda y tickets
 
-> Registro histórico: la instalación vigente está en [README](../README.md) y en `database/PostgreSQL/v1/BD_COMPLETA.sql`. Los instaladores y migraciones anteriores se conservan en Git; no seguir sus instrucciones como instalación actual.
+## Roles y pantallas
 
-## Flujo del MVP
+Usuario consulta sus reportes y crea sin técnico ni programación. Técnico consulta únicamente asignados. Coordinador consulta tickets propios, su equipo y la bolsa común sin asignar; Administrador tiene alcance global. No existe tenant/zona de coordinación en el esquema. La API verifica usuario activo y alcance actual, además de los controles visuales.
 
-Crear → detalle → editar programación → comenzar atención → registrar seguimiento → resolver → sincronizar. Toda escritura se guarda primero en SQLite, con evento y cola en la misma transacción lógica. Las vistas no consultan HTTP. Home conserva agenda, conteos y filtros.
+Home consulta SQLite, distingue Pending, InProgress, Resolved y Cancelled y combina filtros seleccionados. Coordinador tiene las cuatro secciones Mis tickets, Técnicos a mi cargo, Sin asignar y Solicitudes en un acordeón con una sola sección abierta; abrir un técnico muestra su agenda local. El detalle presenta problema, sucursal/dirección, estado, programación, responsables, evidencias, solicitudes y timeline.
 
-Editar permite título, descripción y ScheduledAt; conserva sucursal, identidad, UUID y estado. Las únicas transiciones son Pending → InProgress → Resolved. Resolver exige un evento manual SEGUIMIENTO previo, con texto, foto o ambos. Los eventos automáticos y las evidencias antiguas no sustituyen ese requisito. Resolved conserva consulta de historia y evidencias, sin edición ni reapertura.
+## Flujo y solicitudes
 
-## Cronología y autoría
+Crear reporte → programar/asignar por Coordinador → iniciar atención por responsable → seguimiento → solicitar resolución/cancelación → revisión por Coordinador/Administrador. Administrador puede ejecutar operaciones globales; Coordinador atiende los tickets asignados a él. La creación previa del Técnico se conserva autoasignada.
 
-La creación registra CREADO y PROGRAMADO. Cambiar la cita registra REPROGRAMADO con PreviousScheduledAt y ScheduledAt. Iniciar y resolver registran EN_ATENCION y RESUELTO. Los eventos son instantáneas inmutables, ordenadas por CreatedAt e Id; no se generan por UpdatedAt, confirmación o reintento.
+`ScheduledAt` admite NULL: Sin programar. Programación y reprogramación pertenecen exclusivamente a Coordinador/Administrador; no se sustituye una cita ausente por CreatedAt. Asignar/reasignar conserva identidad y UUID. Los tickets finales no admiten nuevas operaciones de atención o asignación.
 
-El autor remoto se conserva mediante UserId y se entrega con nombre público. SQLite conserva autor_id y usuario_nombre; usuario_id identifica al propietario de la caché/cola. Mostrar un evento no toma el autor de la sesión actual. Las fechas se normalizan a UTC ISO-8601 y la UI las convierte a hora local.
+Solicitud: SOLICITUD_RESOLUCION o SOLICITUD_CANCELACION; estados PENDIENTE/APROBADA/RECHAZADA. Cancelar exige motivo y resolver admite comentario opcional. Registrar una solicitud no cambia el estado. Un equivalente pendiente se rechaza; reintentar el mismo UUID devuelve el mismo registro.
 
-Las evidencias previas permanecen disponibles en una sección separada cuando no están enlazadas a un evento. No se inventan eventos antiguos ni se atribuyen acciones históricas desconocidas.
+Aprobar guarda revisión, revisor, fecha, estado final y eventos de decisión/finalización en una transacción PostgreSQL. Rechazar guarda la decisión sin cambiar el ticket. Usuario/Técnico no pueden cerrar directamente mediante PUT ni revisar solicitudes.
 
-## SQLite v4
+## Persistencia, cronología y sincronización
 
-La migración v3 → v4 añade ticket_eventos con claves local/remota, ticket local, propietario, autor, tipo, descripción, fecha original, UUID, citas anterior/nueva, evidencia local opcional y sync_status. Las referencias remotas se obtienen de tickets/evidencias; no se duplica Base64. Se conservan sesión, tickets, sucursales, evidencias y cola. Las migraciones anteriores siguen disponibles para instalaciones v1/v2.
+Cada acción confirma datos, eventos y cola en SQLite antes de actualizar UI e intentar envío automático. La cola pertenece a una cuenta, conserva claves/instantáneas y sobrevive a logout. Otra cuenta no la procesa. Un ciclo exclusivo envía dependencias en orden: ticket → evidencia opcional → evento; solicitudes/revisiones conservan claves propias para sus eventos transaccionales.
 
-Cada UUID se genera una sola vez. La cola guarda referencias pequeñas y propietario, sin JWT, contraseña ni fotografía. Otra cuenta no consulta ni procesa registros ajenos. Logout conserva negocio y pendientes; JWT permanece en flutter_secure_storage.
+Descargas concilian Id remoto/UUID y respetan pending. Falta de red, timeout, fallo API o rechazo no borra trabajo. ↻ reintenta; abrir Home y recuperar conectividad también dispara sincronización. No hay polling ni segundo sincronizador. Un 401 conserva identidad local y bloquea operaciones remotas hasta reautenticación.
 
-## API
+SQLite está en versión 6. Sus migraciones preservan sesión, tickets, evidencias, eventos y cola; reconstruir nullable/CHECK verifica recuentos y foreign_key_check antes de confirmar. La liberación de contadores diferidos de SQLite ocurre después de comprobar referencias reales.
 
-| Endpoint | Responsabilidad |
+Timeline usa fechas UTC originales, mostradas en horario local, y autor persistido; no toma la identidad de la sesión actual. Tipos: CREADO, PROGRAMADO, REPROGRAMADO, ASIGNADO, REASIGNADO, EN_ATENCION, SEGUIMIENTO, SOLICITUD_RESOLUCION, SOLICITUD_CANCELACION, RESOLUCION_APROBADA, RESOLUCION_RECHAZADA, CANCELACION_APROBADA, CANCELACION_RECHAZADA, RESUELTO y CANCELADO. No se reconstruye historia desconocida de tickets antiguos. Evidencias no enlazadas siguen consultables por separado.
+
+## Contrato HTTP existente
+
+| Endpoint | Uso |
 |---|---|
-| GET /api/tickets | Agenda propia |
-| POST /api/tickets | Crear por UUID persistente |
-| PUT /api/tickets/{id} | Actualizar campos operativos propios |
-| GET /api/branches | Catálogo para caché |
-| POST /api/tickets/{id}/evidence | Validar y guardar evidencia |
-| POST /api/tickets/{id}/events | Guardar instantánea idempotente |
-| GET /api/tickets/{id}/events | Descargar cronología con autor público |
+| POST /api/auth/login · GET /api/auth/me | Autenticación e identidad pública |
+| GET /api/health/database | Conectividad anónima, sin consultar tablas |
+| GET /api/branches · GET /api/technicians | Catálogos autorizados |
+| GET /api/tickets · POST /api/tickets | Descargar agenda y crear por UUID |
+| PUT /api/tickets/{id} | Editar/iniciar dentro del permiso actual |
+| PUT /api/tickets/{id}/assignment | Asignar/reasignar |
+| GET /api/tickets/{id}/events · POST /api/tickets/{id}/events | Cronología idempotente |
+| POST /api/tickets/{id}/evidence | Evidencia inicial/técnica validada |
+| POST /api/tickets/{id}/status-requests | Crear solicitud |
+| GET /api/ticket-status-requests | Consultar solicitudes; pendientes por defecto |
+| PUT /api/ticket-status-requests/{id}/review | Aprobar/rechazar |
 
-Un endpoint corresponde a una clase y archivo. Controllers no contienen SQL; AccesoEventosPostgres reutiliza IConexion y parámetros. El JWT aporta el autor y se comprueba usuario activo y propiedad. No se permite elegir UserId ni enviar Base64 en el evento.
+Las vistas consultan repositorios locales, no HTTP. Cada endpoint tiene su controller; SQL parametrizado permanece en Data. JWT aporta identidad, nunca el cliente elige autor/revisor. Las FK compuestas impiden enlazar fotos de otro ticket y las claves únicas sostienen idempotencia.
 
-TicketEvents se instaló mediante la única migración PostgreSQL autorizada, sin datos demo adicionales, borrados ni otros ALTER. Sus FK son restrictivas y la relación compuesta impide enlazar evidencia de otro ticket. UNIQUE(UserId, ClientRequestId) garantiza idempotencia; INSERT ON CONFLICT y lectura posterior recuperan el mismo Id. La API no genera una segunda copia automática al recibir PUT. SQL Server permanece documentado y no ejecutado.
-
-## Sincronización
-
-Se extiende ServicioSincronizacion existente: confirmar ticket remoto → confirmar evidencia opcional → enviar evento con referencias remotas. Cada operación mantiene su pendiente hasta confirmarse; negocio y evento tienen confirmaciones independientes. Un fallo de imagen conserva los pendientes y no recrea el ticket confirmado. Los reintentos conservan el UUID original del evento.
-
-El ciclo descarga sucursales, tickets/evidencias y eventos a SQLite; reconoce Id remoto/UUID, conserva instantáneas existentes y no pisa negocio pending. Home vuelve a consultar repositorios. No hay otro sincronizador, polling, resolución avanzada de conflictos ni cambios de LAN/puertos/perfiles. Un 401 conserva trabajo e identidad local y exige reautenticación para operaciones remotas.
-
-## Validación
-
-dotnet build: cero errores/advertencias tras liberar el ejecutable de la API anterior. flutter analyze: sin incidencias. La única suite final aprobó 84 pruebas y omitió dos opt-in; falló una expectativa antigua de versión 3, corregida a 4 y revalidada únicamente en su archivo: siete pruebas aprobadas.
-
-Las pruebas específicas verifican migración real v3→v4 sin pérdida de filas, autor persistido, foto sola válida, vacío inválido, previsualización de los bytes procesados, resolución con seguimiento manual y sincronización después de fallo de evidencia sin duplicar ticket ni eventos. Swagger publica ambos endpoints de eventos y health LAN devuelve 200.
-
-El APK debug se compiló con API_BASE_URL LAN aprobada y se instaló con adb install -r, sin desinstalar ni borrar datos. Se comprobó migración física a v4 y conservación de tickets, evidencias, cola e identidad. La revisión manual final del flujo está pendiente de confirmación del usuario; Android bloquea INJECT_EVENTS. No se utiliza flutter drive ni emulador.
-
-BD_COMPLETA_POSTGRESQL.md permanece intacto y sin versionar; DATOS_PRUEBA.md conserva su modificación previa fuera de esta etapa. Documentación de código relevante revisada en español.
+Instalación y credenciales: [README](../README.md). Pruebas: roles/alcance, preservación de migraciones, ciclos exclusivos, reintentos, autoría, rechazo/aprobación y acordeón. La validación funcional física fue confirmada por el usuario; no se repite como parte del cierre documental.

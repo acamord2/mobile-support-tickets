@@ -1,25 +1,25 @@
-# Evidencias e imágenes
+# Evidencias
 
-## Seguimiento
+La fotografía es opcional. Usuario puede agregar evidencia inicial a su reporte pendiente; responsable Técnico/Coordinador asignado y Administrador pueden registrar seguimiento durante la atención. Un seguimiento admite texto, foto o ambos; vacío se rechaza. Resolved/Cancelled conservan consulta y no nuevas evidencias, salvo reintentos de registros ya confirmados.
 
-Un ticket En atención admite seguimiento con texto, texto y foto o solamente foto. Sin ambos se rechaza. Guardar persiste SEGUIMIENTO, evidencia opcional y cola dentro de una transacción local; no espera API. Resolver exige ese evento manual; los eventos automáticos no cuentan. Un ticket Resuelto permite consulta y no nuevas modificaciones.
+## Captura y procesamiento
 
-TicketEvents enlaza EvidenceId nullable y nunca contiene Base64. La FK compuesta exige que foto y evento pertenezcan al mismo ticket. Un seguimiento descriptivo no crea una evidencia vacía. Para foto sola se conserva descripción vacía del evento y una leyenda compatible en Evidences.Description.
+image_picker selecciona cámara/galería. ServicioImagen procesa fuera del hilo de UI: aplica orientación, reduce inicialmente el lado mayor a 1600, produce JPEG y baja calidad/dimensiones mediante intentos acotados. El máximo es **1 MiB de bytes JPEG comprimidos**, antes de Base64; no es el tamaño de la cadena.
 
-## Procesamiento y previsualización
+La previsualización representa exactamente los bytes procesados que se guardarán. Cambiar reemplaza el borrador y Quitar lo retira; ninguna acción persiste antes de Guardar. No se incluyen fotografías ni Base64 reales en la documentación.
 
-Cámara/galería utilizan image_picker. ServicioImagen procesa bytes en isolate con image: aplica orientación, reduce la dimensión mayor a 1600, produce JPEG y reduce calidad/dimensiones con intentos acotados. El máximo es 1 MiB de bytes comprimidos antes de Base64; nunca se trunca contenido. Devuelve MIME image/jpeg y contenido completo.
+## Guardado y envío
 
-El formulario muestra Image.memory con el Base64 procesado que realmente se almacenará. Cámara/galería permiten reemplazar la selección; Quitar elimina solamente el borrador. No hay escritura hasta Guardar. La línea de tiempo vuelve a mostrar la imagen desde evidencias SQLite, sin copia en eventos. Las evidencias anteriores no enlazadas siguen disponibles por separado.
+Acción → transacción SQLite → UI inmediata → intento automático. Si no se puede enviar, permanece en la cola y ↻ reintenta. Primero se confirma el ticket, luego evidencia y evento con referencias remotas; fallo de imagen no recrea el ticket ya confirmado.
 
-## Persistencia y envío
+La evidencia inicial se enlaza a CREADO y la de atención a SEGUIMIENTO. TicketEvents guarda únicamente EvidenceId, nunca Base64; su FK compuesta exige el mismo ticket. Las evidencias antiguas sin enlace siguen consultables. Un seguimiento solo de texto no crea una evidencia vacía.
 
-SQLite usa ticket_id_local y una referencia opcional desde ticket_eventos. La cola conserva solo identificadores locales y propietario. Se confirma primero el ticket, después la evidencia si existe y finalmente el evento. Si falla la imagen, se conserva pendiente para reintento y no se recrea el ticket confirmado.
+Evidences conserva PhotoBase64 completo sin prefijo data URI. PhotoPath permanece como campo compatible, sin usarlo como ubicación remota de la foto. No hay almacenamiento cloud.
 
-La API valida usuario activo, propiedad, descripción compatible, MIME JPEG, Base64 decodificable, límite de bytes y firmas JPEG inicial/final. No realiza inspección completa de píxeles; Flutter produce y prueba la imagen decodificable. PhotoBase64 conserva contenido íntegro; PhotoPath no se reutiliza. No hay almacenamiento cloud.
+## Validación y limitación real
 
-La evidencia remota se deduplica por TicketId + Description + PhotoBase64 bajo bloqueo transaccional del ticket. Dos evidencias intencionalmente idénticas pueden compartir el mismo registro; distintos eventos conservan UUID propios y pueden referenciar esa imagen sin duplicarla. El evento se deduplica mediante UNIQUE(UserId, ClientRequestId).
+La API valida usuario activo, alcance, condición inicial/técnica, texto compatible, MIME JPEG, Base64 decodificable, límite de bytes y firmas JPEG inicial/final. No inspecciona todos los píxeles; Flutter genera y comprueba la imagen procesada.
 
-## Validación
+Deduplicación remota: TicketId + Description + PhotoBase64 bajo bloqueo transaccional. Dos imágenes intencionalmente idénticas pueden compartir evidencia, manteniendo eventos con UUID independientes. El timeline se deduplica por UserId/ClientRequestId.
 
-Pruebas específicas: seguimiento sin foto, solo foto, vacío rechazado, doble pulsación, JPEG comprimido, previsualización exacta, quitar/reemplazar sin persistir, envío y descarga, fallo de evidencia y reintento sin duplicados. La revisión física manual de previsualización y cronología está pendiente de confirmación del usuario. El APK LAN se instaló por reemplazo, preservando negocio e identidad. No se utilizan flutter drive ni fotografías personales en pruebas automatizadas. iOS no se compiló ni probó en Windows.
+Las pruebas cubren foto sola, texto solo, vacío, compresión, previsualización, cambio/quitar, envío/descarga y reintento sin duplicación. El usuario confirmó el flujo funcional físico. iOS no se compiló ni probó.
