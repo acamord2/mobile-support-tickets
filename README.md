@@ -25,9 +25,11 @@ database/
 docs/         Agenda, evidencias, decisiones y guion del video
 ```
 
-## Requisitos e instalación de la base
+## Instalación desde cero
 
 Se utilizaron Flutter 3.41.9 / Dart 3.11.5, SDK Android, .NET SDK 10 y PostgreSQL 17. Para la app física se necesita un teléfono Android conectado por USB y con acceso a la API.
+
+### A) Base de datos
 
 **PostgreSQL probado:** crear una base vacía `tickets_db` y conectar pgAdmin Query Tool a ella. Copiar y ejecutar [database/PostgreSQL/v1/BD_COMPLETA.sql](database/PostgreSQL/v1/BD_COMPLETA.sql). Alternativamente:
 
@@ -41,7 +43,7 @@ Proporcionar la conexión de psql mediante la configuración local. El instalado
 
 Cada motor tiene `DATABASE.sql`, `DATOS_PRUEBA.sql`, `STORED_PROCEDURES.sql`, `VISTAS.sql`, `TRIGGERS.sql` y `BD_COMPLETA.sql`. El completo concatena las otras cinco fuentes en orden de dependencias. Incluye ocho tablas, función/SP de usuario activo, vista `agenda_tickets` y datos demo; no requiere extensiones ni triggers.
 
-## Configurar y ejecutar la API
+### B) API
 
 Desde la raíz, guardar las credenciales exclusivamente en User Secrets. Los valores siguientes son placeholders, no credenciales utilizables:
 
@@ -61,52 +63,58 @@ dotnet run --project api/Tickets.Api.csproj --launch-profile lan
 }
 ```
 
-Para usar varias conexiones/claves, guardar cada valor en User Secrets, por ejemplo `ConnectionStrings:ApiPrincipal`, `ConnectionStrings:ApiPruebas`, `Jwt:ApiPrincipal` y `Jwt:ApiPruebas`. Elegir únicamente los nombres en `SecretsApi:ClaveConexionBaseDatos` y `SecretsApi:ClaveJwt`, sin cambiar código. Una selección alternativa sería:
-
-```json
-"SecretsApi": {
-  "ClaveConexionBaseDatos": "ConnectionStrings:ApiPrincipal",
-  "ClaveJwt": "Jwt:ApiPrincipal"
-}
-```
-
-Los valores se suministran externamente con `dotnet user-secrets set "ConnectionStrings:DefaultConnection" "<cadena>" --project api` y `dotnet user-secrets set "Jwt:Key" "<clave>" --project api`, o usando los nombres alternativos elegidos. `IdentificadorAlmacenSecrets` en `Tickets.Api.csproj` identifica el almacén de desarrollo; cambiar claves dentro del mismo almacén solo requiere ajustar `SecretsApi`. La API rechaza nombres/valores vacíos y JWT inferior a los mínimos existentes: 32 caracteres y 32 bytes UTF-8, sin mostrar valores.
+Para seleccionar otras claves, guardar sus valores en User Secrets y cambiar únicamente SecretsApi:ClaveConexionBaseDatos y SecretsApi:ClaveJwt. IdentificadorAlmacenSecrets en Tickets.Api.csproj identifica el almacén de desarrollo. La API valida nombres/valores obligatorios y JWT de al menos 32 caracteres y 32 bytes UTF-8.
 
 El perfil `lan` escucha HTTP en el puerto 5263 para desarrollo. Abrir [Swagger local](http://localhost:5263/swagger). Login y `GET /api/health/database` son anónimos; las operaciones de negocio y `/api/auth/me` requieren JWT. La clave, conexión y JWT completos no se publican en el repositorio ni en respuestas de diagnóstico.
 
-### Ejecución en Linux
+### C) App Flutter
 
-Con PostgreSQL y .NET 10 instalados, crear la base con el mismo script. Para una ejecución local de desarrollo, configurar variables fuera del repositorio y publicar:
-
-```sh
-export SecretsApi__ClaveConexionBaseDatos='ConnectionStrings:DefaultConnection'
-export SecretsApi__ClaveJwt='Jwt:Key'
-export ConnectionStrings__DefaultConnection='Host=localhost;Port=5432;Database=tickets_db;Username=TU_USUARIO;Password=TU_PASSWORD'
-export Jwt__Key='TU_CLAVE_ALEATORIA_DE_AL_MENOS_32_BYTES'
-export ASPNETCORE_ENVIRONMENT=Development
-export ASPNETCORE_URLS='http://0.0.0.0:5263'
-dotnet publish api/Tickets.Api.csproj -c Release -o /tmp/tickets-api
-dotnet /tmp/tickets-api/Tickets.Api.dll
-```
-
-Las variables `SecretsApi__ClaveConexionBaseDatos` y `SecretsApi__ClaveJwt` también pueden seleccionar otras claves; proporcionar sus valores equivalentes, por ejemplo `ConnectionStrings__ApiPrincipal` y `Jwt__ApiPrincipal`.
-
-Este modo habilita Swagger/HTTP para demostración. Un despliegue público requiere configurar HTTPS y operación del servicio; esos elementos no están implementados. No se realizó una prueba de despliegue Linux.
-
-## Ejecutar Flutter en el teléfono
-
-Establecer `API_BASE_URL` externamente con la URL que el teléfono pueda alcanzar. API y teléfono deben compartir una red accesible; permitir el puerto 5263 en el firewall del equipo. `localhost` en el teléfono identifica al propio teléfono.
-
-Desde `mobile/`, con la variable configurada:
+En otra terminal PowerShell, desde la raíz:
 
 ```powershell
+cd mobile
+$env:API_BASE_URL = "http://IP_LAN_DE_TU_PC:5263"
 flutter pub get
 flutter run -d ID_DISPOSITIVO "--dart-define=API_BASE_URL=$env:API_BASE_URL"
 flutter build apk --debug "--dart-define=API_BASE_URL=$env:API_BASE_URL"
 adb install -r build/app/outputs/flutter-apk/app-debug.apk
 ```
 
-En Linux/macOS usar `--dart-define=API_BASE_URL="$API_BASE_URL"`. No se usan emuladores ni `flutter drive` en la revisión física. Instalar por reemplazo conserva los datos; no desinstalar ni borrar almacenamiento. `API_BASE_URL` se fija al compilar y cambiarla requiere recompilar. El fallback heredado corresponde a la dirección especial de Android Emulator: para el dispositivo físico se debe proporcionar siempre la URL real externamente. No hay una IP LAN fija en los archivos de configuración.
+Sustituir `IP_LAN_DE_TU_PC` e `ID_DISPOSITIVO`. La URL debe ser alcanzable desde el teléfono; no utilizar `localhost`, `127.0.0.1` ni `10.0.2.2` en el dispositivo físico. Permitir el puerto 5263 en el firewall de la red de desarrollo y mantener la API ejecutándose. `API_BASE_URL` se fija al compilar; cambiarla requiere recompilar. En Linux/macOS usar `--dart-define=API_BASE_URL="$API_BASE_URL"`.
+
+Instalar por reemplazo con una firma compatible conserva los datos: no desinstalar ni borrar almacenamiento. No se usan emuladores ni `flutter drive`. Para instalación detallada y APK de 32 bits, 64 bits y universal consultar la guía local docs/instalacion.md (pendiente de versionar).
+
+## Despliegue propuesto en Linux
+
+Cliente móvil → HTTPS → Nginx → ASP.NET Core API → PostgreSQL.
+
+Este despliegue no fue ejecutado en un servidor Linux real durante la prueba; se documenta como estrategia propuesta.
+
+Publicar desde la raíz con `dotnet publish api/Tickets.Api.csproj -c Release -o ./publish` y copiar el resultado a `/opt/tickets-api`. Instalar el runtime ASP.NET Core 10 y Nginx. PostgreSQL funcionaría como servicio separado, instalado con el mismo script v1.
+
+Crear un usuario de servicio `tickets-api` y proporcionar externamente las variables mediante `/etc/tickets-api.env`, fuera del repositorio y con permisos restringidos. Incluir `ASPNETCORE_ENVIRONMENT=Production`, `ASPNETCORE_URLS=http://127.0.0.1:5263`, los selectores `SecretsApi__ClaveConexionBaseDatos` y `SecretsApi__ClaveJwt`, y los valores reales de `ConnectionStrings__DefaultConnection` y `Jwt__Key`. En producción se usan variables de entorno, no User Secrets.
+
+Ejemplo conceptual de `/etc/systemd/system/tickets-api.service`, sin credenciales:
+
+```ini
+[Unit]
+Description=Tickets API
+After=network.target
+
+[Service]
+User=tickets-api
+WorkingDirectory=/opt/tickets-api
+ExecStart=/usr/bin/dotnet /opt/tickets-api/Tickets.Api.dll
+EnvironmentFile=/etc/tickets-api.env
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Una vez instalado y configurado: `sudo systemctl daemon-reload` y `sudo systemctl enable --now tickets-api`. Nginx terminaría HTTPS con un certificado del dominio y reenviaría solicitudes mediante `proxy_pass` a `http://127.0.0.1:5263`, sin exponer el puerto interno.
+
+Antes de implementar esta propuesta hay que configurar encabezados reenviados y confianza en el proxy: la API actual utiliza redirección HTTPS pero todavía no configura ese middleware. Consultar la [guía oficial Linux/Nginx](https://learn.microsoft.com/en-us/aspnet/core/host-and-deploy/linux-nginx?view=aspnetcore-10.0). La app se recompilaría con la URL HTTPS pública; Swagger permanece limitado a Development.
 
 ## Usuarios DEMO y roles
 
@@ -145,15 +153,42 @@ La foto es opcional, desde cámara o galería. Se previsualizan los bytes proces
 
 El timeline muestra fecha original y autor: CREADO, PROGRAMADO, REPROGRAMADO, ASIGNADO, REASIGNADO, EN_ATENCION, SEGUIMIENTO, SOLICITUD_RESOLUCION, SOLICITUD_CANCELACION, RESOLUCION_APROBADA, RESOLUCION_RECHAZADA, CANCELACION_APROBADA, CANCELACION_RECHAZADA, RESUELTO y CANCELADO. La revisión aprobada guarda solicitud, estado final y eventos en una transacción remota. No se inventa historia para registros antiguos.
 
-## Decisiones, límites y mejora posterior
+## Decisiones técnicas
 
-Se priorizó MVC sencillo, SQL parametrizado y una única cola local sobre capas adicionales. UUID estables evitan duplicar acciones al reintentar; la identidad local está separada del JWT para sostener trabajo offline. La dificultad principal fue conservar orden, autoría e idempotencia durante desconexiones, junto con migraciones SQLite que preservaran registros y referencias. Detalle: [arquitectura local-first](docs/arquitectura-local-first.md), [agenda/tickets](docs/tickets-agenda.md), [evidencias](docs/evidencias.md) y [portabilidad](docs/portabilidad-base-datos.md).
+- **Flutter:** permite construir la interfaz móvil con una base de código; la entrega se validó en Android.
+- **GetX:** simplifica navegación y controllers dentro de MVC sin añadir capas.
+- **SQLite:** conserva información y operaciones pendientes durante desconexiones.
+- **ASP.NET Core:** proporciona controllers, inyección de dependencias y autenticación en una API convencional.
+- **PostgreSQL:** mantiene relaciones y transacciones; es el motor probado.
+- **JWT:** autentica peticiones REST y permite separar vigencia remota de identidad local.
+- **Local-first:** guarda en el dispositivo antes del envío para continuar sin red.
+- **ClientRequestId/idempotencia:** UUID estables reconocen reintentos y evitan operaciones duplicadas.
+- **Base64:** transporta imágenes comprimidas por JSON sin añadir almacenamiento cloud al MVP, a costa de aumentar el tamaño del envío.
+
+### Problema más difícil
+
+Mantener consistencia e idempotencia entre SQLite y PostgreSQL durante desconexiones y reintentos, especialmente cuando Ticket, Evento y Evidencia tienen dependencias. Se resolvió guardando primero en SQLite, con una cola persistente, UUID/ClientRequestId estables y procesamiento en orden de dependencias. Los reintentos conservan esas claves y el servidor reconoce operaciones ya aceptadas, evitando duplicados. Las migraciones locales preservan registros y referencias. Detalle: [arquitectura local-first](docs/arquitectura-local-first.md).
+
+## Fuera de alcance
+
+Se priorizó un flujo vertical completo, desde reporte hasta revisión del cierre, sobre ampliar funcionalidades.
 
 Límites reales: no hay resolución automática de conflictos ni sincronización en background con la app cerrada. Una modificación puede permanecer pendiente hasta que el servidor acepte sus permisos/estado. Evidencias intencionalmente idénticas pueden compartir registro remoto. No se probaron iOS, SQL Server ni despliegue Linux. El esquema no modela zonas/tenants de coordinación; Sin asignar es un conjunto común. El MVP no ofrece gestión de usuarios, recuperación de contraseña, notificaciones, chat, mapas/GPS, cloud de imágenes, tiempo real ni CI/CD.
 
-Con una semana adicional se priorizarían errores de cola más claros y recuperación guiada, pruebas de desconexión/concurrencia prolongadas, optimización de descarga de fotos y preparación de despliegue HTTPS/Linux. Son propuestas, no funcionalidades implementadas.
+## Con una semana adicional
 
-Se utilizó IA para implementación, revisión, SQL, pruebas y documentación bajo decisiones y autorizaciones del desarrollador; el flujo físico fue revisado por el usuario.
+1. Mejorar diagnóstico de errores de sincronización y recuperación guiada.
+2. Ejecutar pruebas prolongadas de desconexión/reconexión.
+3. Optimizar descarga y caché de imágenes.
+4. Realizar el despliegue HTTPS/Linux propuesto.
+5. Preparar CI/CD básico para validaciones y compilación.
+6. Ampliar pruebas de concurrencia y reintentos simultáneos.
+
+Son prioridades propuestas, no funcionalidades implementadas.
+
+## Uso de IA
+
+La IA apoyó implementación, revisión, SQL, pruebas, documentación y análisis de errores. Las decisiones técnicas fueron revisadas/autorizadas por el desarrollador y el flujo físico se probó manualmente. El desarrollador debe poder explicar y modificar el código entregado; esa comprensión no sustituye las validaciones realizadas.
 
 ## Validación y demostración
 
@@ -164,8 +199,14 @@ flutter analyze
 flutter test
 ```
 
-La última suite completa aprobó 96 pruebas y omitió dos integraciones optativas que requieren configuración externa. PostgreSQL v1 se instaló desde cero y su catálogo se comparó con el vigente; SQL Server tiene revisión estática. El usuario confirmó la validación funcional física. Las pruebas automatizadas cubren roles, sesión, migraciones, offline, sincronización, evidencias, timeline, solicitudes y Home.
+Resultados previamente registrados, sin repetirlos para este cambio documental: API build correcto, Flutter analyze sin incidencias y última suite completa con 96 pruebas aprobadas y dos integraciones optativas omitidas por configuración externa. PostgreSQL v1 se instaló desde cero y su catálogo se comparó con el vigente; SQL Server tiene revisión estática. El usuario confirmó la validación funcional física. Las pruebas automatizadas cubren roles, sesión, migraciones, offline, sincronización, evidencias, timeline, solicitudes y Home.
 
-[Guion de video, 2:55](docs/guion-video.md).
+### Diagrama y video
+
+El diagrama está al inicio de este README en Mermaid. Archivo externo previsto: `diagrama.png` en raíz, pendiente de agregar; no se enlaza mientras no exista.
+
+Guion de video: `docs/guion-video.md` (duración prevista 2:55). Está eliminado localmente y debe recuperarse antes de la entrega; el enlace se habilitará cuando exista.
+
+Video de demostración: enlace pendiente de agregar antes del envío.
 
 Pruebas aisladas de selección/validación de configuración: `dotnet run --project tests/api/PruebasApi.csproj -- --configuracion`. No abren PostgreSQL ni consultan User Secrets.
