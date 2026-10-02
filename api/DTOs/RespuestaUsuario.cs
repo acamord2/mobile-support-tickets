@@ -1,8 +1,7 @@
 namespace Tickets.Api.DTOs;
 
 /// <summary>
-/// Representa únicamente los campos públicos de identidad utilizados por la API.
-/// Evita serializar Usuario directamente y exponer PasswordHash por accidente.
+/// Expone identidad y rol públicos; excluye PasswordHash.
 /// </summary>
 /// <param name="Id">Identificador consistente con Users y TechnicianId.</param>
 /// <param name="Username">Nombre de usuario público.</param>

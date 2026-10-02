@@ -23,3 +23,9 @@
 *.p12
 *.pem
 *.key
+*.apk
+*.aab
+*.bak
+*.tmp
+**/.pub-cache/
+**/.pub/

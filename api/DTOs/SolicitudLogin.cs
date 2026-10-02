@@ -3,8 +3,7 @@ using System.ComponentModel.DataAnnotations;
 namespace Tickets.Api.DTOs;
 
 /// <summary>
-/// Recibe las credenciales del endpoint existente con validación básica de tamaño.
-/// Separa la entrada HTTP de Usuario para impedir recibir o modificar el hash de BD.
+/// Limita las credenciales de entrada sin permitir modificar el hash almacenado.
 /// </summary>
 public class SolicitudLogin
 {

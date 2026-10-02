@@ -20,9 +20,7 @@ import 'rutas.dart';
 import '../../modules/nuevo_ticket/main_nuevo_ticket.dart';
 import '../../modules/arranque/main_arranque.dart';
 
-/// Relaciona los nombres centralizados con las vistas mediante [GetPage].
-/// Se mantiene fuera de main.dart para incorporar páginas futuras sin mezclar
-/// navegación y arranque. Registra carga, Login y Home según la sesión local.
+/// Registra vistas y dependencias por ruta sin ampliar el arranque.
 abstract class PaginasApp {
   static const initial = Rutas.arranque;
 
