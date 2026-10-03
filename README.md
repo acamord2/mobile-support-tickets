@@ -215,3 +215,22 @@ flutter test
 ```
 
 Resultados previamente registrados, sin repetirlos para este cambio documental: API build correcto, Flutter analyze sin incidencias y última suite completa con 96 pruebas aprobadas y dos integraciones optativas omitidas por configuración externa. PostgreSQL se instaló desde cero y su catálogo se comparó con el vigente; SQL Server tiene revisión estática. El usuario confirmó la validación funcional física. Las pruebas automatizadas cubren roles, sesión, migraciones, offline, sincronización, evidencias, timeline, solicitudes y Home.
+
+## Video de demostración
+
+El funcionamiento completo del sistema se muestra en el siguiente video:
+
+[Ver video de demostración en Google Drive](https://drive.google.com/file/d/1z5om-MHCe8iGADCA8qLKPK2h5QumtHgQ/view?usp=sharing)
+
+El video incluye:
+
+- creación de un ticket;
+- programación y asignación por parte del Coordinador;
+- atención y seguimiento por parte del Técnico;
+- evidencia fotográfica;
+- solicitud de resolución;
+- aprobación del cierre;
+- consulta de la línea de tiempo del ticket;
+- explicación breve del funcionamiento offline y la sincronización automática.
+
+Duración: menos de 3 minutos.
