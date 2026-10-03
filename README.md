@@ -31,7 +31,7 @@ Se utilizaron Flutter 3.41.9 / Dart 3.11.5, SDK Android, .NET SDK 10 y PostgreSQ
 
 ### A) Base de datos
 
-**PostgreSQL probado:** crear una base vacía `tickets_db` y conectar pgAdmin Query Tool a ella. Copiar y ejecutar [database/PostgreSQL/v1/BD_COMPLETA.sql](database/PostgreSQL/v1/BD_COMPLETA.sql). Alternativamente:
+**PostgreSQL probado:** crear una base vacía `tickets_db` y conectar pgAdmin Query Tool a ella. Copiar y ejecutar [database/PostgreSQL/BD_COMPLETA.sql](database/PostgreSQL/BD_COMPLETA.sql). Alternativamente:
 
 ```sh
 psql -v ON_ERROR_STOP=1 -d tickets_db -f database/PostgreSQL/BD_COMPLETA.sql
@@ -118,7 +118,7 @@ Antes de implementar esta propuesta hay que configurar encabezados reenviados y 
 
 ## Usuarios DEMO y roles
 
-Credenciales tomadas exclusivamente de [PostgreSQL/v1/DATOS_PRUEBA.sql](database/PostgreSQL/v1/DATOS_PRUEBA.sql), con los mismos hashes en SQL Server. Son públicas de desarrollo; no usarlas en producción. La base almacena únicamente PasswordHash.
+Credenciales tomadas exclusivamente de [PostgreSQL/DATOS_PRUEBA.sql](database/PostgreSQL/DATOS_PRUEBA.sql), con los mismos hashes en SQL Server. Son públicas de desarrollo; no usarlas en producción. La base almacena únicamente PasswordHash.
 
 | Usuario DEMO | Contraseña DEMO | Rol | Alcance |
 |---|---|---|---|
