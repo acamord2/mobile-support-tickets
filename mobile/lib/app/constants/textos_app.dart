@@ -117,5 +117,6 @@ abstract class TextosApp {
       'No se pudo conectar. Revisa la conexión e inténtalo de nuevo.';
   static const respuestaLoginInvalida =
       'No se pudo validar la respuesta de autenticación.';
+      //Prueba Docker
   static const errorLogin = 'No se pudo iniciar sesión. Inténtalo de nuevo.';
 }
