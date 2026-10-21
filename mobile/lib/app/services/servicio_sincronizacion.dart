@@ -26,6 +26,7 @@ enum EstadoSincronizacionActual {
   offline,
   error,
   reautenticacion,
+  soloConsultas,
 }
 
 /// Serializa ciclos sin polling y conserva reintentos tras interrupciones.
@@ -38,6 +39,8 @@ class ServicioSincronizacion extends GetxService {
   final RepositorioSucursales? sucursales;
   final RepositorioEvidencias? evidencias;
   final apiDisponible = Rxn<bool>();
+  final soloConsultas = false.obs;
+  bool _huboEnvio = false;
   final estado = EstadoSincronizacionActual.inactivo.obs;
   Future<void>? _ciclo;
   bool _otroIntento = false;
@@ -50,7 +53,7 @@ class ServicioSincronizacion extends GetxService {
     this.sucursales,
     this.evidencias,
   });
-  bool get puedeIntentarEnvio => !_conectividad.sinRed && _sesion.token != null;
+  bool get puedeIntentarEnvio => !_conectividad.sinRed && _sesion.token != null && !soloConsultas.value;
   Future<void> registrarEstadoProtegido(int? estado) async {
     if (estado == EstadoApi.unauthorized) await _sesion.marcarReautenticacion();
   }
@@ -62,13 +65,16 @@ class ServicioSincronizacion extends GetxService {
   Future<bool> comprobarDisponibilidadApi() async {
     if (_conectividad.sinRed) return apiDisponible.value = false;
     try {
-      final r = await _api.get(RutasApi.healthDatabase);
-      return apiDisponible.value =
-          r.success &&
-          r.statusCode == 200 &&
-          r.data is Map &&
-          (r.data as Map)['status'] == 'ok' &&
-          (r.data as Map)['database'] == 'connected';
+      var r = await _api.get(RutasApi.disponibilidad);
+      if (r.statusCode == 404) r = await _api.get(RutasApi.healthDatabase);
+      final datos = r.data;
+      if (r.success && datos is Map && datos['lectura'] is bool) {
+        soloConsultas.value = datos['lectura'] == true && datos['escritura'] != true;
+        return apiDisponible.value = datos['lectura'] == true;
+      }
+      soloConsultas.value = false;
+      return apiDisponible.value = r.success && r.statusCode == 200 &&
+          datos is Map && datos['status'] == 'ok' && datos['database'] == 'connected';
     } catch (_) {
       return apiDisponible.value = false;
     }
@@ -120,6 +126,23 @@ class ServicioSincronizacion extends GetxService {
         return;
       }
       OperacionesSqlite.exigir(await _cola.recuperar(usuario));
+      _huboEnvio = false;
+      if (!soloConsultas.value) await _enviarPendientes(usuario, token, vigente);
+      if (!vigente() || estado.value == EstadoSincronizacionActual.reautenticacion) return;
+      await _descargar(usuario, token, vigente);
+    } catch (_) {
+      estado.value = EstadoSincronizacionActual.error;
+    } finally {
+      if (estado.value == EstadoSincronizacionActual.sincronizando) {
+        estado.value = _sesion.requiereReautenticacion
+            ? EstadoSincronizacionActual.reautenticacion
+            : EstadoSincronizacionActual.pendientes;
+      }
+    }
+  }
+
+  /// Envía únicamente cuando hay capacidad de escritura; conserva la cola ante503 o resultado incierto.
+  Future<void> _enviarPendientes(int usuario, String token, bool Function() vigente) async {
       final pendientes = OperacionesSqlite.exigir(
         await _cola.obtenerPendientes(usuarioId: usuario),
       );
@@ -272,6 +295,12 @@ class ServicioSincronizacion extends GetxService {
               },
             );
           }
+          if (r.statusCode == 503) {
+            OperacionesSqlite.exigir(await _cola.devolverPendiente(p.id));
+            soloConsultas.value = true;
+            estado.value = EstadoSincronizacionActual.soloConsultas;
+            return;
+          }
           if (!r.success || r.data is! Map || (r.data as Map)['id'] is! int) {
             await registrarEstadoProtegido(r.statusCode);
             OperacionesSqlite.exigir(
@@ -286,6 +315,7 @@ class ServicioSincronizacion extends GetxService {
             OperacionesSqlite.exigir(await _cola.devolverPendiente(p.id));
             return;
           }
+          _huboEnvio = true;
           final remoto = (r.data as Map)['id'] as int;
           if (p.recurso == 'solicitudes') {
             await RepositorioSolicitudes(
@@ -306,18 +336,22 @@ class ServicioSincronizacion extends GetxService {
           return;
         }
       }
+  }
+
+  /// Descarga aunque existan cambios pendientes; los repositorios no sobrescriben modificaciones locales.
+  Future<void> _descargar(int usuario, String token, bool Function() vigente) async {
       if (!vigente()) return;
-      final ramas = await _api.get(RutasApi.sucursales, token: token);
+      final ramas = await _leer(RutasApi.sucursales, token: token);
       if (!await _validarDescarga(ramas)) return;
       if (!vigente()) return;
       await sucursales!.guardar(usuario, ramas.data as List);
-      final agenda = await _api.get(RutasApi.tickets, token: token);
+      final agenda = await _leer(RutasApi.tickets, token: token);
       if (!await _validarDescarga(agenda)) return;
       if (!vigente()) return;
       final rol = _sesion.usuario?.roleId ?? 2;
       final coordinacion = RepositorioCoordinacion(tickets!.sql);
       if (rol == 1 || rol == 3) {
-        final equipo = await _api.get(RutasApi.tecnicos, token: token);
+        final equipo = await _leer(RutasApi.tecnicos, token: token);
         if (!await _validarDescarga(equipo) || !vigente()) return;
         await coordinacion.guardar(usuario, equipo.data as List);
       }
@@ -327,6 +361,7 @@ class ServicioSincronizacion extends GetxService {
         agenda.data as List,
         rol: rol,
         tecnicos: equipo.map((t) => t['id'] as int).toSet(),
+        preservarAusentes: soloConsultas.value,
       );
       final locales = await tickets!.agenda(usuario);
       for (final dato in agenda.data as List) {
@@ -343,7 +378,7 @@ class ServicioSincronizacion extends GetxService {
           );
         }
         if (local != null) {
-          final eventosRemotos = await _api.get(
+          final eventosRemotos = await _leer(
             RutasApi.eventos(local.idRemoto!),
             token: token,
           );
@@ -354,7 +389,7 @@ class ServicioSincronizacion extends GetxService {
           ).descargar(local.idLocal, usuario, eventosRemotos.data as List);
         }
       }
-      final solicitudes = await _api.get(
+      final solicitudes = await _leer(
         '${RutasApi.solicitudes}?pendingOnly=false',
         token: token,
       );
@@ -365,22 +400,22 @@ class ServicioSincronizacion extends GetxService {
       final restantes = OperacionesSqlite.exigir(
         await _cola.obtenerPendientes(usuarioId: usuario),
       );
-      estado.value = restantes.isEmpty
+      estado.value = soloConsultas.value
+          ? EstadoSincronizacionActual.soloConsultas
+          : restantes.isEmpty
           ? EstadoSincronizacionActual.actualizado
           : EstadoSincronizacionActual.pendientes;
-    } catch (_) {
-      estado.value = EstadoSincronizacionActual.error;
-    } finally {
-      if (estado.value == EstadoSincronizacionActual.sincronizando) {
-        estado.value = _sesion.requiereReautenticacion
-            ? EstadoSincronizacionActual.reautenticacion
-            : EstadoSincronizacionActual.pendientes;
-      }
-    }
+  }
+
+  /// Después de confirmar un envío exige lectura primaria para este ciclo, sin alterar la URL base del APK.
+  Future<RespuestaApi> _leer(String ruta, {String? token}) {
+    final separador = ruta.contains('?') ? '&' : '?';
+    return _api.get(_huboEnvio && !soloConsultas.value ? '$ruta${separador}consistencia=inmediata' : ruta, token: token);
   }
 
   /// Convierte respuestas inválidas/401 a estado público sin aparentar una descarga exitosa.
   Future<bool> _validarDescarga(RespuestaApi r) async {
+    if (r.soloConsultas) soloConsultas.value = true;
     await registrarEstadoProtegido(r.statusCode);
     if (!r.success || r.data is! List) {
       estado.value = r.statusCode == 401

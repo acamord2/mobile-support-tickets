@@ -74,7 +74,7 @@ void main() {
         client: MockClient((req) async {
           if(req.url.path=='/api/ticket-status-requests') return http.Response('[]',200);
           rutas.add(req.url.path);
-          if (req.url.path == '/api/health/database') {
+          if (req.url.path == '/api/health/disponibilidad') {
             return http.Response(disponible ? '"invalid"' : '{}', 503);
           }
           return http.Response('{}', 500);
@@ -93,7 +93,7 @@ void main() {
         client: MockClient((req) async {
           if(req.url.path=='/api/ticket-status-requests') return http.Response('[]',200);
           rutas.add(req.url.path);
-          if (req.url.path == '/api/health/database') {
+          if (req.url.path == '/api/health/disponibilidad') {
             return http.Response(
               disponible ? ' {"status":"ok","database":"connected"}' : '{}',
               disponible ? 200 : 503,

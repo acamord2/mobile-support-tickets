@@ -8,6 +8,19 @@ using System.Text.Json;
 using Tickets.Api.DTOs;
 using Tickets.Api.Services;
 
+if (args.Contains("--conexiones-lectura"))
+{
+    await PruebasConexionLectura.Ejecutar();
+    return;
+}
+
+if (args.Contains("--separacion"))
+{
+    await PruebasSeparacion.Ejecutar();
+    await PruebasContinuidad.Ejecutar();
+    return;
+}
+
 if (args.Contains("--configuracion"))
 {
     PruebasConfiguracionSecrets.Ejecutar();

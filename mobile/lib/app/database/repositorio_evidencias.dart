@@ -32,6 +32,16 @@ class RepositorioEvidencias {
             ),
           );
           if (existentes.isNotEmpty) continue;
+          // Una respuesta de envío perdida puede coexistir con una descarga del mismo contenido.
+          // Conservar el pendiente sin duplicarlo ni confirmar su cola hasta recibir el Id del reintento.
+          final pendientes = OperacionesSqlite.exigir(await tx.seleccionar(
+            'evidencias', donde: 'ticket_id_local = ? AND usuario_id = ? AND sync_status = ?',
+            argumentos: [ticket, usuario, 'pending'],
+          ));
+          if (pendientes.any((p) => p['descripcion'] == e['description'] &&
+              p['photo_base64'] == e['photoBase64'])) {
+            continue;
+          }
           OperacionesSqlite.exigir(
             await tx.insertar('evidencias', {
               'ticket_id_local': ticket,

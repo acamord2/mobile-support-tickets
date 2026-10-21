@@ -1,3 +1,4 @@
+using Tickets.Api.Services;
 using System.Data.Common;
 using Tickets.Api.Data.Connections;
 using Tickets.Api.DTOs;
@@ -6,29 +7,33 @@ namespace Tickets.Api.Data;
 
 /// <summary>Guarda solicitudes y revisiones mediante bloqueos del ticket y transacciones;
 /// mantiene workflow e historial coherentes sin nuevas capas ni SQL en controllers.</summary>
-public sealed class AccesoSolicitudesPostgres(IConexion conexion)
+public sealed class AccesoSolicitudesPostgres(IConexion conexion, ContinuidadConsultas? continuidad = null)
 {
     /// <summary>Lista solicitudes públicas del alcance real del actor; pendientes por defecto para revisión.</summary>
     public async Task<List<RespuestaSolicitudEstado>> Listar(int usuario, bool pendientes, CancellationToken ct)
     {
-        await using var cn = await conexion.OpenConnectionAsync(ct);
-        await using var cmd = cn.CreateCommand();
-        cmd.CommandText = """
-          SELECT s."Id",s."TicketId",s."RequesterUserId",autor."Name",s."Type",s."Reason",s."Status",s."CreatedAt",
-            s."ReviewedByUserId",revisor."Name",s."ReviewedAt",s."ClientRequestId",t."Title"
-          FROM public."TicketStatusRequests" s JOIN public."Tickets" t ON t."Id"=s."TicketId"
-          JOIN public."Users" autor ON autor."Id"=s."RequesterUserId"
-          LEFT JOIN public."Users" revisor ON revisor."Id"=s."ReviewedByUserId"
-          WHERE (@pendientes=false OR s."Status"='PENDIENTE') AND
-          """ + " " + AccesoTicketsPostgres.Alcance + " ORDER BY s.\"CreatedAt\",s.\"Id\"";
-        AccesoTicketsPostgres.Parametro(cmd,"usuario",usuario);
-        AccesoTicketsPostgres.Parametro(cmd,"pendientes",pendientes);
-        await using var r = await cmd.ExecuteReaderAsync(ct);
-        var lista = new List<RespuestaSolicitudEstado>();
-        while (await r.ReadAsync(ct)) lista.Add(new(r.GetInt32(0),r.GetInt32(1),r.GetInt32(2),r.GetString(3),r.GetString(4),
-            r.IsDBNull(5)?null:r.GetString(5),r.GetString(6),r.GetDateTime(7),r.IsDBNull(8)?null:r.GetInt32(8),
-            r.IsDBNull(9)?null:r.GetString(9),r.IsDBNull(10)?null:r.GetDateTime(10),r.GetGuid(11),r.GetString(12)));
-        return lista;
+        var permitidos = await new AccesoTicketsPostgres(conexion, continuidad).TicketsPermitidos(usuario, ct);
+        return await conexion.EjecutarLecturaAsync(async (cn, tx, lecturaCt) =>
+        {
+            await using var cmd = cn.CreateCommand(); cmd.Transaction = tx;
+            cmd.CommandText = """
+              SELECT s."Id",s."TicketId",s."RequesterUserId",autor."Name",s."Type",s."Reason",s."Status",s."CreatedAt",
+                s."ReviewedByUserId",revisor."Name",s."ReviewedAt",s."ClientRequestId",t."Title"
+              FROM public."TicketStatusRequests" s JOIN public."Tickets" t ON t."Id"=s."TicketId"
+              JOIN public."Users" autor ON autor."Id"=s."RequesterUserId"
+              LEFT JOIN public."Users" revisor ON revisor."Id"=s."ReviewedByUserId"
+              WHERE (@pendientes=false OR s."Status"='PENDIENTE') AND
+              """ + " " + AccesoTicketsPostgres.Alcance + " AND t.\"Id\"=ANY(@permitidos) ORDER BY s.\"CreatedAt\",s.\"Id\"";
+            AccesoTicketsPostgres.Parametro(cmd,"usuario",usuario);
+            AccesoTicketsPostgres.Parametro(cmd,"pendientes",pendientes);
+            AccesoTicketsPostgres.Parametro(cmd, "permitidos", permitidos);
+            await using var r = await cmd.ExecuteReaderAsync(lecturaCt);
+            var lista = new List<RespuestaSolicitudEstado>();
+            while (await r.ReadAsync(lecturaCt)) lista.Add(new(r.GetInt32(0),r.GetInt32(1),r.GetInt32(2),r.GetString(3),r.GetString(4),
+                r.IsDBNull(5)?null:r.GetString(5),r.GetString(6),r.GetDateTime(7),r.IsDBNull(8)?null:r.GetInt32(8),
+                r.IsDBNull(9)?null:r.GetString(9),r.IsDBNull(10)?null:r.GetDateTime(10),r.GetGuid(11),r.GetString(12)));
+            return lista;
+        }, ct);
     }
 
     /// <summary>Serializa por ticket para evitar pendientes equivalentes concurrentes; reintentos UUID retornan el mismo Id.</summary>

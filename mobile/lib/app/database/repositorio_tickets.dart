@@ -269,6 +269,7 @@ class RepositorioTickets {
     List<dynamic> remotos, {
     int rol = 2,
     Set<int> tecnicos = const {},
+    bool preservarAusentes = false,
   }) async {
     OperacionesSqlite.exigir(
       await sql.transaccion((tx) async {
@@ -281,7 +282,7 @@ class RepositorioTickets {
           ),
         );
         for (final fila in anteriores) {
-          if (fila['id_remoto'] != null &&
+          if (!preservarAusentes && fila['id_remoto'] != null &&
               fila['sync_status'] == 'synced' &&
               !visibles.contains(fila['id_remoto'])) {
             OperacionesSqlite.exigir(
@@ -312,6 +313,11 @@ class RepositorioTickets {
             ),
           );
           if (filas.isNotEmpty && filas.single['sync_status'] == 'pending') {
+            continue;
+          }
+          // Una réplica atrasada no debe revertir una versión local ya más reciente.
+          if (filas.isNotEmpty && DateTime.parse(r['updatedAt'] as String).isBefore(
+              DateTime.parse(filas.single['updated_at'] as String))) {
             continue;
           }
           final datos = <String, Object?>{

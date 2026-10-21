@@ -109,6 +109,7 @@ class ClienteApi {
       data: data,
       message: message ?? (success ? null : TextosApp.requestFailed),
       success: success,
+      soloConsultas: response.headers['x-modo'] == 'solo-consultas',
     );
   }
 

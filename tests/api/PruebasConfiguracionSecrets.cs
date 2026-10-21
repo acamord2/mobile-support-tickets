@@ -30,7 +30,7 @@ internal static class PruebasConfiguracionSecrets
             Exigir(jwt.Key == datos["Jwt:Key"] && jwt.Issuer == "Pruebas" && jwt.Audience == "Pruebas" && jwt.ExpirationMinutes == 60);
             configuracion.Lecturas.Clear();
             _ = servicios.GetRequiredService<IConexion>();
-            Exigir(configuracion.Lecturas.SequenceEqual(["ConnectionStrings:DefaultConnection"]));
+            Exigir(configuracion.Lecturas.Contains("ConnectionStrings:DefaultConnection"));
         });
 
         Prueba("Conexión y JWT alternativos prevalecen sobre defaults", () =>
@@ -46,7 +46,19 @@ internal static class PruebasConfiguracionSecrets
             Exigir(servicios.GetRequiredService<IOptions<OpcionesJwt>>().Value.Key == datos["Jwt:ApiPruebas"]);
             configuracion.Lecturas.Clear();
             _ = servicios.GetRequiredService<IConexion>();
-            Exigir(configuracion.Lecturas.SequenceEqual(["ConnectionStrings:ApiPruebas"]));
+            Exigir(configuracion.Lecturas.Contains("ConnectionStrings:ApiPruebas") && !configuracion.Lecturas.Contains("ConnectionStrings:DefaultConnection"));
+        });
+
+        Prueba("Escritura independiente permite retirar DefaultConnection", () =>
+        {
+            var datos=Datos(); datos.Remove("ConnectionStrings:DefaultConnection");
+            datos["ConnectionStrings:Escritura"]="Host=postgres;Database=pruebas;Username=escritor";
+            datos["ConnectionStrings:Lectura"]="Host=postgres_lectura;Database=pruebas;Username=consultor";
+            var configuracion=new ConfiguracionObservada(new ConfigurationBuilder().AddInMemoryCollection(datos).Build());
+            using var servicios=Servicios(configuracion);
+            servicios.GetRequiredService<IStartupValidator>().Validate();
+            configuracion.Lecturas.Clear(); _=servicios.GetRequiredService<IConexion>();
+            Exigir(!configuracion.Lecturas.Contains("ConnectionStrings:DefaultConnection"));
         });
 
         var casos = new (string Nombre, string Clave, string? Valor, string Error)[]
@@ -115,7 +127,7 @@ internal static class PruebasConfiguracionSecrets
                 Exigir(servicios.GetRequiredService<IOptions<OpcionesJwt>>().Value.Key == variables[prefijo + "Jwt__ApiEntorno"]);
                 configuracion.Lecturas.Clear();
                 _ = servicios.GetRequiredService<IConexion>();
-                Exigir(configuracion.Lecturas.SequenceEqual(["ConnectionStrings:ApiEntorno"]));
+                Exigir(configuracion.Lecturas.Contains("ConnectionStrings:ApiEntorno") && !configuracion.Lecturas.Contains("ConnectionStrings:DefaultConnection"));
             }
             finally
             {

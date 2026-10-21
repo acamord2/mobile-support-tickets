@@ -121,6 +121,9 @@ void main() {
       await cola.marcarProcesando(p.id);
       await tickets.confirmar(id, 107, 1, p.id);
       await tickets.descargar(1, [remoto]);
+      expect((await tickets.obtener(id, 1))!.titulo, 'Prueba', reason: 'Una réplica atrasada no revierte datos locales');
+      remoto['updatedAt'] = DateTime.now().toUtc().add(const Duration(seconds: 1)).toIso8601String();
+      await tickets.descargar(1, [remoto]);
       await tickets.descargar(1, [remoto]);
       expect(await tickets.agenda(1), hasLength(1));
       expect((await tickets.obtener(id, 1))!.titulo, 'Servidor');

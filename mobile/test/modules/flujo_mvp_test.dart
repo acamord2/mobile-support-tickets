@@ -176,7 +176,7 @@ void main() {
                 r.url.path == '/api/technicians') {
               return http.Response('[]', 200);
             }
-            if (r.url.path == '/api/health/database') {
+            if (r.url.path == '/api/health/disponibilidad') {
               return http.Response(
                 '{"status":"ok","database":"connected"}',
                 200,
@@ -262,7 +262,7 @@ void main() {
       expect(rutas, isEmpty);
       red.redDisponible.value = true;
       await sync.sincronizar();
-      expect(sync.estado.value, EstadoSincronizacionActual.error);
+      expect(sync.estado.value, EstadoSincronizacionActual.soloConsultas);
       expect(postTickets, 1);
       expect(eventosRemotos, hasLength(3));
       await sync.sincronizar();

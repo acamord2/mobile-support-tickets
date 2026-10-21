@@ -1,3 +1,4 @@
+using Tickets.Api.Services;
 using System.Data.Common;
 using Tickets.Api.Data.Connections;
 using Tickets.Api.DTOs;
@@ -5,7 +6,7 @@ using Tickets.Api.Models;
 namespace Tickets.Api.Data;
 
 /// <summary>Persiste eventos propios inmutables y lee cronología mediante la conexión existente y parámetros.</summary>
-public sealed class AccesoEventosPostgres(IConexion conexion)
+public sealed class AccesoEventosPostgres(IConexion conexion, ContinuidadConsultas? continuidad = null)
 {
     /// <summary>Inserta por UUID una sola vez; valida vínculo de foto/ticket y recupera el mismo Id en reintentos concurrentes.</summary>
     public async Task<int?> Guardar(int usuario, int ticket, SolicitudEvento s, CancellationToken ct)
@@ -37,17 +38,21 @@ public sealed class AccesoEventosPostgres(IConexion conexion)
     /// <summary>Lee solo eventos del ticket propio, ordenados por instante e Id y con autor identificado por FK.</summary>
     public async Task<List<RespuestaEvento>> Listar(int usuario, int ticket, CancellationToken ct)
     {
-        await using var cn = await conexion.OpenConnectionAsync(ct);
-        await using var cmd = cn.CreateCommand();
-        cmd.CommandText = """
-            SELECT e."Id",e."TicketId",e."EventType",e."Description",e."CreatedAt",e."UserId",u."Name",e."ClientRequestId",e."PreviousScheduledAt",e."ScheduledAt",e."EvidenceId"
-            FROM public."TicketEvents" e JOIN public."Tickets" t ON t."Id"=e."TicketId" JOIN public."Users" u ON u."Id"=e."UserId"
-            WHERE e."TicketId"=@ticket AND
-            """ + " " + AccesoTicketsPostgres.Alcance + " ORDER BY e.\"CreatedAt\",e.\"Id\"";
-        Parametro(cmd, "usuario", usuario); Parametro(cmd, "ticket", ticket);
-        await using var r = await cmd.ExecuteReaderAsync(ct); var lista = new List<RespuestaEvento>();
-        while (await r.ReadAsync(ct)) lista.Add(new(r.GetInt32(0), r.GetInt32(1), Enum.Parse<TipoEventoTicket>(r.GetString(2)), r.GetString(3), r.GetDateTime(4), r.GetInt32(5), r.GetString(6), r.GetGuid(7), r.IsDBNull(8) ? null : r.GetDateTime(8), r.IsDBNull(9) ? null : r.GetDateTime(9), r.IsDBNull(10) ? null : r.GetInt32(10)));
-        return lista;
+        var permitidos = await new AccesoTicketsPostgres(conexion, continuidad).TicketsPermitidos(usuario, ct);
+        return await conexion.EjecutarLecturaAsync(async (cn, tx, lecturaCt) =>
+        {
+            await using var cmd = cn.CreateCommand(); cmd.Transaction = tx;
+            cmd.CommandText = """
+                SELECT e."Id",e."TicketId",e."EventType",e."Description",e."CreatedAt",e."UserId",u."Name",e."ClientRequestId",e."PreviousScheduledAt",e."ScheduledAt",e."EvidenceId"
+                FROM public."TicketEvents" e JOIN public."Tickets" t ON t."Id"=e."TicketId" JOIN public."Users" u ON u."Id"=e."UserId"
+                WHERE e."TicketId"=@ticket AND
+                """ + " " + AccesoTicketsPostgres.Alcance + " AND t.\"Id\"=ANY(@permitidos) ORDER BY e.\"CreatedAt\",e.\"Id\"";
+            Parametro(cmd, "usuario", usuario); Parametro(cmd, "ticket", ticket);
+            AccesoTicketsPostgres.Parametro(cmd, "permitidos", permitidos);
+            await using var r = await cmd.ExecuteReaderAsync(lecturaCt); var lista = new List<RespuestaEvento>();
+            while (await r.ReadAsync(lecturaCt)) lista.Add(new(r.GetInt32(0), r.GetInt32(1), Enum.Parse<TipoEventoTicket>(r.GetString(2)), r.GetString(3), r.GetDateTime(4), r.GetInt32(5), r.GetString(6), r.GetGuid(7), r.IsDBNull(8) ? null : r.GetDateTime(8), r.IsDBNull(9) ? null : r.GetDateTime(9), r.IsDBNull(10) ? null : r.GetInt32(10)));
+            return lista;
+        }, ct);
     }
 
     /// <summary>Tipa también nulos para que PostgreSQL reciba fechas/IDs sin inferencias ambiguas.</summary>

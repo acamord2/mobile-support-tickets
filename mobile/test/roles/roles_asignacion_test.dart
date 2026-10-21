@@ -195,7 +195,7 @@ void main() {
             if (r.url.path == '/api/ticket-status-requests') {
               return http.Response('[]', 200);
             }
-            if (r.url.path == '/api/health/database') {
+            if (r.url.path == '/api/health/disponibilidad') {
               llamadasHealth++;
               await gate.future;
               return http.Response(

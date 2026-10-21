@@ -11,6 +11,9 @@ using Tickets.Api.Services;
 // La API no instala ni migra la base externa.
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<ContinuidadConsultas>();
 // Todo acceso activo utiliza IConexion; EF Core permanece sin registrar.
 builder.Services.AddScoped<IConexion, Conexion>();
 builder.Services.AddScoped<IAccesoUsuarios, AccesoUsuariosPostgres>();
@@ -71,6 +74,8 @@ else
     app.UseHttpsRedirection();
 }
 
+// El presupuesto incluye autorización primaria y fallback; no supera el timeout móvil.
+app.UseMiddleware<LimiteSolicitudBaseDatos>();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

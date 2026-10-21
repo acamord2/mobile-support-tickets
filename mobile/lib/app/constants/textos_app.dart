@@ -1,5 +1,6 @@
 /// Centraliza los textos utilizados por Login, Home y su infraestructura HTTP.
 abstract class TextosApp {
+  static const soloConsultas = 'Solo consultas; cambios no enviados';
   static const tecnicos = 'Técnicos';
   static const tecnicosACargo = 'Técnicos a mi cargo';
   static const ticketsSinAsignar = 'Tickets sin asignar';

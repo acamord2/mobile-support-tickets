@@ -2,6 +2,7 @@
 abstract class RutasApi {
   static const tecnicos = '/api/technicians';
   static String asignacion(int ticket) => '/api/tickets/$ticket/assignment';
+  static const disponibilidad = '/api/health/disponibilidad';
   static const healthDatabase = '/api/health/database';
   static const login = '/api/auth/login';
   static const me = '/api/auth/me';

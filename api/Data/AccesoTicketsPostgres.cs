@@ -1,10 +1,11 @@
+using Tickets.Api.Services;
 using System.Data.Common;
 using Tickets.Api.Data.Connections;
 using Tickets.Api.DTOs;
 namespace Tickets.Api.Data;
 
 /// <summary>Centraliza consultas parametrizadas y alcance real por rol, sin confiar en filtros del teléfono.</summary>
-public sealed class AccesoTicketsPostgres(IConexion conexion)
+public sealed class AccesoTicketsPostgres(IConexion conexion, ContinuidadConsultas? continuidad = null)
 {
     /// <summary>Limita datos a reportante, técnico asignado o equipo del coordinador; administrador ve todos.</summary>
     internal const string Alcance = """
@@ -20,7 +21,12 @@ public sealed class AccesoTicketsPostgres(IConexion conexion)
     public async Task<bool> Activo(int usuario, CancellationToken ct) => await Rol(usuario, ct) is > 0;
 
     /// <summary>Consulta el rol vigente en lugar de confiar exclusivamente en claims emitidos antes de un cambio.</summary>
-    public async Task<int> Rol(int usuario, CancellationToken ct)
+    public Task<int> Rol(int usuario, CancellationToken ct) => continuidad is null
+        ? RolPrimario(usuario, ct)
+        : continuidad.ObtenerAsync("rol", usuario, () => RolPrimario(usuario, ct), ct);
+
+    /// <summary>Consulta autorización vigente en primario; nunca usa una conexión secundaria.</summary>
+    private async Task<int> RolPrimario(int usuario, CancellationToken ct)
     {
         await using var cn = await conexion.OpenConnectionAsync(ct);
         await using var cmd = cn.CreateCommand();
@@ -45,29 +51,34 @@ public sealed class AccesoTicketsPostgres(IConexion conexion)
     /// <summary>Entrega catálogo real para formularios offline; no incorpora datos ficticios.</summary>
     public async Task<List<RespuestaSucursal>> Sucursales(CancellationToken ct)
     {
-        await using var cn = await conexion.OpenConnectionAsync(ct);
-        await using var cmd = cn.CreateCommand();
-        cmd.CommandText = "SELECT \"Id\",\"Name\",\"Address\" FROM public.\"Branches\" ORDER BY \"Name\",\"Id\"";
-        await using var r = await cmd.ExecuteReaderAsync(ct);
-        var datos = new List<RespuestaSucursal>();
-        while (await r.ReadAsync(ct)) datos.Add(new(r.GetInt32(0), r.GetString(1), r.GetString(2)));
-        return datos;
+        return await conexion.EjecutarLecturaAsync(async (cn, tx, lecturaCt) =>
+        {
+            await using var cmd = cn.CreateCommand(); cmd.Transaction = tx;
+            cmd.CommandText = "SELECT \"Id\",\"Name\",\"Address\" FROM public.\"Branches\" ORDER BY \"Name\",\"Id\"";
+            await using var r = await cmd.ExecuteReaderAsync(lecturaCt);
+            var datos = new List<RespuestaSucursal>();
+            while (await r.ReadAsync(lecturaCt)) datos.Add(new(r.GetInt32(0), r.GetString(1), r.GetString(2)));
+            return datos;
+        }, ct);
     }
 
     /// <summary>Lee tickets visibles y sus evidencias con el mismo alcance, antes de almacenarlos localmente.</summary>
     public async Task<List<RespuestaTicket>> Agenda(int usuario, CancellationToken ct)
     {
-        await using var cn = await conexion.OpenConnectionAsync(ct);
-        var agenda = await Leer(cn, usuario, null, ct);
-        await using var cmd = cn.CreateCommand();
-        cmd.CommandText = "SELECT e.\"Id\",e.\"TicketId\",e.\"Description\",e.\"PhotoBase64\",e.\"CreatedAt\" FROM public.\"Evidences\" e JOIN public.\"Tickets\" t ON t.\"Id\"=e.\"TicketId\" WHERE " + Alcance + " ORDER BY e.\"CreatedAt\",e.\"Id\"";
-        Parametro(cmd, "usuario", usuario);
-        await using var r = await cmd.ExecuteReaderAsync(ct);
-        var porId = agenda.ToDictionary(t => t.Id);
-        while (await r.ReadAsync(ct))
-            if (porId.TryGetValue(r.GetInt32(1), out var ticket))
-                ticket.Evidences.Add(new(r.GetInt32(0), r.GetString(2), r.IsDBNull(3) ? null : r.GetString(3), r.GetDateTime(4)));
-        return agenda;
+        var permitidos = await TicketsPermitidos(usuario, ct);
+        return await conexion.EjecutarLecturaAsync(async (cn, tx, lecturaCt) =>
+        {
+            var agenda = await Leer(cn, usuario, null, lecturaCt, transaccion: tx, permitidos: permitidos);
+            await using var cmd = cn.CreateCommand(); cmd.Transaction = tx;
+            cmd.CommandText = "SELECT e.\"Id\",e.\"TicketId\",e.\"Description\",e.\"PhotoBase64\",e.\"CreatedAt\" FROM public.\"Evidences\" e JOIN public.\"Tickets\" t ON t.\"Id\"=e.\"TicketId\" WHERE " + Alcance + " AND t.\"Id\"=ANY(@permitidos) ORDER BY e.\"CreatedAt\",e.\"Id\"";
+            Parametro(cmd, "usuario", usuario); Parametro(cmd, "permitidos", permitidos);
+            await using var r = await cmd.ExecuteReaderAsync(lecturaCt);
+            var porId = agenda.ToDictionary(t => t.Id);
+            while (await r.ReadAsync(lecturaCt))
+                if (porId.TryGetValue(r.GetInt32(1), out var ticket))
+                    ticket.Evidences.Add(new(r.GetInt32(0), r.GetString(2), r.IsDBNull(3) ? null : r.GetString(3), r.GetDateTime(4)));
+            return agenda;
+        }, ct);
     }
 
     /// <summary>Persiste reportante autenticado e identidad UUID global, independiente de cualquier asignación posterior.</summary>
@@ -139,17 +150,35 @@ public sealed class AccesoTicketsPostgres(IConexion conexion)
     }
 
     /// <summary>Consulta campos explícitos de las tablas actuales, incluyendo técnico nullable y reportante histórico nullable.</summary>
-    private static async Task<List<RespuestaTicket>> Leer(DbConnection cn, int usuario, Guid? clave, CancellationToken ct, bool creacionPropia = false)
+    private static async Task<List<RespuestaTicket>> Leer(DbConnection cn, int usuario, Guid? clave, CancellationToken ct, bool creacionPropia = false, DbTransaction? transaccion = null, int[]? permitidos = null)
     {
-        await using var cmd = cn.CreateCommand();
+        await using var cmd = cn.CreateCommand(); cmd.Transaction = transaccion;
         cmd.CommandText = """
           SELECT t."Id",t."BranchId",t."TechnicianId",t."Title",t."Description",t."Status",t."CreatedAt",t."UpdatedAt",t."ScheduledAt",t."ClientRequestId",b."Name",b."Address",t."ReporterUserId"
           FROM public."Tickets" t JOIN public."Branches" b ON b."Id"=t."BranchId" WHERE
-          """ + " " + (creacionPropia ? "t.\"ReporterUserId\"=@usuario" : Alcance) + (clave is null ? "" : " AND t.\"ClientRequestId\"=@clave") + " ORDER BY t.\"ScheduledAt\",t.\"CreatedAt\",t.\"Id\"";
-        Parametro(cmd, "usuario", usuario); if (clave is not null) Parametro(cmd, "clave", clave.Value);
+          """ + " " + (creacionPropia ? "t.\"ReporterUserId\"=@usuario" : Alcance) + (clave is null ? "" : " AND t.\"ClientRequestId\"=@clave") + (permitidos is null ? "" : " AND t.\"Id\"=ANY(@permitidos)") + " ORDER BY t.\"ScheduledAt\",t.\"CreatedAt\",t.\"Id\"";
+        Parametro(cmd, "usuario", usuario); if (permitidos is not null) Parametro(cmd, "permitidos", permitidos); if (clave is not null) Parametro(cmd, "clave", clave.Value);
         await using var r = await cmd.ExecuteReaderAsync(ct); var lista = new List<RespuestaTicket>();
         while (await r.ReadAsync(ct)) lista.Add(new(r.GetInt32(0), r.GetInt32(1), r.IsDBNull(2) ? null : r.GetInt32(2), r.GetString(3), r.GetString(4), r.GetString(5), r.GetDateTime(6), r.GetDateTime(7), r.IsDBNull(8) ? null : r.GetDateTime(8), r.IsDBNull(9) ? null : r.GetGuid(9), r.GetString(10), r.GetString(11)) { ReporterUserId = r.IsDBNull(12) ? null : r.GetInt32(12) });
         return lista;
+    }
+
+    /// <summary>Calcula el alcance vigente únicamente en el primario; la réplica nunca amplía esta autorización.</summary>
+    internal Task<int[]> TicketsPermitidos(int usuario, CancellationToken ct) => continuidad is null
+        ? TicketsPermitidosPrimario(usuario, ct)
+        : continuidad.ObtenerAsync("tickets", usuario, () => TicketsPermitidosPrimario(usuario, ct), ct);
+
+    /// <summary>Consulta autorización vigente en primario; nunca usa una conexión secundaria.</summary>
+    private async Task<int[]> TicketsPermitidosPrimario(int usuario, CancellationToken ct)
+    {
+        await using var cn = await conexion.OpenConnectionAsync(ct);
+        await using var cmd = cn.CreateCommand();
+        cmd.CommandText = "SELECT t.\"Id\" FROM public.\"Tickets\" t WHERE " + Alcance;
+        Parametro(cmd, "usuario", usuario);
+        var ids = new List<int>();
+        await using var lector = await cmd.ExecuteReaderAsync(ct);
+        while (await lector.ReadAsync(ct)) ids.Add(lector.GetInt32(0));
+        return ids.ToArray();
     }
 
     /// <summary>Enlaza parámetros comunes, sin interpolar valores recibidos ni imprimir información sensible.</summary>

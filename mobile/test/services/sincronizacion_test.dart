@@ -39,7 +39,7 @@ void main() {
         ClienteApi(
           client: MockClient((request) async {
             peticiones++;
-            expect(request.url.path, RutasApi.healthDatabase);
+            expect(request.url.path, RutasApi.disponibilidad);
             expect(request.headers.containsKey('Authorization'), isFalse);
             return http.Response(
               responde ? '{"status":"ok","database":"connected"}' : '{}',

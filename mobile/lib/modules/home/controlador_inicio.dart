@@ -157,6 +157,7 @@ class ControladorInicio extends GetxController {
       EstadoSincronizacionActual.actualizado => TextosApp.actualizado,
       EstadoSincronizacionActual.pendientes => TextosApp.pendienteLocal,
       EstadoSincronizacionActual.reautenticacion => TextosApp.reautenticacion,
+      EstadoSincronizacionActual.soloConsultas => TextosApp.soloConsultas,
       EstadoSincronizacionActual.offline => TextosApp.sinConexion,
       EstadoSincronizacionActual.error => TextosApp.errorServidor,
       _ => TextosApp.pendienteLocal,

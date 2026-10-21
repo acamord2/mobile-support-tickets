@@ -10,6 +10,16 @@ public class ConfiguracionSecretsApi
     [Required(ErrorMessage = "No se configuró SecretsApi:ClaveConexionBaseDatos.")]
     public string ClaveConexionBaseDatos { get; set; } = "ConnectionStrings:DefaultConnection";
 
+    /// <summary>Selecciona las dos conexiones externas sin almacenar credenciales en configuración versionada.</summary>
+    [Required]
+    public string ClaveConexionEscritura { get; set; } = "ConnectionStrings:Escritura";
+    [Required]
+    public string ClaveConexionLectura { get; set; } = "ConnectionStrings:Lectura";
+    /// <summary>Reversión operativa: las lecturas usan el primario con la cuenta consultora.</summary>
+    public bool LecturasEnPrimario { get; set; }
+    /// <summary>Permite un único fallback de consultas seguras, nunca de autenticación ni escrituras.</summary>
+    public bool PermitirFallbackLectura { get; set; } = true;
+
     [Required(ErrorMessage = "No se configuró SecretsApi:ClaveJwt.")]
     public string ClaveJwt { get; set; } = "Jwt:Key";
 
@@ -20,6 +30,7 @@ public class ConfiguracionSecretsApi
             .Bind(configuracion.GetSection("SecretsApi"))
             .ValidateDataAnnotations()
             .Validate(opciones => string.IsNullOrWhiteSpace(opciones.ClaveConexionBaseDatos)
+                || !string.IsNullOrWhiteSpace(configuracion[opciones.ClaveConexionEscritura])
                 || !string.IsNullOrWhiteSpace(configuracion[opciones.ClaveConexionBaseDatos]),
                 "No existe un valor para la clave configurada como conexión.")
             .Validate(opciones => string.IsNullOrWhiteSpace(opciones.ClaveJwt)
