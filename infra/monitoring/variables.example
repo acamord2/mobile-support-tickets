@@ -1,0 +1,4 @@
+# Rutas de secretos externos; sin contraseñas. No hace falta modificar .env.example.
+GRAFANA_ADMIN_PASSWORD_FILE=/var/lib/mobile-support-tickets/prueba_docker/monitoring/grafana_admin.key
+POSTGRES_MONITOR_PASSWORD_FILE=/var/lib/mobile-support-tickets/prueba_docker/monitoring/postgres_monitor.key
+DOCKER_ROOT_DIR=/var/lib/docker

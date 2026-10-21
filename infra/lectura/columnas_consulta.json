@@ -1,0 +1,61 @@
+{
+  "Branches": [
+    "Id",
+    "Name",
+    "Address"
+  ],
+  "Tickets": [
+    "Id",
+    "BranchId",
+    "TechnicianId",
+    "ReporterUserId",
+    "Title",
+    "Description",
+    "Status",
+    "CreatedAt",
+    "UpdatedAt",
+    "ScheduledAt",
+    "ClientRequestId"
+  ],
+  "Users": [
+    "Id",
+    "Name",
+    "RoleId",
+    "IsActive"
+  ],
+  "CoordinatorTechnicians": [
+    "CoordinatorUserId",
+    "TechnicianUserId"
+  ],
+  "Evidences": [
+    "Id",
+    "TicketId",
+    "Description",
+    "PhotoBase64",
+    "CreatedAt"
+  ],
+  "TicketEvents": [
+    "Id",
+    "TicketId",
+    "EventType",
+    "Description",
+    "CreatedAt",
+    "UserId",
+    "ClientRequestId",
+    "PreviousScheduledAt",
+    "ScheduledAt",
+    "EvidenceId"
+  ],
+  "TicketStatusRequests": [
+    "Id",
+    "TicketId",
+    "RequesterUserId",
+    "Type",
+    "Reason",
+    "Status",
+    "CreatedAt",
+    "ReviewedByUserId",
+    "ReviewedAt",
+    "ClientRequestId"
+  ]
+}

@@ -1,5 +1,15 @@
 # Gestión móvil de incidencias técnicas
 
+## Infraestructura Docker vigente
+
+[Manual completo](docs/infraestructura/README.md): arquitectura, instalación por fases, PostgreSQL primario/standby, monitoreo, recuperación systemd, recursos y SSH temporal.
+
+- [Arquitectura](docs/infraestructura/01-ARQUITECTURA.md) · [Instalación](docs/infraestructura/02-INSTALACION-DOCKER.md) · [Replicación](docs/infraestructura/03-POSTGRESQL-REPLICACION.md)
+- [Grafana](docs/infraestructura/04-MONITOREO-GRAFANA.md) · [Autorreparación](docs/infraestructura/05-RECUPERACION-AUTOMATICA.md) · [CPU/RAM](docs/infraestructura/06-RECURSOS-CPU-RAM.md)
+- [SSH/pgAdmin](docs/infraestructura/07-ACCESO-SSH-PGADMIN.md) · [Operación](docs/infraestructura/08-OPERACION-Y-DIAGNOSTICO.md) · [Inventario](docs/infraestructura/09-INVENTARIO-DOCKER.md) · [Seguridad](docs/infraestructura/10-SEGURIDAD-Y-SECRETOS.md)
+
+Docker instala solo DATABASE.sql, STORED_PROCEDURES.sql y VISTAS.sql, sin demo/BD_COMPLETA.sql. Android usa temporalmente ADB reverse con API_BASE_URL=http://127.0.0.1:5263, sin cambiar configuración persistente. Las secciones siguientes conservan el flujo MVP original y su alternativa LAN/demo; no sustituyen el manual Docker ni autorizan abrir firewall. MinIO, respaldos automáticos y arranque Windows pendientes.
+
 MVP para reportar y atender incidencias en sucursales. Resuelve la pérdida de continuidad cuando un técnico trabaja temporalmente sin Internet: la interfaz consulta y guarda en SQLite, y después sincroniza con la API.
 
 ## Arquitectura y tecnologías

@@ -1,0 +1,26 @@
+rule_files:
+- reglas.yaml
+evaluation_interval: 15s
+tests:
+- interval: 15s
+  input_series:
+  - series: probe_success{job="api_disponibilidad",instance="http://api:8080/api/health/database"}
+    values: 0+0x12
+  alert_rule_test:
+  - eval_time: 2m
+    alertname: ApiNoDisponible
+    exp_alerts:
+    - exp_labels:
+        job: api_disponibilidad
+        instance: http://api:8080/api/health/database
+        severity: critical
+      exp_annotations:
+        summary: La prueba HTTP de API/base de datos falla
+- interval: 15s
+  input_series:
+  - series: probe_success{job="api_disponibilidad",instance="http://api:8080/api/health/database"}
+    values: 1+0x12
+  alert_rule_test:
+  - eval_time: 2m
+    alertname: ApiNoDisponible
+    exp_alerts: []

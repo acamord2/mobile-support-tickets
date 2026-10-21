@@ -1,0 +1,4 @@
+# Reversión exclusiva de API; compose.yaml conserva el montaje original.
+services:
+  api:
+    image: tickets-api:antes-fase12-3

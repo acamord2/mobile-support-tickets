@@ -1,0 +1,6 @@
+{
+  "restauracion_verificada": false,
+  "respaldo_dir": "<RUTA_ABSOLUTA_EXTERNA>",
+  "sha256_dump": "<SHA256_REAL_DUMP_ENSAYADO>",
+  "evidencia": "<REGISTRO_RESTAURACION_AISLADA>"
+}

@@ -1,0 +1,68 @@
+{
+  "api": {
+    "mem_limit": "536870912",
+    "mem_reservation": "134217728",
+    "memswap_limit": "805306368",
+    "cpus": 1
+  },
+  "blackbox": {
+    "mem_limit": "100663296",
+    "mem_reservation": null,
+    "memswap_limit": null,
+    "cpus": 0.25
+  },
+  "cadvisor": {
+    "mem_limit": "402653184",
+    "mem_reservation": null,
+    "memswap_limit": null,
+    "cpus": 0.75
+  },
+  "docker_socket_proxy": {
+    "mem_limit": "67108864",
+    "mem_reservation": null,
+    "memswap_limit": null,
+    "cpus": 0.15
+  },
+  "grafana": {
+    "mem_limit": "805306368",
+    "mem_reservation": "268435456",
+    "memswap_limit": "1073741824",
+    "cpus": 1
+  },
+  "postgres": {
+    "mem_limit": "1073741824",
+    "mem_reservation": "268435456",
+    "memswap_limit": "1342177280",
+    "cpus": 1.5
+  },
+  "postgres_exporter": {
+    "mem_limit": "134217728",
+    "mem_reservation": null,
+    "memswap_limit": null,
+    "cpus": 0.25
+  },
+  "postgres_exporter_lectura": {
+    "mem_limit": "134217728",
+    "mem_reservation": null,
+    "memswap_limit": null,
+    "cpus": 0.25
+  },
+  "postgres_lectura": {
+    "mem_limit": "1073741824",
+    "mem_reservation": "268435456",
+    "memswap_limit": "1342177280",
+    "cpus": 1
+  },
+  "prometheus": {
+    "mem_limit": "805306368",
+    "mem_reservation": "134217728",
+    "memswap_limit": "1610612736",
+    "cpus": 1
+  },
+  "supervision_metricas": {
+    "mem_limit": "33554432",
+    "mem_reservation": null,
+    "memswap_limit": null,
+    "cpus": 0.1
+  }
+}

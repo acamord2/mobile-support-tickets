@@ -1,0 +1,278 @@
+{
+  "supervision_metricas": {
+    "id": "41252b854bd81add41ac73c30583330b50d79a2fd44a87b77177c40a7c52414c",
+    "inicio": "2026-10-21T18:06:49.15012826Z",
+    "reinicios": 0,
+    "limites": {
+      "Memory": 33554432,
+      "MemoryReservation": 0,
+      "MemorySwap": 67108864,
+      "NanoCpus": 100000000,
+      "CpuPeriod": 0,
+      "CpuQuota": 0
+    },
+    "oom_killed": false,
+    "cgroup": {
+      "memory.current": "614400",
+      "memory.max": "33554432",
+      "memory.low": "0",
+      "memory.swap.current": "0",
+      "memory.swap.max": "33554432",
+      "memory.peak": "5107712",
+      "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+      "cpu.max": "10000 100000",
+      "cpu.stat": "usage_usec 16144011\nuser_usec 8817920\nsystem_usec 7326091\nnice_usec 0\nnr_periods 3112\nnr_throttled 1212\nthrottled_usec 85524163\nnr_bursts 0\nburst_usec 0"
+    }
+  },
+  "postgres_exporter": {
+    "id": "5e12f2773f949336ac4876440d88f856d9234385e56b2a8ab770524cc99692a7",
+    "inicio": "2026-10-21T15:53:18.962483649Z",
+    "reinicios": 0,
+    "limites": {
+      "Memory": 134217728,
+      "MemoryReservation": 0,
+      "MemorySwap": 268435456,
+      "NanoCpus": 250000000,
+      "CpuPeriod": 0,
+      "CpuQuota": 0
+    },
+    "oom_killed": false,
+    "cgroup": {
+      "memory.current": "9486336",
+      "memory.max": "134217728",
+      "memory.low": "0",
+      "memory.swap.current": "0",
+      "memory.swap.max": "134217728",
+      "memory.peak": "15040512",
+      "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+      "cpu.max": "25000 100000",
+      "cpu.stat": "usage_usec 91206054\nuser_usec 53197313\nsystem_usec 38008740\nnice_usec 0\nnr_periods 7951\nnr_throttled 1632\nthrottled_usec 134045563\nnr_bursts 0\nburst_usec 0"
+    }
+  },
+  "postgres_exporter_lectura": {
+    "id": "43e082759188daceaaeb0e01b8480090de7e42627207428064a32e18d519e5bf",
+    "inicio": "2026-10-21T15:53:18.943483975Z",
+    "reinicios": 0,
+    "limites": {
+      "Memory": 134217728,
+      "MemoryReservation": 0,
+      "MemorySwap": 268435456,
+      "NanoCpus": 250000000,
+      "CpuPeriod": 0,
+      "CpuQuota": 0
+    },
+    "oom_killed": false,
+    "cgroup": {
+      "memory.current": "10289152",
+      "memory.max": "134217728",
+      "memory.low": "0",
+      "memory.swap.current": "0",
+      "memory.swap.max": "134217728",
+      "memory.peak": "15540224",
+      "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+      "cpu.max": "25000 100000",
+      "cpu.stat": "usage_usec 92598400\nuser_usec 54056481\nsystem_usec 38541919\nnice_usec 0\nnr_periods 7973\nnr_throttled 1744\nthrottled_usec 138570599\nnr_bursts 0\nburst_usec 0"
+    }
+  },
+  "api": {
+    "id": "a1c448528710e67dc08910ea5a0caad80791899bcf0293fc57bf8ebe7f5cc522",
+    "inicio": "2026-10-21T15:51:29.12719408Z",
+    "reinicios": 0,
+    "limites": {
+      "Memory": 0,
+      "MemoryReservation": 0,
+      "MemorySwap": 0,
+      "NanoCpus": 0,
+      "CpuPeriod": 0,
+      "CpuQuota": 0
+    },
+    "oom_killed": false,
+    "cgroup": {
+      "memory.current": "238002176",
+      "memory.max": "max",
+      "memory.low": "0",
+      "memory.swap.current": "0",
+      "memory.swap.max": "max",
+      "memory.peak": "252985344",
+      "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+      "cpu.max": "max 100000",
+      "cpu.stat": "usage_usec 39166753\nuser_usec 31411650\nsystem_usec 7755102\nnice_usec 0\nnr_periods 0\nnr_throttled 0\nthrottled_usec 0\nnr_bursts 0\nburst_usec 0"
+    }
+  },
+  "postgres_lectura": {
+    "id": "dee68d6b5af22c1070f98acc220ac082be58c7c3684c26e155530975f09f7dea",
+    "inicio": "2026-10-21T15:49:41.69874858Z",
+    "reinicios": 0,
+    "limites": {
+      "Memory": 0,
+      "MemoryReservation": 0,
+      "MemorySwap": 0,
+      "NanoCpus": 0,
+      "CpuPeriod": 0,
+      "CpuQuota": 0
+    },
+    "oom_killed": false,
+    "cgroup": {
+      "memory.current": "44597248",
+      "memory.max": "max",
+      "memory.low": "0",
+      "memory.swap.current": "0",
+      "memory.swap.max": "max",
+      "memory.peak": "57614336",
+      "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+      "cpu.max": "max 100000",
+      "cpu.stat": "usage_usec 254793231\nuser_usec 149000291\nsystem_usec 105792939\nnice_usec 0\nnr_periods 0\nnr_throttled 0\nthrottled_usec 0\nnr_bursts 0\nburst_usec 0"
+    }
+  },
+  "prometheus": {
+    "id": "c1991829a303ac0c317fdfe85aef3dbcc2da6eff583a782b8cfe5de8d9af8daa",
+    "inicio": "2026-10-21T15:22:43.325328757Z",
+    "reinicios": 0,
+    "limites": {
+      "Memory": 805306368,
+      "MemoryReservation": 0,
+      "MemorySwap": 1610612736,
+      "NanoCpus": 1000000000,
+      "CpuPeriod": 0,
+      "CpuQuota": 0
+    },
+    "oom_killed": false,
+    "cgroup": {
+      "memory.current": "221614080",
+      "memory.max": "805306368",
+      "memory.low": "0",
+      "memory.swap.current": "0",
+      "memory.swap.max": "805306368",
+      "memory.peak": "231747584",
+      "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+      "cpu.max": "100000 100000",
+      "cpu.stat": "usage_usec 131753606\nuser_usec 92414714\nsystem_usec 39338892\nnice_usec 0\nnr_periods 94059\nnr_throttled 14\nthrottled_usec 295337\nnr_bursts 0\nburst_usec 0"
+    }
+  },
+  "cadvisor": {
+    "id": "e50a0821a82c4a98dd3e2a442d3a6a74e093c36bfc0c1c6793fcfa6f2c57eed3",
+    "inicio": "2026-10-21T15:22:43.416154346Z",
+    "reinicios": 0,
+    "limites": {
+      "Memory": 402653184,
+      "MemoryReservation": 0,
+      "MemorySwap": 805306368,
+      "NanoCpus": 750000000,
+      "CpuPeriod": 0,
+      "CpuQuota": 0
+    },
+    "oom_killed": false,
+    "cgroup": {
+      "memory.current": "66531328",
+      "memory.max": "402653184",
+      "memory.low": "0",
+      "memory.swap.current": "0",
+      "memory.swap.max": "402653184",
+      "memory.peak": "72482816",
+      "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+      "cpu.max": "75000 100000",
+      "cpu.stat": "usage_usec 176410791\nuser_usec 94787759\nsystem_usec 81623032\nnice_usec 0\nnr_periods 30233\nnr_throttled 96\nthrottled_usec 8374934\nnr_bursts 0\nburst_usec 0"
+    }
+  },
+  "grafana": {
+    "id": "a5a421c1132a1bee319ec5e8d99acfc5a39f653ce8180bb36c1b0b125d426b90",
+    "inicio": "2026-10-21T15:22:43.523098962Z",
+    "reinicios": 0,
+    "limites": {
+      "Memory": 536870912,
+      "MemoryReservation": 0,
+      "MemorySwap": 1073741824,
+      "NanoCpus": 1000000000,
+      "CpuPeriod": 0,
+      "CpuQuota": 0
+    },
+    "oom_killed": false,
+    "cgroup": {
+      "memory.current": "531070976",
+      "memory.max": "536870912",
+      "memory.low": "0",
+      "memory.swap.current": "157773824",
+      "memory.swap.max": "536870912",
+      "memory.peak": "536895488",
+      "memory.events": "low 0\nhigh 0\nmax 33407\noom 0\noom_kill 0\noom_group_kill 0",
+      "cpu.max": "100000 100000",
+      "cpu.stat": "usage_usec 409905219\nuser_usec 183577897\nsystem_usec 226327322\nnice_usec 0\nnr_periods 168032\nnr_throttled 451\nthrottled_usec 236365975\nnr_bursts 0\nburst_usec 0",
+      "memory.stat": "anon 142229504\nfile 377856000\nkernel 9564160\nkernel_stack 1769472\npagetables 3178496\nsec_pagetables 0\npercpu 10152\nsock 0\nvmalloc 8192\nshmem 0\nfile_mapped 85454848\nfile_dirty 4096\nfile_writeback 0\nswapcached 104583168\nanon_thp 0\nfile_thp 0\nshmem_thp 0\ninactive_anon 84279296\nactive_anon 58597376\ninactive_file 176586752\nactive_file 201273344\nunevictable 0\nslab_reclaimable 3106120\nslab_unreclaimable 1375392\nslab 4481512\nworkingset_refault_anon 56855\nworkingset_refault_file 1495174\nworkingset_activate_anon 25691\nworkingset_activate_file 785214\nworkingset_restore_anon 18580\nworkingset_restore_file 462670\nworkingset_nodereclaim 0\npgdemote_kswapd 0\npgdemote_direct 0\npgdemote_khugepaged 0\npgdemote_proactive 0\npgscan 2262255\npgsteal 1712699\npswpin 51778\npswpout 57459\npgscan_kswapd 0\npgscan_direct 2262255\npgscan_khugepaged 0\npgscan_proactive 0\npgsteal_kswapd 0\npgsteal_direct 1712699\npgsteal_khugepaged 0\npgsteal_proactive 0\npgfault 827937\npgmajfault 38658\npgrefill 1080691\npgactivate 262028\npgdeactivate 1004723\npglazyfree 0\npglazyfreed 0\nswpin_zero 5077\nswpout_zero 30919\nthp_fault_alloc 0\nthp_collapse_alloc 0\nthp_swpout 0\nthp_swpout_fallback 0"
+    }
+  },
+  "docker_socket_proxy": {
+    "id": "07fc501e4c02a9893cd96f10a8deef84ceb40c25e6dcc17510a0eabaf1935070",
+    "inicio": "2026-10-21T15:22:43.330162184Z",
+    "reinicios": 0,
+    "limites": {
+      "Memory": 67108864,
+      "MemoryReservation": 0,
+      "MemorySwap": 134217728,
+      "NanoCpus": 150000000,
+      "CpuPeriod": 0,
+      "CpuQuota": 0
+    },
+    "oom_killed": false,
+    "cgroup": {
+      "memory.current": "49614848",
+      "memory.max": "67108864",
+      "memory.low": "0",
+      "memory.swap.current": "0",
+      "memory.swap.max": "67108864",
+      "memory.peak": "54190080",
+      "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+      "cpu.max": "15000 100000",
+      "cpu.stat": "usage_usec 49488060\nuser_usec 25745813\nsystem_usec 23742247\nnice_usec 0\nnr_periods 22513\nnr_throttled 1588\nthrottled_usec 85933653\nnr_bursts 0\nburst_usec 0"
+    }
+  },
+  "blackbox": {
+    "id": "8fb336223f2b69e1285dba5a6a52a3a1375feb27d923d4917b2e327fa6c9fdbf",
+    "inicio": "2026-10-21T18:38:36.747817478Z",
+    "reinicios": 1,
+    "limites": {
+      "Memory": 100663296,
+      "MemoryReservation": 0,
+      "MemorySwap": 201326592,
+      "NanoCpus": 250000000,
+      "CpuPeriod": 0,
+      "CpuQuota": 0
+    },
+    "oom_killed": false,
+    "cgroup": {
+      "memory.current": "14495744",
+      "memory.max": "100663296",
+      "memory.low": "0",
+      "memory.swap.current": "0",
+      "memory.swap.max": "100663296",
+      "memory.peak": "17903616",
+      "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+      "cpu.max": "25000 100000",
+      "cpu.stat": "usage_usec 19676613\nuser_usec 11408708\nsystem_usec 8267904\nnice_usec 0\nnr_periods 5421\nnr_throttled 186\nthrottled_usec 6872011\nnr_bursts 0\nburst_usec 0"
+    }
+  },
+  "postgres": {
+    "id": "cd93e3357bac9dad5cddc84b5d26130eeedf731610a15b390d67dc274b681363",
+    "inicio": "2026-10-21T15:48:38.468921331Z",
+    "reinicios": 0,
+    "limites": {
+      "Memory": 0,
+      "MemoryReservation": 0,
+      "MemorySwap": 0,
+      "NanoCpus": 0,
+      "CpuPeriod": 0,
+      "CpuQuota": 0
+    },
+    "oom_killed": false,
+    "cgroup": {
+      "memory.current": "138063872",
+      "memory.max": "max",
+      "memory.low": "0",
+      "memory.swap.current": "0",
+      "memory.swap.max": "max",
+      "memory.peak": "152178688",
+      "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+      "cpu.max": "max 100000",
+      "cpu.stat": "usage_usec 355914720\nuser_usec 209481988\nsystem_usec 146432732\nnice_usec 0\nnr_periods 0\nnr_throttled 0\nthrottled_usec 0\nnr_bursts 0\nburst_usec 0"
+    }
+  }
+}

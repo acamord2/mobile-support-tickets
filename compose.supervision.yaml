@@ -1,0 +1,28 @@
+# Observabilidad Fase14; sin acceso al Engine ni publicaciones de puertos.
+# BusyBox oficial 1.37.0, linux/amd64 verificado.
+services:
+  supervision_metricas:
+    image: busybox@sha256:bdf57e528e45e4433820e045b29b4597825a1c9e38353532d90a01445013f82e
+    pull_policy: never
+    profiles: [supervision]
+    user: "65534:65534"
+    entrypoint: [busybox, httpd, -f, -p, "9199", -h, /metricas]
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 32m
+    cpus: '0.10'
+    networks: [monitoreo]
+    volumes:
+    - type: bind
+      source: ${SUPERVISION_METRICAS_DIR:-/home/econt/.local/state/tickets-supervision/metricas}
+      target: /metricas
+      read_only: true
+      bind: {create_host_path: false}
+    healthcheck:
+      test: [CMD-SHELL, 'wget -q -O /dev/null http://127.0.0.1:9199/supervisor.prom']
+      interval: 15s
+      timeout: 3s
+      retries: 3
+# La red monitoreo interna se define en compose.monitoring.yaml.

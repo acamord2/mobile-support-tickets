@@ -1,0 +1,37 @@
+# Preparada para systemd245 de Ubuntu20.04; NO instalada ni habilitada.
+[Unit]
+Description=Supervisor funcional Tickets (WSL, estado persistente)
+After=docker.service
+StartLimitIntervalSec=300
+StartLimitBurst=3
+ConditionPathExists=/home/econt/practica/mobile-support-tickets/infra/supervision/supervisor.py
+ConditionPathExists=/home/econt/.local/state/tickets-supervision/estado.json
+
+[Service]
+Type=simple
+User=econt
+Group=econt
+SupplementaryGroups=docker
+WorkingDirectory=/home/econt/practica/mobile-support-tickets
+Environment=HOME=/home/econt
+Environment=PATH=/usr/bin:/bin
+Environment=PYTHONUNBUFFERED=1
+ExecStartPre=/usr/bin/python3 /home/econt/practica/mobile-support-tickets/infra/supervision/verificar_unidad.py
+ExecStart=/usr/bin/python3 -u /home/econt/practica/mobile-support-tickets/infra/supervision/supervisor.py vigilar --estado /home/econt/.local/state/tickets-supervision
+Restart=on-failure
+RestartSec=15s
+TimeoutStopSec=45s
+KillSignal=SIGTERM
+KillMode=control-group
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=tickets-supervisor
+UMask=0022
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/econt/.local/state/tickets-supervision
+
+[Install]
+WantedBy=multi-user.target

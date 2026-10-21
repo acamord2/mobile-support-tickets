@@ -1,0 +1,44 @@
+{
+  "prometheus": {
+    "imagen": "prom/prometheus:v3.15.0",
+    "digest": "prom/prometheus@sha256:efd719c99d83b060d9daefdcf00360461adf279f45ef5391f8d111892118753e",
+    "os": "linux",
+    "arquitectura": "amd64",
+    "usuario": "nobody"
+  },
+  "grafana": {
+    "imagen": "grafana/grafana:13.2.4",
+    "digest": "grafana/grafana@sha256:dbbc38ea21103cefb50396340cd88afec779c7e070b0a7bf5a75b4ce46651d3f",
+    "os": "linux",
+    "arquitectura": "amd64",
+    "usuario": "472"
+  },
+  "cadvisor": {
+    "imagen": "ghcr.io/google/cadvisor:0.60.6",
+    "digest": "ghcr.io/google/cadvisor@sha256:b8e7d1093144fd088f425ff003d75a4aa405de075db78dae3bc563730b1bd07a",
+    "os": "linux",
+    "arquitectura": "amd64",
+    "usuario": ""
+  },
+  "postgres_exporter": {
+    "imagen": "quay.io/prometheuscommunity/postgres-exporter:v0.20.1",
+    "digest": "quay.io/prometheuscommunity/postgres-exporter@sha256:ac5ec343104fae0e2d84a27bb8d69b38430a11910c5382cad85d478d2bab713e",
+    "os": "linux",
+    "arquitectura": "amd64",
+    "usuario": "nobody"
+  },
+  "blackbox": {
+    "imagen": "quay.io/prometheus/blackbox-exporter:v0.29.0",
+    "digest": "quay.io/prometheus/blackbox-exporter@sha256:9613f2884689b6fad9f1939f6a3b0388c93a022cfaededb19545b329b5c83dea",
+    "os": "linux",
+    "arquitectura": "amd64",
+    "usuario": ""
+  },
+  "docker_socket_proxy": {
+    "imagen": "tecnativa/docker-socket-proxy:v0.5.0",
+    "digest": "tecnativa/docker-socket-proxy@sha256:1f5038b54f06c3e18422902cf00ba21803d1c97805aae032e5e6673d532d3459",
+    "os": "linux",
+    "arquitectura": "amd64",
+    "usuario": "root"
+  }
+}

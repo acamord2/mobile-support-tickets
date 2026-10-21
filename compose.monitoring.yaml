@@ -1,0 +1,333 @@
+services:
+  prometheus:
+    image: prom/prometheus:v3.15.0
+    pull_policy: never
+    profiles:
+    - monitoreo
+    restart: unless-stopped
+    networks:
+    - monitoreo
+    mem_limit: 768m
+    cpus: '1'
+    security_opt:
+    - no-new-privileges:true
+    user: 65534:65534
+    command:
+    - --config.file=/etc/prometheus/prometheus.yaml
+    - --storage.tsdb.path=/prometheus
+    - --storage.tsdb.retention.time=7d
+    volumes:
+    - datos_prometheus:/prometheus
+    - type: bind
+      source: ./infra/monitoring/prometheus
+      target: /etc/prometheus
+      read_only: true
+      bind:
+        create_host_path: false
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - wget -q -O /dev/null http://127.0.0.1:9090/-/ready
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    cap_drop:
+    - ALL
+  grafana:
+    image: grafana/grafana:13.2.4
+    pull_policy: never
+    profiles:
+    - monitoreo
+    restart: unless-stopped
+    networks:
+    - monitoreo
+    mem_limit: 768m
+    mem_reservation: 256m
+    memswap_limit: 1024m
+    cpus: '1'
+    security_opt:
+    - no-new-privileges:true
+    user: '472:0'
+    environment:
+      GF_SECURITY_ADMIN_USER: admin_monitoreo
+      GF_SECURITY_ADMIN_PASSWORD__FILE: /run/secrets/grafana_admin.key
+      GF_USERS_ALLOW_SIGN_UP: 'false'
+      GF_AUTH_ANONYMOUS_ENABLED: 'false'
+      GF_ANALYTICS_REPORTING_ENABLED: 'false'
+      GF_ANALYTICS_CHECK_FOR_UPDATES: 'false'
+      GF_ANALYTICS_CHECK_FOR_PLUGIN_UPDATES: 'false'
+      GF_LOG_LEVEL: warn
+    volumes:
+    - datos_grafana:/var/lib/grafana
+    - type: bind
+      source: ./infra/monitoring/grafana/provisioning
+      target: /etc/grafana/provisioning
+      read_only: true
+      bind:
+        create_host_path: false
+    - type: bind
+      source: ./infra/monitoring/grafana/dashboards
+      target: /var/lib/grafana/dashboards
+      read_only: true
+      bind:
+        create_host_path: false
+    - type: bind
+      source: ${GRAFANA_ADMIN_PASSWORD_FILE:-/var/lib/mobile-support-tickets/prueba_docker/monitoring/grafana_admin.key}
+      target: /run/secrets/grafana_admin.key
+      read_only: true
+      bind:
+        create_host_path: false
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - wget -q -O /dev/null http://127.0.0.1:3000/api/health
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    cap_drop:
+    - ALL
+  docker_socket_proxy:
+    image: tecnativa/docker-socket-proxy:v0.5.0
+    pull_policy: never
+    profiles:
+    - monitoreo
+    restart: unless-stopped
+    networks:
+    - motor_docker
+    mem_limit: 64m
+    cpus: '0.15'
+    security_opt:
+    - no-new-privileges:true
+    volumes:
+    - type: bind
+      source: /var/run/docker.sock
+      target: /var/run/docker.sock
+      read_only: true
+      bind:
+        create_host_path: false
+    - type: bind
+      source: ./infra/monitoring/docker_proxy/haproxy.cfg
+      target: /etc/haproxy/monitoring.cfg
+      read_only: true
+      bind:
+        create_host_path: false
+    read_only: true
+    tmpfs:
+    - /tmp
+    - /run
+    - /var/lib/haproxy
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - wget -q -O /dev/null http://127.0.0.1:2375/_ping
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    entrypoint:
+    - haproxy
+    - -W
+    - -db
+    - -f
+    - /etc/haproxy/monitoring.cfg
+  cadvisor:
+    image: ghcr.io/google/cadvisor:0.60.6
+    pull_policy: never
+    profiles:
+    - monitoreo
+    restart: unless-stopped
+    networks:
+    - monitoreo
+    - motor_docker
+    mem_limit: 384m
+    cpus: '0.75'
+    security_opt:
+    - no-new-privileges:true
+    command:
+    - --docker=tcp://docker_socket_proxy:2375
+    - --docker_only=true
+    - --housekeeping_interval=15s
+    - --max_housekeeping_interval=15s
+    - --allow_dynamic_housekeeping=false
+    - --global_housekeeping_interval=30s
+    - --store_container_labels=false
+    - --whitelisted_container_labels=com.docker.compose.project,com.docker.compose.service
+    - --enable_metrics=cpu,memory,network,disk,diskIO
+    - --profiling=false
+    pid: host
+    cgroup: host
+    cap_add:
+    - SYS_ADMIN
+    - DAC_READ_SEARCH
+    volumes:
+    - type: bind
+      source: /
+      target: /rootfs
+      read_only: true
+      bind:
+        create_host_path: false
+    - type: bind
+      source: /sys
+      target: /sys
+      read_only: true
+      bind:
+        create_host_path: false
+    - type: bind
+      source: ${DOCKER_ROOT_DIR:-/var/lib/docker}
+      target: /var/lib/docker
+      read_only: true
+      bind:
+        create_host_path: false
+    read_only: true
+    tmpfs:
+    - /tmp
+    - /rootfs/run:ro,noexec,nosuid,size=1m
+    - /rootfs/home:ro,noexec,nosuid,size=1m
+    - /rootfs/root:ro,noexec,nosuid,size=1m
+    - /rootfs/var/lib/mobile-support-tickets:ro,noexec,nosuid,size=1m
+    depends_on:
+      docker_socket_proxy:
+        condition: service_healthy
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - wget -q -O /dev/null http://127.0.0.1:8080/healthz
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+  blackbox:
+    image: quay.io/prometheus/blackbox-exporter:v0.29.0
+    pull_policy: never
+    profiles:
+    - monitoreo
+    restart: unless-stopped
+    networks:
+    - monitoreo
+    - base_datos
+    - motor_docker
+    mem_limit: 96m
+    cpus: '0.25'
+    security_opt:
+    - no-new-privileges:true
+    user: 65534:65534
+    command:
+    - --config.file=/etc/blackbox/blackbox.yaml
+    volumes:
+    - type: bind
+      source: ./infra/monitoring/blackbox/blackbox.yaml
+      target: /etc/blackbox/blackbox.yaml
+      read_only: true
+      bind:
+        create_host_path: false
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - wget -q -O /dev/null http://127.0.0.1:9115/-/healthy
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    cap_drop:
+    - ALL
+    read_only: true
+  postgres_exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter:v0.20.1
+    pull_policy: never
+    profiles:
+    - monitoreo
+    restart: unless-stopped
+    networks:
+    - monitoreo
+    - base_datos
+    mem_limit: 128m
+    cpus: '0.25'
+    security_opt:
+    - no-new-privileges:true
+    user: 65534:65534
+    command:
+    - --no-collector.wal
+    - --no-collector.stat_statements
+    - --no-collector.stat_activity_autovacuum
+    - --collector.stat_checkpointer
+    environment:
+      DATA_SOURCE_URI: postgres:5432/tickets_db?sslmode=disable&connect_timeout=5
+      DATA_SOURCE_USER: monitor_postgres
+      DATA_SOURCE_PASS_FILE: /run/secrets/postgres_monitor.key
+      PG_EXPORTER_COLLECTION_TIMEOUT: 8s
+    volumes:
+    - type: bind
+      source: ${POSTGRES_MONITOR_PASSWORD_FILE:-/var/lib/mobile-support-tickets/prueba_docker/monitoring/postgres_monitor.key}
+      target: /run/secrets/postgres_monitor.key
+      read_only: true
+      bind:
+        create_host_path: false
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - wget -q -O- http://127.0.0.1:9187/metrics | grep -q '^pg_up 1$'
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    cap_drop:
+    - ALL
+    read_only: true
+  postgres_exporter_lectura:
+    image: quay.io/prometheuscommunity/postgres-exporter:v0.20.1
+    pull_policy: never
+    profiles:
+    - monitoreo_replica
+    restart: unless-stopped
+    networks:
+    - monitoreo
+    - base_datos
+    mem_limit: 128m
+    cpus: '0.25'
+    security_opt:
+    - no-new-privileges:true
+    user: 65534:65534
+    command:
+    - --no-collector.wal
+    - --no-collector.stat_statements
+    - --no-collector.stat_activity_autovacuum
+    - --collector.stat_checkpointer
+    - --collector.stat_wal_receiver
+    environment:
+      DATA_SOURCE_URI: postgres_lectura:5432/tickets_db?sslmode=disable&connect_timeout=5
+      DATA_SOURCE_USER: monitor_postgres
+      DATA_SOURCE_PASS_FILE: /run/secrets/postgres_monitor.key
+      PG_EXPORTER_COLLECTION_TIMEOUT: 8s
+    volumes:
+    - type: bind
+      source: ${POSTGRES_MONITOR_PASSWORD_FILE:-/var/lib/mobile-support-tickets/prueba_docker/monitoring/postgres_monitor.key}
+      target: /run/secrets/postgres_monitor.key
+      read_only: true
+      bind:
+        create_host_path: false
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - wget -q -O- http://127.0.0.1:9187/metrics | grep -q '^pg_up 1$'
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    cap_drop:
+    - ALL
+    read_only: true
+networks:
+  monitoreo:
+    driver: bridge
+    internal: true
+  motor_docker:
+    driver: bridge
+    internal: true
+volumes:
+  datos_prometheus: null
+  datos_grafana: null

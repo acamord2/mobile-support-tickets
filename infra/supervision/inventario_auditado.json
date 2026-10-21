@@ -1,0 +1,261 @@
+[
+  {
+    "servicio": "api",
+    "restart": {
+      "Name": "no",
+      "MaximumRetryCount": 0
+    },
+    "healthcheck": null,
+    "estado": "running",
+    "health": null,
+    "reinicios": 0,
+    "oom": false,
+    "puertos": {
+      "8080/tcp": [
+        {
+          "HostIp": "",
+          "HostPort": "5263"
+        }
+      ]
+    },
+    "memoria_limite": 0,
+    "nanocpus": 0,
+    "id": "a1c448528710e67dc08910ea5a0caad80791899bcf0293fc57bf8ebe7f5cc522",
+    "started_at": "2026-10-21T15:51:29.12719408Z"
+  },
+  {
+    "servicio": "postgres",
+    "restart": {
+      "Name": "no",
+      "MaximumRetryCount": 0
+    },
+    "healthcheck": {
+      "Test": [
+        "CMD-SHELL",
+        "pg_isready -U \"${POSTGRES_USER}\" -d \"${POSTGRES_DB}\""
+      ],
+      "Interval": 5000000000,
+      "Timeout": 5000000000,
+      "StartPeriod": 10000000000,
+      "Retries": 12
+    },
+    "estado": "running",
+    "health": "healthy",
+    "reinicios": 0,
+    "oom": false,
+    "puertos": {},
+    "memoria_limite": 0,
+    "nanocpus": 0,
+    "id": "cd93e3357bac9dad5cddc84b5d26130eeedf731610a15b390d67dc274b681363",
+    "started_at": "2026-10-21T15:48:38.468921331Z"
+  },
+  {
+    "servicio": "postgres_lectura",
+    "restart": {
+      "Name": "no",
+      "MaximumRetryCount": 0
+    },
+    "healthcheck": {
+      "Test": [
+        "CMD",
+        "sh",
+        "/opt/replicacion/salud_standby.sh"
+      ],
+      "Interval": 10000000000,
+      "Timeout": 5000000000,
+      "StartPeriod": 60000000000,
+      "Retries": 6
+    },
+    "estado": "running",
+    "health": "healthy",
+    "reinicios": 0,
+    "oom": false,
+    "puertos": {},
+    "memoria_limite": 0,
+    "nanocpus": 0,
+    "id": "dee68d6b5af22c1070f98acc220ac082be58c7c3684c26e155530975f09f7dea",
+    "started_at": "2026-10-21T15:49:41.69874858Z"
+  },
+  {
+    "servicio": "prometheus",
+    "restart": {
+      "Name": "unless-stopped",
+      "MaximumRetryCount": 0
+    },
+    "healthcheck": {
+      "Test": [
+        "CMD-SHELL",
+        "wget -q -O /dev/null http://127.0.0.1:9090/-/ready"
+      ],
+      "Interval": 15000000000,
+      "Timeout": 5000000000,
+      "StartPeriod": 30000000000,
+      "Retries": 5
+    },
+    "estado": "running",
+    "health": "healthy",
+    "reinicios": 0,
+    "oom": false,
+    "puertos": {},
+    "memoria_limite": 805306368,
+    "nanocpus": 1000000000,
+    "id": "c1991829a303ac0c317fdfe85aef3dbcc2da6eff583a782b8cfe5de8d9af8daa",
+    "started_at": "2026-10-21T15:22:43.325328757Z"
+  },
+  {
+    "servicio": "grafana",
+    "restart": {
+      "Name": "unless-stopped",
+      "MaximumRetryCount": 0
+    },
+    "healthcheck": {
+      "Test": [
+        "CMD-SHELL",
+        "wget -q -O /dev/null http://127.0.0.1:3000/api/health"
+      ],
+      "Interval": 15000000000,
+      "Timeout": 5000000000,
+      "StartPeriod": 30000000000,
+      "Retries": 5
+    },
+    "estado": "running",
+    "health": "healthy",
+    "reinicios": 0,
+    "oom": false,
+    "puertos": {},
+    "memoria_limite": 536870912,
+    "nanocpus": 1000000000,
+    "id": "a5a421c1132a1bee319ec5e8d99acfc5a39f653ce8180bb36c1b0b125d426b90",
+    "started_at": "2026-10-21T15:22:43.523098962Z"
+  },
+  {
+    "servicio": "cadvisor",
+    "restart": {
+      "Name": "unless-stopped",
+      "MaximumRetryCount": 0
+    },
+    "healthcheck": {
+      "Test": [
+        "CMD-SHELL",
+        "wget -q -O /dev/null http://127.0.0.1:8080/healthz"
+      ],
+      "Interval": 15000000000,
+      "Timeout": 5000000000,
+      "StartPeriod": 30000000000,
+      "Retries": 5
+    },
+    "estado": "running",
+    "health": "healthy",
+    "reinicios": 0,
+    "oom": false,
+    "puertos": {},
+    "memoria_limite": 402653184,
+    "nanocpus": 750000000,
+    "id": "e50a0821a82c4a98dd3e2a442d3a6a74e093c36bfc0c1c6793fcfa6f2c57eed3",
+    "started_at": "2026-10-21T15:22:43.416154346Z"
+  },
+  {
+    "servicio": "blackbox",
+    "restart": {
+      "Name": "unless-stopped",
+      "MaximumRetryCount": 0
+    },
+    "healthcheck": {
+      "Test": [
+        "CMD-SHELL",
+        "wget -q -O /dev/null http://127.0.0.1:9115/-/healthy"
+      ],
+      "Interval": 15000000000,
+      "Timeout": 5000000000,
+      "StartPeriod": 30000000000,
+      "Retries": 5
+    },
+    "estado": "running",
+    "health": "healthy",
+    "reinicios": 0,
+    "oom": false,
+    "puertos": {},
+    "memoria_limite": 100663296,
+    "nanocpus": 250000000,
+    "id": "8fb336223f2b69e1285dba5a6a52a3a1375feb27d923d4917b2e327fa6c9fdbf",
+    "started_at": "2026-10-21T15:22:43.567722192Z"
+  },
+  {
+    "servicio": "postgres_exporter",
+    "restart": {
+      "Name": "unless-stopped",
+      "MaximumRetryCount": 0
+    },
+    "healthcheck": {
+      "Test": [
+        "CMD-SHELL",
+        "wget -q -O- http://127.0.0.1:9187/metrics | grep -q '^pg_up 1$'"
+      ],
+      "Interval": 15000000000,
+      "Timeout": 5000000000,
+      "StartPeriod": 30000000000,
+      "Retries": 5
+    },
+    "estado": "running",
+    "health": "healthy",
+    "reinicios": 0,
+    "oom": false,
+    "puertos": {},
+    "memoria_limite": 134217728,
+    "nanocpus": 250000000,
+    "id": "5e12f2773f949336ac4876440d88f856d9234385e56b2a8ab770524cc99692a7",
+    "started_at": "2026-10-21T15:53:18.962483649Z"
+  },
+  {
+    "servicio": "postgres_exporter_lectura",
+    "restart": {
+      "Name": "unless-stopped",
+      "MaximumRetryCount": 0
+    },
+    "healthcheck": {
+      "Test": [
+        "CMD-SHELL",
+        "wget -q -O- http://127.0.0.1:9187/metrics | grep -q '^pg_up 1$'"
+      ],
+      "Interval": 15000000000,
+      "Timeout": 5000000000,
+      "StartPeriod": 30000000000,
+      "Retries": 5
+    },
+    "estado": "running",
+    "health": "healthy",
+    "reinicios": 0,
+    "oom": false,
+    "puertos": {},
+    "memoria_limite": 134217728,
+    "nanocpus": 250000000,
+    "id": "43e082759188daceaaeb0e01b8480090de7e42627207428064a32e18d519e5bf",
+    "started_at": "2026-10-21T15:53:18.943483975Z"
+  },
+  {
+    "servicio": "docker_socket_proxy",
+    "restart": {
+      "Name": "unless-stopped",
+      "MaximumRetryCount": 0
+    },
+    "healthcheck": {
+      "Test": [
+        "CMD-SHELL",
+        "wget -q -O /dev/null http://127.0.0.1:2375/_ping"
+      ],
+      "Interval": 15000000000,
+      "Timeout": 5000000000,
+      "StartPeriod": 30000000000,
+      "Retries": 5
+    },
+    "estado": "running",
+    "health": "healthy",
+    "reinicios": 0,
+    "oom": false,
+    "puertos": {},
+    "memoria_limite": 67108864,
+    "nanocpus": 150000000,
+    "id": "07fc501e4c02a9893cd96f10a8deef84ceb40c25e6dcc17510a0eabaf1935070",
+    "started_at": "2026-10-21T15:22:43.330162184Z"
+  }
+]

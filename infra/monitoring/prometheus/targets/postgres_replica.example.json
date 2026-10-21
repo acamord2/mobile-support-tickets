@@ -1,0 +1,10 @@
+[
+  {
+    "targets": [
+      "postgres_exporter_lectura:9187"
+    ],
+    "labels": {
+      "servidor": "replica"
+    }
+  }
+]

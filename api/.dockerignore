@@ -1,0 +1,32 @@
+# Solo se envían el proyecto, fuentes C# y configuración base sin credenciales.
+**
+!Tickets.Api.csproj
+!**/
+!**/*.cs
+!appsettings.json
+
+# Excluye artefactos incluso si contienen archivos C# generados.
+**/bin/**
+**/obj/**
+**/build/**
+**/publish/**
+**/TestResults/**
+**/coverage/**
+**/.git/**
+**/.vs/**
+**/.vscode/**
+**/.idea/**
+
+# Nunca incluye almacenes de secretos, configuración local ni certificados.
+**/.microsoft/**
+**/UserSecrets/**
+**/usersecrets/**
+**/secrets.json
+**/secrets.*.json
+**/.env
+**/.env.*
+**/appsettings.*.json
+**/*.pfx
+**/*.p12
+**/*.pem
+**/*.key

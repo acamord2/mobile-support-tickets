@@ -29,3 +29,21 @@
 *.tmp
 **/.pub-cache/
 **/.pub/
+
+# Estado y respaldos locales: no publicar datos de ejecución.
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
+*.dump
+*.backup
+*.pgpass
+*.pgpass.*
+!docs/infraestructura/plantillas/*.example
+**/backups/
+**/respaldos/
+**/globales.sql
+**/id_ed25519
+**/id_rsa
+**/known_hosts
+**/incidentes.jsonl
+infra/supervision/estado/

@@ -1,0 +1,27 @@
+# Fase15: propuesta NO aplicada. Incluir solo tras autorizacion explicita.
+services:
+  api:
+    mem_limit: 512m
+    mem_reservation: 128m
+    memswap_limit: 768m
+    cpus: '1.0'
+  postgres:
+    mem_limit: 1024m
+    mem_reservation: 256m
+    memswap_limit: 1280m
+    cpus: '1.5'
+  postgres_lectura:
+    mem_limit: 1024m
+    mem_reservation: 256m
+    memswap_limit: 1280m
+    cpus: '1.0'
+  grafana:
+    mem_limit: 768m
+    mem_reservation: 256m
+    memswap_limit: 1024m
+    cpus: '1.0'
+  prometheus:
+    mem_limit: 768m
+    mem_reservation: 128m
+    memswap_limit: 1536m
+    cpus: '1.0'

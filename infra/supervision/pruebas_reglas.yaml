@@ -1,0 +1,25 @@
+rule_files: [reglas.yaml]
+evaluation_interval: 15s
+tests:
+- interval: 15s
+  input_series:
+  - series: tickets_supervisor_heartbeat_timestamp_seconds
+    values: '0+15x20'
+  - series: tickets_supervisor_bloqueado{servicio="api"}
+    values: '1+0x20'
+  alert_rule_test:
+  - eval_time: 2m
+    alertname: RecuperacionBloqueada
+    exp_alerts:
+    - exp_labels: {servicio: api, severity: critical}
+      exp_annotations: {summary: Presupuesto agotado o reinicio solicitado fallido}
+- interval: 15s
+  input_series:
+  - series: tickets_supervisor_heartbeat_timestamp_seconds
+    values: '0+0x20'
+  alert_rule_test:
+  - eval_time: 3m
+    alertname: SupervisorSinLatido
+    exp_alerts:
+    - exp_labels: {severity: critical}
+      exp_annotations: {summary: Supervisor sin evidencia reciente; comprobar WSL y motor}

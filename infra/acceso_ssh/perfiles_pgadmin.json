@@ -1,0 +1,24 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "Tickets 17 - Primario (consulta)",
+      "Group": "Tickets SSH local",
+      "Host": "127.0.0.1",
+      "Port": 15432,
+      "MaintenanceDB": "tickets_db",
+      "Username": "consultor_api",
+      "SSLMode": "prefer",
+      "UseSSHTunnel": 0
+    },
+    "2": {
+      "Name": "Tickets 17 - Standby (consulta)",
+      "Group": "Tickets SSH local",
+      "Host": "127.0.0.1",
+      "Port": 15433,
+      "MaintenanceDB": "tickets_db",
+      "Username": "consultor_api",
+      "SSLMode": "prefer",
+      "UseSSHTunnel": 0
+    }
+  }
+}

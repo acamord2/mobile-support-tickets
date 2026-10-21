@@ -1,0 +1,1 @@
+postgres:5432:replication:replicador_lectura:<SECRETO_REPLICACION>

@@ -1,0 +1,265 @@
+{
+  "uid": "supervision_local",
+  "title": "Supervision funcional y recuperacion",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "15s",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Funcion SQL/HTTP",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus_local"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "tickets_supervisor_funcional"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Healthcheck Docker",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus_local"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "tickets_supervisor_docker_healthy"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Estado y causa",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus_local"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "tickets_supervisor_estado"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Reinicios Docker",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus_local"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "tickets_supervisor_reinicios_docker"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Reinicios solicitados",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus_local"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 16,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "tickets_supervisor_reinicios_solicitados_total"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Incidentes acumulados",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus_local"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 16,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "tickets_supervisor_incidentes_total"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Tiempo de recuperacion (s)",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus_local"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 24,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "tickets_supervisor_recuperacion_segundos"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "title": "API lectura",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus_local"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 24,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "tickets_supervisor_api_lectura"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "title": "API escritura",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus_local"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 32,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "tickets_supervisor_api_escritura"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "title": "Streaming WAL",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus_local"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 32,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "tickets_supervisor_wal_streaming"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "title": "Edad del latido (s)",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus_local"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 40,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "time()-tickets_supervisor_heartbeat_timestamp_seconds"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "title": "Recuperacion bloqueada",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus_local"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 40,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "tickets_supervisor_bloqueado"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,65 @@
+# Práctica local aislada; no reutiliza nombres de contenedores existentes.
+name: mobile-support-tickets-prueba-docker
+
+services:
+  api:
+    restart: unless-stopped
+    image: tickets-api:local
+    pull_policy: never
+    user: "1654:1654"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_HTTP_PORTS: "8080"
+      HOME: /home/app
+      SecretsApi__ClaveConexionBaseDatos: ConnectionStrings:DefaultConnection
+      SecretsApi__ClaveJwt: Jwt:Key
+    ports:
+      - "5263:8080"
+    volumes:
+      # User Secrets se carga en Development; el archivo nunca entra a la imagen.
+      - type: bind
+        source: ${API_USER_SECRETS_FILE:?Define la ruta absoluta al archivo externo de User Secrets}
+        target: /home/app/.microsoft/usersecrets/ce8894f4-5c74-441b-a964-b601e9520a3c/secrets.json
+        read_only: true
+        bind:
+          create_host_path: false
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - acceso_api
+      - base_datos
+
+  postgres:
+    restart: unless-stopped
+    image: postgres:17
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-tickets_db}
+      POSTGRES_USER: ${POSTGRES_USER:-tickets_practica}
+      POSTGRES_PASSWORD_FILE: /run/secrets/password_postgres
+    secrets:
+      - password_postgres
+    volumes:
+      - datos_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    networks:
+      - base_datos
+
+networks:
+  acceso_api:
+    driver: bridge
+  base_datos:
+    driver: bridge
+    internal: true
+
+volumes:
+  datos_postgres:
+
+secrets:
+  password_postgres:
+    file: ${POSTGRES_PASSWORD_FILE:?Define la ruta absoluta al archivo externo de password PostgreSQL}

@@ -1,0 +1,43 @@
+groups:
+- name: supervision_preparada
+  rules:
+  - alert: SupervisorSinLatido
+    expr: absent(tickets_supervisor_heartbeat_timestamp_seconds) or time() - tickets_supervisor_heartbeat_timestamp_seconds > 60
+    for: 1m
+    labels: {severity: critical}
+    annotations: {summary: Supervisor sin evidencia reciente; comprobar WSL y motor}
+  - alert: SupervisionNoDisponible
+    expr: up{job="supervision"} == 0
+    for: 1m
+    labels: {severity: critical}
+    annotations: {summary: Endpoint de supervision no responde}
+  - alert: RecuperacionBloqueada
+    expr: tickets_supervisor_bloqueado == 1
+    for: 1m
+    labels: {severity: critical}
+    annotations: {summary: Presupuesto agotado o reinicio solicitado fallido}
+  - alert: ServicioFuncionalNoDisponible
+    expr: tickets_supervisor_funcional == 0
+    for: 2m
+    labels: {severity: warning}
+    annotations: {summary: Fallo funcional persistente; revisar causa antes de reiniciar}
+  - alert: ApiSoloConsultas
+    expr: tickets_supervisor_api_lectura == 1 and tickets_supervisor_api_escritura == 0
+    for: 1m
+    labels: {severity: warning}
+    annotations: {summary: API permite consultas pero no escrituras; no reiniciar por dependencia}
+  - alert: MotorDockerNoDisponible
+    expr: tickets_supervisor_motor_disponible == 0
+    for: 30s
+    labels: {severity: critical}
+    annotations: {summary: Motor Docker no disponible segun supervisor externo}
+  - alert: WalSinStreamingSupervisado
+    expr: tickets_supervisor_wal_streaming == 0
+    for: 2m
+    labels: {severity: warning}
+    annotations: {summary: Sin streaming WAL; diagnosticar sin reiniciar PostgreSQL}
+  - alert: ReiniciosDockerFrecuentes
+    expr: increase(tickets_supervisor_reinicios_docker[15m]) > 3
+    for: 1m
+    labels: {severity: warning}
+    annotations: {summary: Reinicios Docker frecuentes fuera del presupuesto del supervisor}

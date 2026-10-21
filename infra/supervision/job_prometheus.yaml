@@ -1,0 +1,8 @@
+# Job Fase14; BusyBox no envia Content-Type: formato de texto declarado explicitamente.
+job_name: supervision
+scrape_interval: 15s
+metrics_path: /supervisor.prom
+static_configs:
+- targets:
+  - supervision_metricas:9199
+fallback_scrape_protocol: PrometheusText0.0.4

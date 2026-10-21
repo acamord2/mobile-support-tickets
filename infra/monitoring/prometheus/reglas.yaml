@@ -1,0 +1,45 @@
+groups:
+- name: disponibilidad_local
+  rules:
+  - alert: ApiNoDisponible
+    expr: probe_success{job="api_disponibilidad"} == 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: La prueba HTTP de API/base de datos falla
+  - alert: PostgresNoDisponible
+    expr: pg_up{job="postgres"} == 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: Exporter no puede consultar PostgreSQL
+  - alert: RecolectorNoDisponible
+    expr: up{job=~"cadvisor|postgres|blackbox"} == 0
+    for: 2m
+    labels:
+      severity: warning
+    annotations:
+      summary: Un recolector no responde
+  - alert: ReplicaAtrasada
+    expr: pg_replication_lag_seconds{job="postgres_replica"} > 30
+    for: 2m
+    labels:
+      severity: warning
+    annotations:
+      summary: Retraso de réplica mayor de 30 s; confirmar LSN y actividad
+  - alert: ReplicaNoDisponible
+    expr: up{job="postgres_replica"} == 0 or pg_up{job="postgres_replica"} == 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: Exporter o PostgreSQL secundario no disponible
+  - alert: ReceptorWalNoDisponible
+    expr: absent(pg_stat_wal_receiver_last_msg_receipt_time{job="postgres_replica",status="streaming"}) or (time() - pg_stat_wal_receiver_last_msg_receipt_time{job="postgres_replica",status="streaming"} > 30)
+    for: 1m
+    labels:
+      severity: warning
+    annotations:
+      summary: Receptor WAL sin streaming o sin mensajes recientes

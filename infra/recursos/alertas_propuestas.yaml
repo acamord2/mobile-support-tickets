@@ -1,0 +1,29 @@
+# Preparadas, NO cargadas. Verificar cuotas/limites efectivos antes de integrarlas.
+groups:
+- name: recursos_propuestos
+  rules:
+  - alert: MemoriaWorkingSetCercaLimite
+    expr: container_memory_working_set_bytes{job="cadvisor",container_label_com_docker_compose_project="mobile-support-tickets-prueba-docker"} / on(instance,id) container_spec_memory_limit_bytes{job="cadvisor",container_label_com_docker_compose_project="mobile-support-tickets-prueba-docker"} > 0.85
+    for: 10m
+    labels: {severity: warning}
+    annotations: {summary: Working set supera85porciento del limite; verificar cache y memoria total}
+  - alert: PresionMemoriaCgroup
+    expr: increase(container_memory_events_max_total{job="cadvisor",container_label_com_docker_compose_project="mobile-support-tickets-prueba-docker"}[5m]) > 0
+    for: 5m
+    labels: {severity: warning}
+    annotations: {summary: Cgroup alcanza techo de memoria; max no equivale a OOMKill}
+  - alert: CPUCercaCuota
+    expr: rate(container_cpu_usage_seconds_total{job="cadvisor",container_label_com_docker_compose_project="mobile-support-tickets-prueba-docker"}[5m]) / on(instance,id) (container_spec_cpu_quota{job="cadvisor",container_label_com_docker_compose_project="mobile-support-tickets-prueba-docker"} / container_spec_cpu_period{job="cadvisor",container_label_com_docker_compose_project="mobile-support-tickets-prueba-docker"}) > 0.90 and on(instance,id) container_spec_cpu_quota{job="cadvisor",container_label_com_docker_compose_project="mobile-support-tickets-prueba-docker"} > 0
+    for: 10m
+    labels: {severity: warning}
+    annotations: {summary: CPU sostenida supera90porciento de cuota configurada}
+  - alert: CPUThrottlingSostenido
+    expr: rate(container_cpu_cfs_throttled_periods_total{job="cadvisor",container_label_com_docker_compose_project="mobile-support-tickets-prueba-docker"}[5m]) / on(instance,id) clamp_min(rate(container_cpu_cfs_periods_total{job="cadvisor",container_label_com_docker_compose_project="mobile-support-tickets-prueba-docker"}[5m]),0.001) > 0.20
+    for: 10m
+    labels: {severity: warning}
+    annotations: {summary: Mas20porciento de periodos CPU limitados; correlacionar con latencia}
+  - alert: SwapContenedorSostenida
+    expr: container_memory_swap{job="cadvisor",container_label_com_docker_compose_project="mobile-support-tickets-prueba-docker"} > 0
+    for: 15m
+    labels: {severity: warning}
+    annotations: {summary: Swap sostenida; revisar presion sin reiniciar a ciegas}

@@ -1,0 +1,23 @@
+{
+  "proyecto": "mobile-support-tickets-prueba-docker",
+  "intervalo": 15,
+  "arranque": 120,
+  "fallos": 3,
+  "cooldown": 300,
+  "ventana": 3600,
+  "max_reinicios": 3,
+  "autorreinicio": [
+    "api",
+    "grafana",
+    "blackbox",
+    "postgres_exporter",
+    "postgres_exporter_lectura"
+  ],
+  "observar": [
+    "postgres",
+    "postgres_lectura",
+    "prometheus",
+    "cadvisor",
+    "docker_socket_proxy"
+  ]
+}

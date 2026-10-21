@@ -1,0 +1,753 @@
+{
+  "fecha": "2026-10-21",
+  "zona_horaria": "America/Mexico_City",
+  "proyecto": "mobile-support-tickets-prueba-docker",
+  "engine": "27.3.1",
+  "compose": "2.29.7",
+  "contenedores": [
+    {
+      "servicio": "supervision_metricas",
+      "nombre": "mobile-support-tickets-prueba-docker-supervision_metricas-1",
+      "id": "41252b854bd81add41ac73c30583330b50d79a2fd44a87b77177c40a7c52414c",
+      "pid": 1941,
+      "inicio": "2026-10-21T21:11:35.137283936Z",
+      "reinicios": 0,
+      "estado": "running",
+      "salud": "healthy",
+      "OOMKilled": false,
+      "imagen": "busybox@sha256:bdf57e528e45e4433820e045b29b4597825a1c9e38353532d90a01445013f82e",
+      "image_id": "sha256:30ecbe1509090b38ef3260f3609d64d8261230464eaa4d235901db496e9647fb",
+      "tags": [
+        "busybox:1.37.0"
+      ],
+      "digests": [
+        "busybox@sha256:bdf57e528e45e4433820e045b29b4597825a1c9e38353532d90a01445013f82e"
+      ],
+      "arquitectura": "amd64",
+      "os": "linux",
+      "usuario": "65534:65534",
+      "entrypoint": [
+        "busybox",
+        "httpd",
+        "-f",
+        "-p",
+        "9199",
+        "-h",
+        "/metricas"
+      ],
+      "cmd": null,
+      "puertos": {},
+      "redes": [
+        "mobile-support-tickets-prueba-docker_monitoreo"
+      ],
+      "montajes": [
+        {
+          "tipo": "bind",
+          "nombre": null,
+          "origen": "/home/econt/.local/state/tickets-supervision/metricas",
+          "destino": "/metricas",
+          "lectura_escritura": false
+        }
+      ],
+      "restart": {
+        "Name": "unless-stopped",
+        "MaximumRetryCount": 0
+      },
+      "healthcheck": {
+        "Test": [
+          "CMD-SHELL",
+          "wget -q -O /dev/null http://127.0.0.1:9199/supervisor.prom"
+        ],
+        "Interval": 15000000000,
+        "Timeout": 3000000000,
+        "Retries": 3
+      },
+      "recursos": {
+        "Memory": 33554432,
+        "MemoryReservation": 0,
+        "MemorySwap": 67108864,
+        "NanoCpus": 100000000,
+        "CpuQuota": 0,
+        "CpuPeriod": 0
+      }
+    },
+    {
+      "servicio": "postgres_exporter",
+      "nombre": "mobile-support-tickets-prueba-docker-postgres_exporter-1",
+      "id": "5e12f2773f949336ac4876440d88f856d9234385e56b2a8ab770524cc99692a7",
+      "pid": 2170,
+      "inicio": "2026-10-21T21:11:35.234522122Z",
+      "reinicios": 0,
+      "estado": "running",
+      "salud": "healthy",
+      "OOMKilled": false,
+      "imagen": "quay.io/prometheuscommunity/postgres-exporter:v0.20.1",
+      "image_id": "sha256:1dcb30ec16e2379751c9101006ac4e7b13ddfb5ec494bac3845a99bcad0aa141",
+      "tags": [
+        "quay.io/prometheuscommunity/postgres-exporter:v0.20.1"
+      ],
+      "digests": [
+        "quay.io/prometheuscommunity/postgres-exporter@sha256:ac5ec343104fae0e2d84a27bb8d69b38430a11910c5382cad85d478d2bab713e"
+      ],
+      "arquitectura": "amd64",
+      "os": "linux",
+      "usuario": "65534:65534",
+      "entrypoint": [
+        "/bin/postgres_exporter"
+      ],
+      "cmd": [
+        "--no-collector.wal",
+        "--no-collector.stat_statements",
+        "--no-collector.stat_activity_autovacuum",
+        "--collector.stat_checkpointer"
+      ],
+      "puertos": {},
+      "redes": [
+        "mobile-support-tickets-prueba-docker_base_datos",
+        "mobile-support-tickets-prueba-docker_monitoreo"
+      ],
+      "montajes": [],
+      "restart": {
+        "Name": "unless-stopped",
+        "MaximumRetryCount": 0
+      },
+      "healthcheck": {
+        "Test": [
+          "CMD-SHELL",
+          "wget -q -O- http://127.0.0.1:9187/metrics | grep -q '^pg_up 1$'"
+        ],
+        "Interval": 15000000000,
+        "Timeout": 5000000000,
+        "StartPeriod": 30000000000,
+        "Retries": 5
+      },
+      "recursos": {
+        "Memory": 134217728,
+        "MemoryReservation": 0,
+        "MemorySwap": 268435456,
+        "NanoCpus": 250000000,
+        "CpuQuota": 0,
+        "CpuPeriod": 0
+      }
+    },
+    {
+      "servicio": "postgres_exporter_lectura",
+      "nombre": "mobile-support-tickets-prueba-docker-postgres_exporter_lectura-1",
+      "id": "43e082759188daceaaeb0e01b8480090de7e42627207428064a32e18d519e5bf",
+      "pid": 2193,
+      "inicio": "2026-10-21T21:11:35.362568347Z",
+      "reinicios": 0,
+      "estado": "running",
+      "salud": "healthy",
+      "OOMKilled": false,
+      "imagen": "quay.io/prometheuscommunity/postgres-exporter:v0.20.1",
+      "image_id": "sha256:1dcb30ec16e2379751c9101006ac4e7b13ddfb5ec494bac3845a99bcad0aa141",
+      "tags": [
+        "quay.io/prometheuscommunity/postgres-exporter:v0.20.1"
+      ],
+      "digests": [
+        "quay.io/prometheuscommunity/postgres-exporter@sha256:ac5ec343104fae0e2d84a27bb8d69b38430a11910c5382cad85d478d2bab713e"
+      ],
+      "arquitectura": "amd64",
+      "os": "linux",
+      "usuario": "65534:65534",
+      "entrypoint": [
+        "/bin/postgres_exporter"
+      ],
+      "cmd": [
+        "--no-collector.wal",
+        "--no-collector.stat_statements",
+        "--no-collector.stat_activity_autovacuum",
+        "--collector.stat_checkpointer",
+        "--collector.stat_wal_receiver"
+      ],
+      "puertos": {},
+      "redes": [
+        "mobile-support-tickets-prueba-docker_base_datos",
+        "mobile-support-tickets-prueba-docker_monitoreo"
+      ],
+      "montajes": [],
+      "restart": {
+        "Name": "unless-stopped",
+        "MaximumRetryCount": 0
+      },
+      "healthcheck": {
+        "Test": [
+          "CMD-SHELL",
+          "wget -q -O- http://127.0.0.1:9187/metrics | grep -q '^pg_up 1$'"
+        ],
+        "Interval": 15000000000,
+        "Timeout": 5000000000,
+        "StartPeriod": 30000000000,
+        "Retries": 5
+      },
+      "recursos": {
+        "Memory": 134217728,
+        "MemoryReservation": 0,
+        "MemorySwap": 268435456,
+        "NanoCpus": 250000000,
+        "CpuQuota": 0,
+        "CpuPeriod": 0
+      }
+    },
+    {
+      "servicio": "api",
+      "nombre": "mobile-support-tickets-prueba-docker-api-1",
+      "id": "a1c448528710e67dc08910ea5a0caad80791899bcf0293fc57bf8ebe7f5cc522",
+      "pid": 2064,
+      "inicio": "2026-10-21T21:11:35.219618409Z",
+      "reinicios": 0,
+      "estado": "running",
+      "salud": "sin healthcheck",
+      "OOMKilled": false,
+      "imagen": "tickets-api:fase12-3",
+      "image_id": "sha256:218135d79d244c66e75aafb7abbefd87e3d487cca7b4f3be4ff9ce656fbc8210",
+      "tags": [
+        "tickets-api:fase12-3"
+      ],
+      "digests": [],
+      "arquitectura": "amd64",
+      "os": "linux",
+      "usuario": "1654:1654",
+      "entrypoint": [
+        "dotnet",
+        "Tickets.Api.dll"
+      ],
+      "cmd": null,
+      "puertos": {
+        "8080/tcp": [
+          {
+            "HostIp": "0.0.0.0",
+            "HostPort": "5263"
+          },
+          {
+            "HostIp": "::",
+            "HostPort": "5263"
+          }
+        ]
+      },
+      "redes": [
+        "mobile-support-tickets-prueba-docker_acceso_api",
+        "mobile-support-tickets-prueba-docker_base_datos"
+      ],
+      "montajes": [],
+      "restart": {
+        "Name": "unless-stopped",
+        "MaximumRetryCount": 0
+      },
+      "healthcheck": null,
+      "recursos": {
+        "Memory": 0,
+        "MemoryReservation": 0,
+        "MemorySwap": 0,
+        "NanoCpus": 0,
+        "CpuQuota": 0,
+        "CpuPeriod": 0
+      }
+    },
+    {
+      "servicio": "postgres_lectura",
+      "nombre": "mobile-support-tickets-prueba-docker-postgres_lectura-1",
+      "id": "dee68d6b5af22c1070f98acc220ac082be58c7c3684c26e155530975f09f7dea",
+      "pid": 1904,
+      "inicio": "2026-10-21T21:11:35.149564296Z",
+      "reinicios": 0,
+      "estado": "running",
+      "salud": "healthy",
+      "OOMKilled": false,
+      "imagen": "postgres@sha256:2d2b8998d31037bf721cfdf764d76ba74171b4fab3431b7f72c27c56ddbdf9e3",
+      "image_id": "sha256:327daa8fae7178d61f93142f146b098467b345e10997b9eb79f63bd58e5c8f3c",
+      "tags": [
+        "postgres:17"
+      ],
+      "digests": [
+        "postgres@sha256:2d2b8998d31037bf721cfdf764d76ba74171b4fab3431b7f72c27c56ddbdf9e3"
+      ],
+      "arquitectura": "amd64",
+      "os": "linux",
+      "usuario": "",
+      "entrypoint": [
+        "sh",
+        "/opt/replicacion/iniciar_standby.sh"
+      ],
+      "cmd": null,
+      "puertos": {},
+      "redes": [
+        "mobile-support-tickets-prueba-docker_base_datos"
+      ],
+      "montajes": [
+        {
+          "tipo": "bind",
+          "nombre": null,
+          "origen": "/home/econt/practica/mobile-support-tickets/infra/replicacion",
+          "destino": "/opt/replicacion",
+          "lectura_escritura": false
+        },
+        {
+          "tipo": "volume",
+          "nombre": "mobile-support-tickets-prueba-docker_datos_postgres_lectura",
+          "origen": "/var/lib/docker/volumes/mobile-support-tickets-prueba-docker_datos_postgres_lectura/_data",
+          "destino": "/var/lib/postgresql/data",
+          "lectura_escritura": true
+        }
+      ],
+      "restart": {
+        "Name": "unless-stopped",
+        "MaximumRetryCount": 0
+      },
+      "healthcheck": {
+        "Test": [
+          "CMD",
+          "sh",
+          "/opt/replicacion/salud_standby.sh"
+        ],
+        "Interval": 10000000000,
+        "Timeout": 5000000000,
+        "StartPeriod": 60000000000,
+        "Retries": 6
+      },
+      "recursos": {
+        "Memory": 0,
+        "MemoryReservation": 0,
+        "MemorySwap": 0,
+        "NanoCpus": 0,
+        "CpuQuota": 0,
+        "CpuPeriod": 0
+      }
+    },
+    {
+      "servicio": "prometheus",
+      "nombre": "mobile-support-tickets-prueba-docker-prometheus-1",
+      "id": "c1991829a303ac0c317fdfe85aef3dbcc2da6eff583a782b8cfe5de8d9af8daa",
+      "pid": 1828,
+      "inicio": "2026-10-21T21:11:34.963211944Z",
+      "reinicios": 0,
+      "estado": "running",
+      "salud": "healthy",
+      "OOMKilled": false,
+      "imagen": "prom/prometheus:v3.15.0",
+      "image_id": "sha256:66416213a3b43651d3521acc3987277b4f97ad0ae29acc581f910ef9bd3959bd",
+      "tags": [
+        "prom/prometheus:v3.15.0"
+      ],
+      "digests": [
+        "prom/prometheus@sha256:efd719c99d83b060d9daefdcf00360461adf279f45ef5391f8d111892118753e"
+      ],
+      "arquitectura": "amd64",
+      "os": "linux",
+      "usuario": "65534:65534",
+      "entrypoint": [
+        "/bin/prometheus"
+      ],
+      "cmd": [
+        "--config.file=/etc/prometheus/prometheus.yaml",
+        "--storage.tsdb.path=/prometheus",
+        "--storage.tsdb.retention.time=7d"
+      ],
+      "puertos": {},
+      "redes": [
+        "mobile-support-tickets-prueba-docker_monitoreo"
+      ],
+      "montajes": [
+        {
+          "tipo": "bind",
+          "nombre": null,
+          "origen": "/home/econt/practica/mobile-support-tickets/infra/monitoring/prometheus",
+          "destino": "/etc/prometheus",
+          "lectura_escritura": false
+        },
+        {
+          "tipo": "volume",
+          "nombre": "mobile-support-tickets-prueba-docker_datos_prometheus",
+          "origen": "/var/lib/docker/volumes/mobile-support-tickets-prueba-docker_datos_prometheus/_data",
+          "destino": "/prometheus",
+          "lectura_escritura": true
+        }
+      ],
+      "restart": {
+        "Name": "unless-stopped",
+        "MaximumRetryCount": 0
+      },
+      "healthcheck": {
+        "Test": [
+          "CMD-SHELL",
+          "wget -q -O /dev/null http://127.0.0.1:9090/-/ready"
+        ],
+        "Interval": 15000000000,
+        "Timeout": 5000000000,
+        "StartPeriod": 30000000000,
+        "Retries": 5
+      },
+      "recursos": {
+        "Memory": 805306368,
+        "MemoryReservation": 0,
+        "MemorySwap": 1610612736,
+        "NanoCpus": 1000000000,
+        "CpuQuota": 0,
+        "CpuPeriod": 0
+      }
+    },
+    {
+      "servicio": "cadvisor",
+      "nombre": "mobile-support-tickets-prueba-docker-cadvisor-1",
+      "id": "e50a0821a82c4a98dd3e2a442d3a6a74e093c36bfc0c1c6793fcfa6f2c57eed3",
+      "pid": 2168,
+      "inicio": "2026-10-21T21:11:35.204426408Z",
+      "reinicios": 0,
+      "estado": "running",
+      "salud": "healthy",
+      "OOMKilled": false,
+      "imagen": "ghcr.io/google/cadvisor:0.60.6",
+      "image_id": "sha256:d280a05f4391d4707f3d2407114e47083989c8dcfb1c6de976676620c2c0d1dd",
+      "tags": [
+        "ghcr.io/google/cadvisor:0.60.6"
+      ],
+      "digests": [
+        "ghcr.io/google/cadvisor@sha256:b8e7d1093144fd088f425ff003d75a4aa405de075db78dae3bc563730b1bd07a"
+      ],
+      "arquitectura": "amd64",
+      "os": "linux",
+      "usuario": "",
+      "entrypoint": [
+        "/usr/bin/entrypoint.sh"
+      ],
+      "cmd": [
+        "--docker=tcp://docker_socket_proxy:2375",
+        "--docker_only=true",
+        "--housekeeping_interval=15s",
+        "--max_housekeeping_interval=15s",
+        "--allow_dynamic_housekeeping=false",
+        "--global_housekeeping_interval=30s",
+        "--store_container_labels=false",
+        "--whitelisted_container_labels=com.docker.compose.project,com.docker.compose.service",
+        "--enable_metrics=cpu,memory,network,disk,diskIO",
+        "--profiling=false"
+      ],
+      "puertos": {},
+      "redes": [
+        "mobile-support-tickets-prueba-docker_monitoreo",
+        "mobile-support-tickets-prueba-docker_motor_docker"
+      ],
+      "montajes": [
+        {
+          "tipo": "bind",
+          "nombre": null,
+          "origen": "/",
+          "destino": "/rootfs",
+          "lectura_escritura": false
+        },
+        {
+          "tipo": "bind",
+          "nombre": null,
+          "origen": "/sys",
+          "destino": "/sys",
+          "lectura_escritura": false
+        },
+        {
+          "tipo": "bind",
+          "nombre": null,
+          "origen": "/var/lib/docker",
+          "destino": "/var/lib/docker",
+          "lectura_escritura": false
+        }
+      ],
+      "restart": {
+        "Name": "unless-stopped",
+        "MaximumRetryCount": 0
+      },
+      "healthcheck": {
+        "Test": [
+          "CMD-SHELL",
+          "wget -q -O /dev/null http://127.0.0.1:8080/healthz"
+        ],
+        "Interval": 15000000000,
+        "Timeout": 5000000000,
+        "StartPeriod": 30000000000,
+        "Retries": 5
+      },
+      "recursos": {
+        "Memory": 402653184,
+        "MemoryReservation": 0,
+        "MemorySwap": 805306368,
+        "NanoCpus": 750000000,
+        "CpuQuota": 0,
+        "CpuPeriod": 0
+      }
+    },
+    {
+      "servicio": "grafana",
+      "nombre": "mobile-support-tickets-prueba-docker-grafana-1",
+      "id": "a5a421c1132a1bee319ec5e8d99acfc5a39f653ce8180bb36c1b0b125d426b90",
+      "pid": 2174,
+      "inicio": "2026-10-21T21:11:35.210121551Z",
+      "reinicios": 0,
+      "estado": "running",
+      "salud": "healthy",
+      "OOMKilled": false,
+      "imagen": "grafana/grafana:13.2.4",
+      "image_id": "sha256:45900b2eda7da0cbda80b9025e446147d9085fee71675ba86a48a1cad34e4c8a",
+      "tags": [
+        "grafana/grafana:13.2.4"
+      ],
+      "digests": [
+        "grafana/grafana@sha256:dbbc38ea21103cefb50396340cd88afec779c7e070b0a7bf5a75b4ce46651d3f"
+      ],
+      "arquitectura": "amd64",
+      "os": "linux",
+      "usuario": "472:0",
+      "entrypoint": [
+        "/run.sh"
+      ],
+      "cmd": null,
+      "puertos": {},
+      "redes": [
+        "mobile-support-tickets-prueba-docker_monitoreo"
+      ],
+      "montajes": [
+        {
+          "tipo": "volume",
+          "nombre": "mobile-support-tickets-prueba-docker_datos_grafana",
+          "origen": "/var/lib/docker/volumes/mobile-support-tickets-prueba-docker_datos_grafana/_data",
+          "destino": "/var/lib/grafana",
+          "lectura_escritura": true
+        },
+        {
+          "tipo": "bind",
+          "nombre": null,
+          "origen": "/home/econt/practica/mobile-support-tickets/infra/monitoring/grafana/dashboards",
+          "destino": "/var/lib/grafana/dashboards",
+          "lectura_escritura": false
+        },
+        {
+          "tipo": "bind",
+          "nombre": null,
+          "origen": "/home/econt/practica/mobile-support-tickets/infra/monitoring/grafana/provisioning",
+          "destino": "/etc/grafana/provisioning",
+          "lectura_escritura": false
+        }
+      ],
+      "restart": {
+        "Name": "unless-stopped",
+        "MaximumRetryCount": 0
+      },
+      "healthcheck": {
+        "Test": [
+          "CMD-SHELL",
+          "wget -q -O /dev/null http://127.0.0.1:3000/api/health"
+        ],
+        "Interval": 15000000000,
+        "Timeout": 5000000000,
+        "StartPeriod": 30000000000,
+        "Retries": 5
+      },
+      "recursos": {
+        "Memory": 805306368,
+        "MemoryReservation": 268435456,
+        "MemorySwap": 1073741824,
+        "NanoCpus": 1000000000,
+        "CpuQuota": 0,
+        "CpuPeriod": 0
+      }
+    },
+    {
+      "servicio": "docker_socket_proxy",
+      "nombre": "mobile-support-tickets-prueba-docker-docker_socket_proxy-1",
+      "id": "07fc501e4c02a9893cd96f10a8deef84ceb40c25e6dcc17510a0eabaf1935070",
+      "pid": 1830,
+      "inicio": "2026-10-21T21:11:35.020149546Z",
+      "reinicios": 0,
+      "estado": "running",
+      "salud": "healthy",
+      "OOMKilled": false,
+      "imagen": "tecnativa/docker-socket-proxy:v0.5.0",
+      "image_id": "sha256:a14e639cf2a202e87bb83f21ff041885098f295dbbbb18e2f3a8f078f90dfdcc",
+      "tags": [
+        "tecnativa/docker-socket-proxy:v0.5.0"
+      ],
+      "digests": [
+        "tecnativa/docker-socket-proxy@sha256:1f5038b54f06c3e18422902cf00ba21803d1c97805aae032e5e6673d532d3459"
+      ],
+      "arquitectura": "amd64",
+      "os": "linux",
+      "usuario": "root",
+      "entrypoint": [
+        "haproxy",
+        "-W",
+        "-db",
+        "-f",
+        "/etc/haproxy/monitoring.cfg"
+      ],
+      "cmd": null,
+      "puertos": {},
+      "redes": [
+        "mobile-support-tickets-prueba-docker_motor_docker"
+      ],
+      "montajes": [
+        {
+          "tipo": "bind",
+          "nombre": null,
+          "origen": "/var/run/docker.sock",
+          "destino": "/var/run/docker.sock",
+          "lectura_escritura": false
+        },
+        {
+          "tipo": "bind",
+          "nombre": null,
+          "origen": "/home/econt/practica/mobile-support-tickets/infra/monitoring/docker_proxy/haproxy.cfg",
+          "destino": "/etc/haproxy/monitoring.cfg",
+          "lectura_escritura": false
+        }
+      ],
+      "restart": {
+        "Name": "unless-stopped",
+        "MaximumRetryCount": 0
+      },
+      "healthcheck": {
+        "Test": [
+          "CMD-SHELL",
+          "wget -q -O /dev/null http://127.0.0.1:2375/_ping"
+        ],
+        "Interval": 15000000000,
+        "Timeout": 5000000000,
+        "StartPeriod": 30000000000,
+        "Retries": 5
+      },
+      "recursos": {
+        "Memory": 67108864,
+        "MemoryReservation": 0,
+        "MemorySwap": 134217728,
+        "NanoCpus": 150000000,
+        "CpuQuota": 0,
+        "CpuPeriod": 0
+      }
+    },
+    {
+      "servicio": "blackbox",
+      "nombre": "mobile-support-tickets-prueba-docker-blackbox-1",
+      "id": "8fb336223f2b69e1285dba5a6a52a3a1375feb27d923d4917b2e327fa6c9fdbf",
+      "pid": 2200,
+      "inicio": "2026-10-21T21:11:35.371019833Z",
+      "reinicios": 0,
+      "estado": "running",
+      "salud": "healthy",
+      "OOMKilled": false,
+      "imagen": "quay.io/prometheus/blackbox-exporter:v0.29.0",
+      "image_id": "sha256:7ef4bd0d9c33800235b7b3dd9a5b9258fd22d51e847f46c9a30b83560fe3748b",
+      "tags": [
+        "quay.io/prometheus/blackbox-exporter:v0.29.0"
+      ],
+      "digests": [
+        "quay.io/prometheus/blackbox-exporter@sha256:9613f2884689b6fad9f1939f6a3b0388c93a022cfaededb19545b329b5c83dea"
+      ],
+      "arquitectura": "amd64",
+      "os": "linux",
+      "usuario": "65534:65534",
+      "entrypoint": [
+        "/bin/blackbox_exporter"
+      ],
+      "cmd": [
+        "--config.file=/etc/blackbox/blackbox.yaml"
+      ],
+      "puertos": {},
+      "redes": [
+        "mobile-support-tickets-prueba-docker_base_datos",
+        "mobile-support-tickets-prueba-docker_monitoreo",
+        "mobile-support-tickets-prueba-docker_motor_docker"
+      ],
+      "montajes": [
+        {
+          "tipo": "bind",
+          "nombre": null,
+          "origen": "/home/econt/practica/mobile-support-tickets/infra/monitoring/blackbox/blackbox.yaml",
+          "destino": "/etc/blackbox/blackbox.yaml",
+          "lectura_escritura": false
+        }
+      ],
+      "restart": {
+        "Name": "unless-stopped",
+        "MaximumRetryCount": 0
+      },
+      "healthcheck": {
+        "Test": [
+          "CMD-SHELL",
+          "wget -q -O /dev/null http://127.0.0.1:9115/-/healthy"
+        ],
+        "Interval": 15000000000,
+        "Timeout": 5000000000,
+        "StartPeriod": 30000000000,
+        "Retries": 5
+      },
+      "recursos": {
+        "Memory": 100663296,
+        "MemoryReservation": 0,
+        "MemorySwap": 201326592,
+        "NanoCpus": 250000000,
+        "CpuQuota": 0,
+        "CpuPeriod": 0
+      }
+    },
+    {
+      "servicio": "postgres",
+      "nombre": "mobile-support-tickets-prueba-docker-postgres-1",
+      "id": "cd93e3357bac9dad5cddc84b5d26130eeedf731610a15b390d67dc274b681363",
+      "pid": 1876,
+      "inicio": "2026-10-21T21:11:35.061025093Z",
+      "reinicios": 0,
+      "estado": "running",
+      "salud": "healthy",
+      "OOMKilled": false,
+      "imagen": "postgres:17",
+      "image_id": "sha256:327daa8fae7178d61f93142f146b098467b345e10997b9eb79f63bd58e5c8f3c",
+      "tags": [
+        "postgres:17"
+      ],
+      "digests": [
+        "postgres@sha256:2d2b8998d31037bf721cfdf764d76ba74171b4fab3431b7f72c27c56ddbdf9e3"
+      ],
+      "arquitectura": "amd64",
+      "os": "linux",
+      "usuario": "",
+      "entrypoint": [
+        "docker-entrypoint.sh"
+      ],
+      "cmd": [
+        "postgres"
+      ],
+      "puertos": {},
+      "redes": [
+        "mobile-support-tickets-prueba-docker_base_datos"
+      ],
+      "montajes": [
+        {
+          "tipo": "volume",
+          "nombre": "mobile-support-tickets-prueba-docker_datos_postgres",
+          "origen": "/var/lib/docker/volumes/mobile-support-tickets-prueba-docker_datos_postgres/_data",
+          "destino": "/var/lib/postgresql/data",
+          "lectura_escritura": true
+        }
+      ],
+      "restart": {
+        "Name": "unless-stopped",
+        "MaximumRetryCount": 0
+      },
+      "healthcheck": {
+        "Test": [
+          "CMD-SHELL",
+          "pg_isready -U \"${POSTGRES_USER}\" -d \"${POSTGRES_DB}\""
+        ],
+        "Interval": 5000000000,
+        "Timeout": 5000000000,
+        "StartPeriod": 10000000000,
+        "Retries": 12
+      },
+      "recursos": {
+        "Memory": 0,
+        "MemoryReservation": 0,
+        "MemorySwap": 0,
+        "NanoCpus": 0,
+        "CpuQuota": 0,
+        "CpuPeriod": 0
+      }
+    }
+  ]
+}

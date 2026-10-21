@@ -1,0 +1,40 @@
+# Complemento opcional: no modifica api ni postgres del archivo base.
+services:
+  postgres_lectura:
+    restart: unless-stopped
+    image: postgres@sha256:2d2b8998d31037bf721cfdf764d76ba74171b4fab3431b7f72c27c56ddbdf9e3
+    pull_policy: never
+    profiles: [replicacion]
+    entrypoint: [sh, /opt/replicacion/iniciar_standby.sh]
+    environment:
+      PGDATA: /var/lib/postgresql/data
+      PGPASSFILE: /run/secrets/replicacion.pgpass
+    volumes:
+      - datos_postgres_lectura:/var/lib/postgresql/data
+      - type: bind
+        source: ./infra/replicacion
+        target: /opt/replicacion
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${REPLICA_PGPASS_FILE:-/var/lib/mobile-support-tickets/prueba_docker/replicacion.pgpass}
+        target: /run/secrets/replicacion.pgpass
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${REPLICA_RESPALDO_OK:-/var/lib/mobile-support-tickets/prueba_docker/respaldo-verificado.json}
+        target: /run/preparacion/respaldo-verificado.json
+        read_only: true
+        bind:
+          create_host_path: false
+    healthcheck:
+      test: [CMD, sh, /opt/replicacion/salud_standby.sh]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 60s
+    networks: [base_datos]
+volumes:
+  datos_postgres_lectura:

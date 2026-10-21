@@ -1,0 +1,73 @@
+flowchart LR
+  subgraph win["Windows 11"]
+    pgadmin["pgAdmin 9.4"]
+    tun["OpenSSH loopback 15432 / 15433"]
+    browser["Navegador Grafana"]
+    proxy["Proxy temporal 127.0.0.1:13000"]
+  end
+  subgraph wsl["Ubuntu 20.04 WSL2"]
+    subgraph sys["systemd - procesos host"]
+      sup["tickets-supervisor.service - econt"]
+      state["Estado persistente externo - cooldown y supervisor.prom"]
+    end
+    subgraph eng["Docker Engine 27.3.1 / Compose 2.29.7"]
+      subgraph access["acceso_api - bridge"]
+        api["api .NET 10 - 8080 / host 5263"]
+      end
+      subgraph db["base_datos - interna"]
+        pg["postgres 17.11 - 5432 - RW"]
+        ro["postgres_lectura 17.11 - 5432 - READ ONLY"]
+        exp["postgres_exporter v0.20.1 - 9187"]
+        expro["postgres_exporter_lectura v0.20.1 - 9187"]
+        vpg["Volumen datos_postgres"]
+        vro["Volumen datos_postgres_lectura"]
+      end
+      subgraph mon["monitoreo - interna"]
+        prom["prometheus v3.15.0 - 9090 / 15s / 7d"]
+        gf["grafana 13.2.4 - 3000 / 5 dashboards / 50 paneles"]
+        bb["blackbox v0.29.0 - 9115"]
+        cad["cadvisor 0.60.6 - 8080 / lectura host"]
+        met["supervision_metricas BusyBox 1.37.0 - 9199"]
+        vp["datos_prometheus"]
+        vg["datos_grafana"]
+      end
+      subgraph motor["motor_docker - interna"]
+        sock["docker_socket_proxy v0.5.0 - 2375 / GET-HEAD ACL"]
+        dockerapi["Socket Docker - ACL proxy / control host separado"]
+      end
+    end
+    sshd["sshd temporal 127.0.0.1:2222 - key-only / PermitOpen / sin shell"]
+  end
+  android["Android Flutter / SQLite - USB ADB reverse 5263"]
+  pgadmin -->|"TCP loopback"| tun
+  tun -->|"SSH host key verificada"| sshd
+  sshd -->|"PermitOpen IP actual:5432"| pg
+  sshd -->|"PermitOpen IP actual:5432"| ro
+  android -->|"ADB reverse + HTTP JWT"| api
+  api -->|"Escritura login me y autorizacion"| pg
+  api -->|"Cinco lecturas consultor_api"| ro
+  pg -->|"WAL streaming async y slot"| ro
+  exp -->|"monitor_postgres"| pg
+  expro -->|"monitor_postgres"| ro
+  prom -->|"scrape interno"| exp
+  prom -->|"scrape interno"| expro
+  prom -->|"scrape"| cad
+  prom -->|"scrape y probes"| bb
+  prom -->|"scrape supervisor.prom"| met
+  prom -->|"Auto scrape"| prom
+  gf -->|"Datasource"| prom
+  bb -->|"health HTTP"| api
+  bb -->|"Metadatos permitidos"| sock
+  cad -->|"GET HEAD"| sock
+  sock -->|"Socket local protegido"| dockerapi
+  sup -->|"restart solo API Grafana Blackbox exporters"| dockerapi
+  sup -->|"Persiste y observa salud"| state
+  state -->|"Bind RO metricas"| met
+  browser -->|"HTTP loopback"| proxy
+  proxy -->|"stdio WSL sin puerto Docker"| gf
+  pg -->|"PGDATA propio"| vpg
+  ro -->|"PGDATA propio"| vro
+  prom -->|"TSDB"| vp
+  gf -->|"Persistencia"| vg
+  api -.->|"Fallback seguro consultor_api"| pg
+  legend["Flecha continua: solicitud/flujo. Punteada: fallback seguro. Multiples redes: API tambien base_datos; exporters tambien monitoreo; Blackbox tambien base_datos/motor_docker; cAdvisor tambien motor_docker. PostgreSQL y monitoreo sin puertos Docker publicados. SSH/proxy bajo demanda. Solo primario escribe; sin promocion automatica. Backups externos no equivalen a replica."]

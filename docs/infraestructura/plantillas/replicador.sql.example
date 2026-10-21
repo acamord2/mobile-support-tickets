@@ -1,0 +1,14 @@
+-- Solo instalación NUEVA autorizada; NO rotación ni servidor actual.
+-- Sesión sin registros SQL sensibles. Password recibido por entorno privado.
+\set ON_ERROR_STOP on
+\set ECHO none
+\getenv clave_replicacion REPLICATION_PASSWORD
+\if :{?clave_replicacion}
+\else
+  \quit 3
+\endif
+BEGIN;
+SET LOCAL password_encryption='scram-sha-256';
+CREATE ROLE replicador_lectura LOGIN REPLICATION NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS PASSWORD :'clave_replicacion';
+COMMIT;
+\unset clave_replicacion

@@ -1,0 +1,11 @@
+# Despliegue API separado; no altera servicios PostgreSQL ni monitoreo.
+services:
+  api:
+    image: tickets-api:fase12-3
+    volumes:
+      - type: bind
+        source: ${API_SEPARACION_SECRETS_FILE:-/var/lib/mobile-support-tickets/prueba_docker/secrets-lectura-escritura.json}
+        target: /home/app/.microsoft/usersecrets/ce8894f4-5c74-441b-a964-b601e9520a3c/secrets.json
+        read_only: true
+        bind:
+          create_host_path: false

@@ -1,0 +1,35 @@
+modules:
+  api_database:
+    prober: http
+    timeout: 5s
+    http:
+      method: GET
+      valid_status_codes:
+      - 200
+      preferred_ip_protocol: ip4
+      follow_redirects: false
+      fail_if_body_not_matches_regexp:
+      - '"status"\s*:\s*"ok"'
+      - '"database"\s*:\s*"connected"'
+  docker_running:
+    prober: http
+    timeout: 5s
+    http:
+      method: GET
+      valid_status_codes:
+      - 200
+      preferred_ip_protocol: ip4
+      follow_redirects: false
+      fail_if_body_not_matches_regexp:
+      - '"Running"\s*:\s*true'
+  docker_healthy:
+    prober: http
+    timeout: 5s
+    http:
+      method: GET
+      valid_status_codes:
+      - 200
+      preferred_ip_protocol: ip4
+      follow_redirects: false
+      fail_if_body_not_matches_regexp:
+      - '"Status"\s*:\s*"healthy"'

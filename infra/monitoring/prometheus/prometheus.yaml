@@ -1,0 +1,95 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  scrape_timeout: 10s
+rule_files:
+- /etc/prometheus/reglas.yaml
+- /etc/prometheus/supervision.yaml
+scrape_configs:
+- job_name: prometheus
+  static_configs:
+  - targets:
+    - prometheus:9090
+- job_name: cadvisor
+  static_configs:
+  - targets:
+    - cadvisor:8080
+- job_name: postgres
+  static_configs:
+  - targets:
+    - postgres_exporter:9187
+    labels:
+      servidor: primario
+- job_name: blackbox
+  static_configs:
+  - targets:
+    - blackbox:9115
+- job_name: api_disponibilidad
+  metrics_path: /probe
+  params:
+    module:
+    - api_database
+  static_configs:
+  - targets:
+    - http://api:8080/api/health/database
+  relabel_configs:
+  - source_labels:
+    - __address__
+    target_label: __param_target
+  - source_labels:
+    - __param_target
+    target_label: instance
+  - target_label: __address__
+    replacement: blackbox:9115
+- job_name: postgres_replica
+  file_sd_configs:
+  - files:
+    - /etc/prometheus/targets/postgres_replica.json
+    refresh_interval: 30s
+- job_name: docker_estado
+  metrics_path: /probe
+  params:
+    module:
+    - docker_running
+  static_configs:
+  - targets:
+    - http://docker_socket_proxy:2375/containers/mobile-support-tickets-prueba-docker-api-1/json
+    labels:
+      contenedor: api
+  - targets:
+    - http://docker_socket_proxy:2375/containers/mobile-support-tickets-prueba-docker-postgres-1/json
+    labels:
+      contenedor: postgres
+  relabel_configs:
+  - source_labels:
+    - __address__
+    target_label: __param_target
+  - source_labels:
+    - __param_target
+    target_label: instance
+  - target_label: __address__
+    replacement: blackbox:9115
+- job_name: docker_health_postgres
+  metrics_path: /probe
+  params:
+    module:
+    - docker_healthy
+  static_configs:
+  - targets:
+    - http://docker_socket_proxy:2375/containers/mobile-support-tickets-prueba-docker-postgres-1/json
+  relabel_configs:
+  - source_labels:
+    - __address__
+    target_label: __param_target
+  - source_labels:
+    - __param_target
+    target_label: instance
+  - target_label: __address__
+    replacement: blackbox:9115
+- job_name: supervision
+  scrape_interval: 15s
+  metrics_path: /supervisor.prom
+  static_configs:
+  - targets:
+    - supervision_metricas:9199
+  fallback_scrape_protocol: PrometheusText0.0.4
